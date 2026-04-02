@@ -1,0 +1,50 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "actorBkg": "#ffffff",
+    "actorBorder": "#a98de6",
+    "actorTextColor": "#2f3152",
+    "signalColor": "#3f425d",
+    "signalTextColor": "#2f3152",
+    "labelBoxBkgColor": "#fff4b8",
+    "labelBoxBorderColor": "#f1c84c",
+    "labelTextColor": "#2f3152",
+    "noteBkgColor": "#fffdf1",
+    "noteBorderColor": "#d3d7f0",
+    "sequenceNumberColor": "#2f3152",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    participant Scheduler as "System Scheduler"
+    participant Notification as "Notification Service"
+    participant CentralDB as "Central Database"
+    participant Gateway as "SMS Gateway (External)"
+    actor Caregiver
+
+    Note over Scheduler,Gateway: FR12-FR13: Automated SMS Alerts
+    Scheduler->>Notification: Trigger daily batch (00:00 AM)
+    par Fetch recipient groups
+      Notification->>CentralDB: Query due tomorrow (FR12)
+      CentralDB-->>Notification: List of reminder recipients
+      Notification->>CentralDB: Query missed > 48hrs (FR13)
+      CentralDB-->>Notification: List of defaulter recipients
+    end
+    loop Process each caregiver
+      Notification->>Notification: Localize message (Amharic/Oromiffa)
+      alt Reminder
+        Notification->>Gateway: Send(phone, "Reminder: Vaccine due")
+      else Defaulter alert
+        Notification->>Gateway: Send(phone, "Alert: Missed Appointment")
+      end
+      alt Network failure
+        Gateway-->>Notification: 500 error
+        Notification->>CentralDB: Log retry queue
+        CentralDB-->>Notification: 200 OK (queued)
+      else Accepted
+        Gateway-->>Notification: 200 OK
+      end
+      Gateway-->>Caregiver: Deliver SMS (asynchronous)
+    end
+    Notification-->>Scheduler: Batch job complete

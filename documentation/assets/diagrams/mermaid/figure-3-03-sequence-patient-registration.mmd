@@ -1,0 +1,45 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "actorBkg": "#ffffff",
+    "actorBorder": "#a98de6",
+    "actorTextColor": "#2f3152",
+    "signalColor": "#3f425d",
+    "signalTextColor": "#2f3152",
+    "labelBoxBkgColor": "#fff4b8",
+    "labelBoxBorderColor": "#f1c84c",
+    "labelTextColor": "#2f3152",
+    "noteBkgColor": "#fffdf1",
+    "noteBorderColor": "#d3d7f0",
+    "sequenceNumberColor": "#2f3152",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    actor HealthWorker as "Health Worker"
+    participant WebPortal as "Web Portal"
+    participant Registration as "Registration Service"
+    participant UID as "UID Generator"
+    participant CentralDB as "Central Database"
+
+    Note over HealthWorker,CentralDB: FR4-FR6: Core Registry and UID Generation
+    HealthWorker->>WebPortal: Submit registration (patient + caregiver)
+    WebPortal->>WebPortal: Validate mandatory fields
+    WebPortal->>Registration: POST /patients/register
+    Registration->>CentralDB: Check duplicates (name, location)
+    CentralDB-->>Registration: No match found
+    par Generate UID and format
+      Registration->>UID: Request unique ID (e.g. ETH-1001)
+      UID-->>Registration: Return UID
+      Registration->>Registration: Format as FHIR Patient
+    end
+    Registration->>CentralDB: Begin transaction
+    Registration->>CentralDB: Insert caregiver entity
+    Registration->>CentralDB: Insert patient entity (linked)
+    Registration->>CentralDB: Commit transaction
+    CentralDB-->>Registration: Success (entities linked)
+    Registration->>CentralDB: Initialize empty vaccination history
+    CentralDB-->>Registration: History created
+    Registration-->>WebPortal: Registration successful
+    WebPortal-->>HealthWorker: Display patient dashboard

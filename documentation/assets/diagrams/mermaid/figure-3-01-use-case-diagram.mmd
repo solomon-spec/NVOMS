@@ -1,0 +1,95 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#6da9ff",
+    "primaryBorderColor": "#5f8dde",
+    "primaryTextColor": "#ffffff",
+    "secondaryColor": "#ffffff",
+    "tertiaryColor": "#f8fbff",
+    "lineColor": "#8a8ea6",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 26,
+    "rankSpacing": 34,
+    "htmlLabels": true
+  }
+}}%%
+flowchart LR
+    classDef actor fill:#ffffff,stroke:#9da4bb,color:#2f3152,stroke-width:1px
+    classDef usecase fill:#6da9ff,stroke:#5f8dde,color:#ffffff,stroke-width:1px
+    classDef external fill:#ffffff,stroke:#9da4bb,color:#2f3152,stroke-width:1px
+    classDef note fill:#ffffff,stroke:#8c8c8c,color:#2f3152,stroke-width:1px
+
+    admin[Administrator]:::actor
+    hw[Health Worker]:::actor
+    caregiver[Caregiver]:::actor
+    smsGateway[SMS Gateway]:::external
+    dhis2[DHIS2]:::external
+    official[Public Health Official]:::actor
+    fhirNote["All exchanged health data shall conform to HL7 FHIR<br/>for Patient, Immunization, and Observation"]:::note
+
+    subgraph system["System"]
+        direction TB
+        auth([Authenticate User]):::usecase
+        manage([Manage User Accounts]):::usecase
+        settings([Configure System Settings]):::usecase
+        register([Register Patient]):::usecase
+        viewRecord([View Patient<br/>Immunization Record]):::usecase
+        recordDose([Record Vaccine<br/>Administration]):::usecase
+        epiUpdate([Update Epidemiological<br/>Data]):::usecase
+        genSchedule([Generate Vaccination<br/>Schedule]):::usecase
+        monitor([Monitor Vaccination<br/>Status]):::usecase
+        identify([Identify Defaulter]):::usecase
+        reminder([Send Vaccination<br/>Reminder]):::usecase
+        missed([Send Missed<br/>Appointment]):::usecase
+        receiveReminder([Receive Vaccination<br/>Reminder SMS]):::usecase
+        receiveMissed([Receive Missed<br/>Appointment]):::usecase
+        analytics([View Analytics<br/>Dashboard]):::usecase
+        riskMap([View Outbreak<br/>Risk Map]):::usecase
+        reports([Generate/Export<br/>Reports]):::usecase
+        predict([Predict Disease<br/>Outbreak]):::usecase
+        detect([Detect High<br/>Defaulter]):::usecase
+        share([Share Immunization<br/>Data]):::usecase
+        exchange([Exchange Health Data<br/>(FHIR-compliant)]):::usecase
+    end
+
+    admin --- auth
+    admin --- manage
+    admin --- settings
+    admin --- register
+    admin --- viewRecord
+    admin --- recordDose
+    admin --- epiUpdate
+    admin --- analytics
+    admin --- riskMap
+    admin --- reports
+
+    hw --- auth
+    hw --- register
+    hw --- viewRecord
+    hw --- recordDose
+    hw --- epiUpdate
+    hw --- monitor
+    hw --- analytics
+
+    official --- analytics
+    official --- riskMap
+    official --- reports
+
+    caregiver --- receiveReminder
+    caregiver --- receiveMissed
+    smsGateway --- reminder
+    smsGateway --- missed
+    dhis2 --- share
+    dhis2 --- exchange
+    fhirNote --- exchange
+
+    register -.->|<<include>>| genSchedule
+    monitor -.->|<<include>>| identify
+    genSchedule -.->|<<extend>>| reminder
+    identify -.->|<<extend>>| missed
+    monitor -.->|supports| detect
+    predict -.->|feeds| analytics
+    predict -.->|feeds| riskMap

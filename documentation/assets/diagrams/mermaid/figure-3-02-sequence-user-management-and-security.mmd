@@ -1,0 +1,62 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "actorBkg": "#ffffff",
+    "actorBorder": "#a98de6",
+    "actorTextColor": "#2f3152",
+    "signalColor": "#3f425d",
+    "signalTextColor": "#2f3152",
+    "labelBoxBkgColor": "#fff4b8",
+    "labelBoxBorderColor": "#f1c84c",
+    "labelTextColor": "#2f3152",
+    "noteBkgColor": "#fffdf1",
+    "noteBorderColor": "#d3d7f0",
+    "sequenceNumberColor": "#2f3152",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    actor Administrator
+    actor HealthWorker as "Health Worker"
+    participant WebPortal as "Web Portal"
+    participant AuthService as "Auth Service"
+    participant AccessControl as "Access Control"
+    participant CentralDB as "Central Database"
+    participant EmailService as "Email Service"
+
+    rect rgb(255, 248, 180)
+    Note over Administrator,CentralDB: FR1: Role-Based Account Creation
+    Administrator->>WebPortal: Create account (role=HealthWorker)
+    WebPortal->>AuthService: POST /users/create
+    AuthService->>AccessControl: Validate admin permissions
+    AccessControl-->>AuthService: Authorized
+    AuthService->>CentralDB: Check if email exists
+    CentralDB-->>AuthService: Unique
+    AuthService->>AuthService: Hash password (Argon2)
+    AuthService->>CentralDB: Insert user record
+    CentralDB-->>AuthService: User ID created
+    AuthService-->>WebPortal: Success message
+    WebPortal-->>Administrator: Display "Account Created"
+    end
+
+    rect rgb(255, 248, 180)
+    Note over HealthWorker,CentralDB: FR2 & FR3: Secure Authentication
+    HealthWorker->>WebPortal: Input credentials
+    WebPortal->>AuthService: Login(email, password)
+    AuthService->>CentralDB: Fetch password hash
+    CentralDB-->>AuthService: Return hash
+    alt Credentials valid
+      AuthService->>AuthService: Generate JWT token
+      AuthService-->>WebPortal: 200 OK + token
+      WebPortal-->>HealthWorker: Redirect to dashboard
+    else Invalid password
+      AuthService-->>WebPortal: 401 Unauthorized
+      WebPortal-->>HealthWorker: Show error "Invalid Login"
+    end
+    opt FR3: Password recovery
+      HealthWorker->>WebPortal: Request password reset
+      WebPortal->>AuthService: Initiate reset flow
+      AuthService->>EmailService: Send reset link
+      EmailService-->>HealthWorker: Email with token
+    end

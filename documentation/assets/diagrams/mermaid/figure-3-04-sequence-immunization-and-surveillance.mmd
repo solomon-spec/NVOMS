@@ -1,0 +1,50 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "actorBkg": "#ffffff",
+    "actorBorder": "#a98de6",
+    "actorTextColor": "#2f3152",
+    "signalColor": "#3f425d",
+    "signalTextColor": "#2f3152",
+    "labelBoxBkgColor": "#fff4b8",
+    "labelBoxBorderColor": "#f1c84c",
+    "labelTextColor": "#2f3152",
+    "noteBkgColor": "#fffdf1",
+    "noteBorderColor": "#d3d7f0",
+    "sequenceNumberColor": "#2f3152",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    actor HealthWorker as "Health Worker"
+    participant LocalStorage as "Local Storage (Device)"
+    participant SyncService as "Sync Service"
+    participant Immunization as "Immunization Service"
+    participant CentralDB as "Central Database"
+
+    Note over HealthWorker,CentralDB: FR7-FR11: Offline Data Capture and Sync
+    HealthWorker->>LocalStorage: Record dose + observation
+    LocalStorage->>LocalStorage: Save locally (status=pending)
+    LocalStorage-->>HealthWorker: Saved offline
+
+    opt Connectivity restored
+      HealthWorker->>SyncService: Trigger manual/auto sync
+      SyncService->>LocalStorage: Fetch pending records
+      LocalStorage-->>SyncService: Return records JSON
+      loop Process each record
+        SyncService->>Immunization: Process vaccination event
+        Immunization->>CentralDB: Save dose & observation
+        CentralDB-->>Immunization: ACK
+        Immunization->>Immunization: Calculate next due date (EPI rules)
+        Immunization->>CentralDB: Update patient schedule
+        alt Overdue
+          Immunization->>CentralDB: Flag as defaulter
+        else On time
+          Immunization->>CentralDB: Clear defaulter flag
+        end
+      end
+      Immunization-->>SyncService: Success
+      SyncService->>LocalStorage: Clear synced records
+      SyncService-->>HealthWorker: Sync complete
+    end

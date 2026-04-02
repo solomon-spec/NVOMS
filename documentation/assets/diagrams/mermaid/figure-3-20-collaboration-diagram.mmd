@@ -1,0 +1,66 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#79aefc",
+    "primaryBorderColor": "#4987dd",
+    "primaryTextColor": "#163867",
+    "secondaryColor": "#ff79d8",
+    "tertiaryColor": "#ffffff",
+    "lineColor": "#686d89",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 34,
+    "rankSpacing": 48,
+    "htmlLabels": true
+  }
+}}%%
+flowchart LR
+    classDef actor fill:#ff8be2,stroke:#c84fb0,color:#4d1d47,stroke-width:1px
+    classDef module fill:#7fb2ff,stroke:#4a87de,color:#163867,stroke-width:1px
+    classDef service fill:#ff8be2,stroke:#c84fb0,color:#4d1d47,stroke-width:1px
+    classDef external fill:#ffffff,stroke:#4a87de,color:#2f3152,stroke-width:1px
+
+    admin{{Administrator}}:::actor
+    official[Public Health Official]:::external
+    outbreak[Outbreak Prediction & Alert Module]:::service
+    epi[Epidemiology & Analytics Module]:::service
+    defaulter[Defaulter Monitoring Module]:::service
+    notification[Notification Service]:::service
+    vaccination[Vaccination Module]:::service
+
+    report[Report Generation Module]:::module
+    userMgmt[User Management Module]:::module
+    config[System Configuration Module]:::module
+    reg[Patient Registration Module]:::module
+    worker[Health Worker]:::external
+    dhis2[DHIS2]:::external
+    fhir[FHIR System]:::external
+    sms[SMS Gateway]:::service
+    caregiver[Caregiver]:::external
+
+    admin -->|1: create/update/deleteUser(userData)| userMgmt
+    admin -->|2: updateSystemSettings(settings)| config
+    admin -->|3: generateReport(parameters)| report
+    report -->|4: exportReport(format)| admin
+    report -->|14: displayReport| official
+    report -->|16: generateReport(parameters)| epi
+
+    epi -->|15: getDefaulterData(region)| defaulter
+    epi -->|25: updateRiskMap(regionRiskLevel)| outbreak
+    outbreak -->|22: sendEpiData(diseaseIndicators)| epi
+    outbreak -->|21: sendDefaulterData(childData, region)| defaulter
+
+    defaulter -->|8: scheduleReminderSMS(patientID, caregiverContact)| notification
+    defaulter -->|11: sendMissedAppointmentAlert(patientID)| notification
+    notification -->|0 / 12 / 20: sendSMS(...)| sms
+    sms -->|10: receiveSMS(reminderMessage)| caregiver
+    sms -->|13: receiveMissedAppointmentAlert()| caregiver
+
+    vaccination -->|7: addToMonitoring(patientID, schedule)| defaulter
+    reg -->|5: registerPatient(patientData)| worker
+    vaccination -->|6: generateVaccinationSchedule(patientID)| dhis2
+    vaccination -->|18: syncData(patientHealthData)| reg
+    vaccination -->|19: exchangeData(patientHealthData)| fhir
+    worker -->|23: generateOutbreakAlert(regionRiskLevel)| outbreak

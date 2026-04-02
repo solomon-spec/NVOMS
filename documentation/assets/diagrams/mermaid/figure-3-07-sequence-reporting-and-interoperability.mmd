@@ -1,0 +1,52 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "actorBkg": "#ffffff",
+    "actorBorder": "#a98de6",
+    "actorTextColor": "#2f3152",
+    "signalColor": "#3f425d",
+    "signalTextColor": "#2f3152",
+    "labelBoxBkgColor": "#fff4b8",
+    "labelBoxBorderColor": "#f1c84c",
+    "labelTextColor": "#2f3152",
+    "noteBkgColor": "#fffdf1",
+    "noteBorderColor": "#d3d7f0",
+    "sequenceNumberColor": "#2f3152",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    actor Administrator
+    participant Reporting as "Reporting Service"
+    participant FHIR as "FHIR Mapper"
+    participant Connector as "DHIS2 Connector"
+    participant DHIS2 as "DHIS2 Platform (External)"
+    participant CentralDB as "Central Database"
+
+    Note over Administrator,CentralDB: FR18-FR21: Reporting and Interoperability
+    Administrator->>Reporting: Generate monthly coverage report
+    Reporting->>CentralDB: Query aggregated stats
+    CentralDB-->>Reporting: Raw data
+    Reporting->>Reporting: Generate PDF/CSV
+    Reporting-->>Administrator: Download file
+
+    Note over Reporting,CentralDB: Scheduled sync process
+    Reporting->>Connector: Trigger weekly sync
+    Connector->>CentralDB: Fetch unsynced records
+    CentralDB-->>Connector: List of patients / immunizations
+    loop For each record
+      Connector->>FHIR: Map to FHIR resources
+      FHIR->>FHIR: Map patient -> FHIR Patient
+      FHIR->>FHIR: Map dose -> FHIR Immunization
+      FHIR-->>Connector: Return FHIR bundle
+      Connector->>DHIS2: POST /api/tracker (auth)
+      alt Sync success
+        DHIS2-->>Connector: 200 OK (import summary)
+        Connector->>CentralDB: Update sync timestamp
+      else Validation error
+        DHIS2-->>Connector: 409 Conflict
+        Connector->>CentralDB: Log error
+      end
+    end
+    Connector-->>Reporting: Sync complete

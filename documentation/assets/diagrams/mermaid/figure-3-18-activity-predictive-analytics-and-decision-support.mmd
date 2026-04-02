@@ -1,0 +1,29 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#eef0ff",
+    "primaryBorderColor": "#b8b9ff",
+    "primaryTextColor": "#2f3152",
+    "secondaryColor": "#fff4b8",
+    "tertiaryColor": "#ffffff",
+    "lineColor": "#6c708f",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 28,
+    "rankSpacing": 40,
+    "htmlLabels": true
+  }
+}}%%
+flowchart TD
+    start([Start]) --> collect["System collects vaccination, demographic, and environmental data"]
+    collect --> weather["Ingest meteorological data: rainfall, temperature"]
+    weather --> cluster["Apply spatial clustering algorithms to detect high-dropout/risk clusters"]
+    cluster --> models["Execute prediction models: XGBoost/KNN using integrated data"]
+    models --> risk{"Analyze for outbreak risks?"}
+    risk -- Yes --> high["Identify high-risk areas and silent districts"]
+    high --> viz["Generate visualizations: dashboards and maps for risk levels"]
+    viz --> alerts["Provide decision-support alerts to health officials"] --> end([End])
+    risk -- No --> monitoring["No immediate risk - continue monitoring"]
+    monitoring --> log["Log for ongoing analysis"] --> end

@@ -1,0 +1,35 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#eef0ff",
+    "primaryBorderColor": "#b8b9ff",
+    "primaryTextColor": "#2f3152",
+    "secondaryColor": "#fff4b8",
+    "tertiaryColor": "#ffffff",
+    "lineColor": "#6c708f",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 28,
+    "rankSpacing": 40,
+    "htmlLabels": true
+  }
+}}%%
+flowchart TD
+    start([Start]) --> schedule["System generates vaccination schedule based on EPI guidelines"]
+    schedule --> record["Healthcare worker records administered dose, batch ID, route, site"]
+    record --> observe["Record surveillance observations e.g. AFP, rash, fever"]
+    observe --> offline{"Offline mode?"}
+    offline -- Yes --> local["Store data locally"]
+    local --> restored{"Connectivity restored?"}
+    restored -- Yes --> sync["Auto-synchronize with central server"]
+    restored -- No --> continue["Continue offline operations"] --> end([End])
+    offline -- No --> server["Save to central server immediately"]
+    server --> analyze["Analyze patient record"]
+    sync --> analyze
+    analyze --> defaulter{"Is patient zero-dose or defaulter?"}
+    defaulter -- Yes --> flag["Flag and alert health worker"]
+    flag --> follow["Log for follow-up"] --> end
+    defaulter -- No --> update["Update vaccination history"]
+    update --> audit["Ensure data accuracy and audit log"] --> end

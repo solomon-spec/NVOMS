@@ -1,0 +1,38 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#eef0ff",
+    "primaryBorderColor": "#b8b9ff",
+    "primaryTextColor": "#2f3152",
+    "secondaryColor": "#fff4b8",
+    "tertiaryColor": "#ffffff",
+    "lineColor": "#6c708f",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 28,
+    "rankSpacing": 40,
+    "htmlLabels": true
+  }
+}}%%
+flowchart TD
+    start([Start]) --> create["Admin creates role-based user account"]
+    create --> valid{"Valid role and details?"}
+    valid -- Yes --> assign["Assign unique user ID and role"]
+    valid -- No --> reject["Reject creation and notify admin"] --> end([End])
+    assign --> login["User attempts login"]
+    login --> auth{"Authenticate credentials securely?"}
+    auth -- Yes --> enforce["Enforce authorization rules based on role"]
+    auth -- No --> deny["Deny access and log attempt"]
+    deny --> recovery["User requests password recovery"]
+    recovery --> identity{"Verify identity?"}
+    identity -- Yes --> link["Send secure recovery link/token"]
+    link --> reset["User resets password"] --> end
+    identity -- No --> recoveryReject["Reject recovery and notify"] --> end
+    enforce --> offline{"Offline mode?"}
+    offline -- Yes --> local["Allow local actions and queue for sync"]
+    local --> restored{"Connectivity restored?"}
+    restored -- Yes --> sync["Synchronize with central server"] --> end
+    restored -- No --> continue["Continue offline"] --> end
+    offline -- No --> grant["Grant full access"] --> end

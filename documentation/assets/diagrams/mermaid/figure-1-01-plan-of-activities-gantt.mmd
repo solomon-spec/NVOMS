@@ -1,0 +1,31 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "gantt": {
+    "leftPadding": 80,
+    "gridLineStartPadding": 36
+  }
+}}%%
+gantt
+    title Plan of Activities
+    dateFormat  YYYY-MM-DD
+    axisFormat  %Y-%m
+    section Phase 1: System Analysis and Requirements
+    Literature Review & Process Mapping :done, p1a, 2025-10-05, 14d
+    Requirements Definition :done, p1b, after p1a, 14d
+    Documentation :done, p1c, after p1b, 14d
+    section Phase 2: System and Architecture Design
+    System Architecture Design :active, p2a, 2025-11-20, 12d
+    Data Architecture & Flow Design :p2b, after p2a, 12d
+    Model Selection & Specification :p2c, after p2b, 7d
+    section Phase 3: Development and Model Implementation
+    Data Management Module Development :p3a, 2025-12-28, 14d
+    Outbreak Prediction Module Implementation :p3b, after p3a, 14d
+    Visualization & Alerting Interface :p3c, after p3b, 14d
+    Module Testing :p3d, after p3c, 14d
+    section Phase 4: Integration, Testing, and Evaluation
+    System Integration :p4a, 2026-02-22, 12d
+    System & Model Testing :p4b, after p4a, 18d
+    User Acceptance Testing & Documentation :p4c, after p4b, 18d

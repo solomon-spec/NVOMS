@@ -1,0 +1,30 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#eef0ff",
+    "primaryBorderColor": "#b8b9ff",
+    "primaryTextColor": "#2f3152",
+    "secondaryColor": "#fff4b8",
+    "tertiaryColor": "#ffffff",
+    "lineColor": "#6c708f",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 28,
+    "rankSpacing": 40,
+    "htmlLabels": true
+  }
+}}%%
+flowchart TD
+    start([Start]) --> request["User requests configurable report on immunization/outbreak indicators"]
+    request --> generate["Generate report using aggregated data"]
+    generate --> export{"Export format specified?"}
+    export -- Yes --> file["Export in standard formats e.g. CSV, PDF"]
+    export -- No --> dashboard["Default to viewable dashboard"]
+    file --> map["Map data to HL7 FHIR resources: patient, immunization, observation"]
+    dashboard --> map
+    map --> exchange["Exchange data with DHIS2 and national platforms"]
+    exchange --> ok{"Interoperability successful?"}
+    ok -- Yes --> log["Log exchange and ensure audit trail"] --> end([End])
+    ok -- No --> retry["Handle error and retry exchange"] --> end

@@ -1,0 +1,61 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#55576a",
+    "primaryTextColor": "#2f3152",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#f8fbff",
+    "lineColor": "#35384f",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 36,
+    "rankSpacing": 52,
+    "htmlLabels": true
+  }
+}}%%
+flowchart TD
+    classDef actor fill:#ffffff,stroke:#2f3152,color:#2f3152,stroke-width:1px
+    classDef layer fill:#f8fbff,stroke:#44475d,color:#2f3152,stroke-width:1px
+    classDef service fill:#ffffff,stroke:#55576a,color:#2f3152,stroke-width:1px
+    classDef store fill:#ffffff,stroke:#ef7ff6,color:#8a2379,stroke-width:2px
+    classDef bucket fill:#ffffff,stroke:#8ca827,color:#5b6d18,stroke-width:2px
+
+    hp[Health professional]:::actor
+    cg[Care givers]:::actor
+
+    subgraph presentation["Presentation layer"]
+        direction LR
+        web[Web application]:::service
+        smsUi[SMS]:::service
+    end
+
+    subgraph application["Application layer"]
+        direction LR
+        userSvc[User Service]:::service
+        analyticsSvc[Analytics Service]:::service
+        vaccinationSvc[Vaccination Service]:::service
+        notificationSvc[Notification Service]:::service
+        predictionSvc[Prediction Service]:::service
+    end
+
+    subgraph data["Data layer"]
+        direction LR
+        postgres[(PostgreSQL)]:::store
+        fileStore[(File Storage)]:::bucket
+    end
+
+    subgraph integration["Integration Layer"]
+        direction LR
+        dhis2[DHIS2]:::service
+        gateway[SMS Gateway]:::service
+    end
+
+    hp --> web
+    cg --> smsUi
+    web --> application
+    smsUi --> application
+    application --> data
+    data --> integration
