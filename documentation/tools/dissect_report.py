@@ -31,37 +31,36 @@ AUTO_NOTE = (
     "Edit the source report or this generator, then rerun the script. -->\n\n"
 )
 
-
-SECTION_PATHS = {
+REPORT_SOURCE_PATHS = {
     "cover": DOC_ROOT / "01-front-matter/01-cover-and-title-page/report-source.md",
     "ack": DOC_ROOT / "01-front-matter/02-acknowledgement/report-source.md",
     "toc_lists": DOC_ROOT / "01-front-matter/03-table-of-contents-and-lists/report-source.md",
     "abstract": DOC_ROOT / "01-front-matter/04-abstract/report-source.md",
-    "ch1": DOC_ROOT / "02-chapter-1-introduction/chapter-source.md",
-    "1.1": DOC_ROOT / "02-chapter-1-introduction/01-statement-of-the-problem/report-source.md",
-    "1.2": DOC_ROOT / "02-chapter-1-introduction/02-objectives/report-source.md",
-    "1.3": DOC_ROOT / "02-chapter-1-introduction/03-scope-and-limitation/report-source.md",
-    "1.4": DOC_ROOT / "02-chapter-1-introduction/04-methodology/report-source.md",
-    "1.5": DOC_ROOT / "02-chapter-1-introduction/05-plan-of-activities/report-source.md",
-    "1.6": DOC_ROOT / "02-chapter-1-introduction/06-budget-required/report-source.md",
-    "1.7": DOC_ROOT / "02-chapter-1-introduction/07-significance-of-the-study/report-source.md",
-    "1.8": DOC_ROOT / "02-chapter-1-introduction/08-outline-of-the-study/report-source.md",
-    "ch2": DOC_ROOT / "03-chapter-2-literature-review/chapter-source.md",
-    "2.1": DOC_ROOT / "03-chapter-2-literature-review/01-study-related-works/report-source.md",
-    "2.2": DOC_ROOT / "03-chapter-2-literature-review/02-milestones-and-gaps/report-source.md",
-    "2.3": DOC_ROOT / "03-chapter-2-literature-review/03-lessons-learned/report-source.md",
-    "ch3": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/chapter-source.md",
-    "3.1": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/01-existing-system-and-problems/report-source.md",
-    "3.2": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/02-requirements-elicitation/report-source.md",
-    "3.3.1": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/03-functional-requirements/report-source.md",
-    "3.3.2": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/04-non-functional-requirements/report-source.md",
-    "3.3.3": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/05-use-case-models/report-source.md",
-    "3.3.4": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/06-dynamic-models/report-source.md",
-    "3.5": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/07-model-validation/report-source.md",
-    "ch4": DOC_ROOT / "05-chapter-4-system-design/chapter-source.md",
-    "4.1-4.2": DOC_ROOT / "05-chapter-4-system-design/01-overview-and-design-goals/report-source.md",
-    "4.3.1": DOC_ROOT / "05-chapter-4-system-design/02-software-architecture/report-source.md",
-    "4.3.2": DOC_ROOT / "05-chapter-4-system-design/03-subsystem-decomposition/report-source.md",
+    "ch1": DOC_ROOT / "02-chapter-1-introduction/report-source.md",
+    "1.1": DOC_ROOT / "02-chapter-1-introduction/report-source.md",
+    "1.2": DOC_ROOT / "02-chapter-1-introduction/report-source.md",
+    "1.3": DOC_ROOT / "02-chapter-1-introduction/report-source.md",
+    "1.4": DOC_ROOT / "02-chapter-1-introduction/report-source.md",
+    "1.5": DOC_ROOT / "02-chapter-1-introduction/report-source.md",
+    "1.6": DOC_ROOT / "02-chapter-1-introduction/report-source.md",
+    "1.7": DOC_ROOT / "02-chapter-1-introduction/report-source.md",
+    "1.8": DOC_ROOT / "02-chapter-1-introduction/report-source.md",
+    "ch2": DOC_ROOT / "03-chapter-2-literature-review/report-source.md",
+    "2.1": DOC_ROOT / "03-chapter-2-literature-review/report-source.md",
+    "2.2": DOC_ROOT / "03-chapter-2-literature-review/report-source.md",
+    "2.3": DOC_ROOT / "03-chapter-2-literature-review/report-source.md",
+    "ch3": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/report-source.md",
+    "3.1": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/report-source.md",
+    "3.2": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/report-source.md",
+    "3.3.1": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/report-source.md",
+    "3.3.2": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/report-source.md",
+    "3.3.3": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/report-source.md",
+    "3.3.4": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/report-source.md",
+    "3.5": DOC_ROOT / "04-chapter-3-problem-analysis-and-modeling/report-source.md",
+    "ch4": DOC_ROOT / "05-chapter-4-system-design/report-source.md",
+    "4.1-4.2": DOC_ROOT / "05-chapter-4-system-design/report-source.md",
+    "4.3.1": DOC_ROOT / "05-chapter-4-system-design/report-source.md",
+    "4.3.2": DOC_ROOT / "05-chapter-4-system-design/report-source.md",
     "references": DOC_ROOT / "09-references/report-source.md",
 }
 
@@ -349,28 +348,28 @@ def build_sections(source_html: Path) -> tuple[dict[str, str], dict[str, list[st
         if tag.name in {"h1", "h2", "h3", "h4", "h5", "h6"}:
             text = clean_heading_text(tag.get_text(" ", strip=True))
             if not text:
-                if current_group in SECTION_PATHS:
+                if current_group in REPORT_SOURCE_PATHS:
                     for image in nested_images:
-                        sections[current_group].append(convert_image(image, SECTION_PATHS[current_group]))
+                        sections[current_group].append(convert_image(image, REPORT_SOURCE_PATHS[current_group]))
                 continue
             mapped_group = group_for_heading(text)
             if mapped_group:
                 current_group = mapped_group
-            if current_group not in SECTION_PATHS:
+            if current_group not in REPORT_SOURCE_PATHS:
                 continue
             level = heading_level(text, not sections[current_group])
             sections[current_group].append(f'{"#" * level} {text}\n')
             section_headings[current_group].append(text)
             for image in nested_images:
-                sections[current_group].append(convert_image(image, SECTION_PATHS[current_group]))
+                sections[current_group].append(convert_image(image, REPORT_SOURCE_PATHS[current_group]))
             continue
 
         if tag.name == "p":
             text = normalize_inline_text(tag.get_text(" ", strip=True))
             if not text:
-                if current_group in SECTION_PATHS:
+                if current_group in REPORT_SOURCE_PATHS:
                     for image in nested_images:
-                        sections[current_group].append(convert_image(image, SECTION_PATHS[current_group]))
+                        sections[current_group].append(convert_image(image, REPORT_SOURCE_PATHS[current_group]))
                 continue
             if text == "Table of Contents":
                 current_group = "toc_lists"
@@ -388,15 +387,15 @@ def build_sections(source_html: Path) -> tuple[dict[str, str], dict[str, list[st
                 section_headings[current_group].append("Architecture Overview (4-Tier Layered SOA)")
                 continue
 
-        if current_group not in SECTION_PATHS:
+        if current_group not in REPORT_SOURCE_PATHS:
             continue
 
         if tag.name == "img":
-            sections[current_group].append(convert_image(tag, SECTION_PATHS[current_group]))
+            sections[current_group].append(convert_image(tag, REPORT_SOURCE_PATHS[current_group]))
             continue
 
         for image in nested_images:
-            sections[current_group].append(convert_image(image, SECTION_PATHS[current_group]))
+            sections[current_group].append(convert_image(image, REPORT_SOURCE_PATHS[current_group]))
 
         block = render_block(tag, current_group)
         if block:
@@ -408,16 +407,23 @@ def build_sections(source_html: Path) -> tuple[dict[str, str], dict[str, list[st
 
 def build_manifest(section_headings: dict[str, list[str]]) -> dict[str, object]:
     ordered_files = []
+    seen_paths: set[Path] = set()
     for key in MANIFEST_ORDER:
-        path = SECTION_PATHS[key]
-        if path.exists():
-            ordered_files.append(
-                {
-                    "key": key,
-                    "path": path.relative_to(DOC_ROOT).as_posix(),
-                    "headings": section_headings.get(key, []),
-                }
-            )
+        path = REPORT_SOURCE_PATHS[key]
+        if path in seen_paths or not path.exists():
+            continue
+        seen_paths.add(path)
+        keys = [candidate for candidate in MANIFEST_ORDER if REPORT_SOURCE_PATHS[candidate] == path]
+        headings: list[str] = []
+        for candidate in keys:
+            headings.extend(section_headings.get(candidate, []))
+        ordered_files.append(
+            {
+                "keys": keys,
+                "path": path.relative_to(DOC_ROOT).as_posix(),
+                "headings": headings,
+            }
+        )
 
     return {
         "title": "National Vaccination and Outbreak Monitoring System for Ethiopia",
@@ -1024,10 +1030,16 @@ def write_mermaid_assets() -> None:
     write_text(MERMAID_DIR / "README.md", "\n".join(lines) + "\n")
 
 
-def write_section_files(materialized: dict[str, str]) -> None:
-    for key, content in materialized.items():
-        target = SECTION_PATHS[key]
-        write_text(target, AUTO_NOTE + content + "\n")
+def write_output_files(materialized: dict[str, str]) -> None:
+    grouped: dict[Path, list[str]] = defaultdict(list)
+    for key in MANIFEST_ORDER:
+        content = materialized.get(key)
+        if not content:
+            continue
+        grouped[REPORT_SOURCE_PATHS[key]].append(content)
+
+    for target, chunks in grouped.items():
+        write_text(target, AUTO_NOTE + "\n\n".join(chunks).strip() + "\n")
 
 
 def write_indexes(manifest: dict[str, object]) -> None:
@@ -1039,14 +1051,15 @@ def write_indexes(manifest: dict[str, object]) -> None:
         "",
         "This index maps the original report structure into the documentation workspace so the report is easy to reference, edit in parts, and reconstruct later.",
         "",
-        "| Order | Section Key | File | Headings |",
+        "| Order | Included Keys | File | Headings |",
         "| --- | --- | --- | --- |",
     ]
 
     for order, item in enumerate(manifest["ordered_files"], start=1):
         path = item["path"]
         headings = "; ".join(item["headings"])
-        lines.append(f"| {order} | `{item['key']}` | [{path}]({path}) | {headings} |")
+        keys = ", ".join(f"`{key}`" for key in item["keys"])
+        lines.append(f"| {order} | {keys} | [{path}]({path}) | {headings} |")
 
     lines.extend(
         [
@@ -1068,7 +1081,7 @@ def main() -> None:
     source_html = resolve_source_html()
     ensure_source_assets(source_html)
     materialized, section_headings = build_sections(source_html)
-    write_section_files(materialized)
+    write_output_files(materialized)
     write_mermaid_assets()
     manifest = build_manifest(section_headings)
     write_indexes(manifest)

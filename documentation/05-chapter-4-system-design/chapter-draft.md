@@ -100,14 +100,15 @@ The decomposition follows the layered service-oriented architecture shown in the
 - Shared data layer
 - External integration layer
 
-Within these layers, the system is divided into functional subsystems that align with the use cases, sequence diagrams, state diagrams, activity diagrams, and collaboration diagram. The guide also expects a clear subsystem breakdown before the database and deployment sections, so this subsection includes both a high-level decomposition figure and a guide-aligned service catalog.
+The guide expects this subsection to clearly show the internal services of the proposed system and the responsibilities of each major part. To support that, this section includes both a guide-aligned service catalog and a more detailed subsystem narrative.
 
-### High-Level Decomposition View
+#### High-Level Decomposition View
 
 *Figure 4.2: High-Level Subsystem Decomposition of the National Vaccination and Outbreak Monitoring System*  
 Mermaid source: [`figure-4-02-subsystem-decomposition.mmd`](../assets/diagrams/mermaid/figure-4-02-subsystem-decomposition.mmd)
+Mermaid source: [`figure-4-02-subsystem-decomposition.mmd`](../assets/diagrams/mermaid/figure-4-02-subsystem-decomposition.mmd)
 
-### Guide-Aligned Service Catalog
+#### Guide-Aligned Service Catalog
 
 | No. | Service Name | Primary Responsibility | Main Consumers | Key Technologies / Notes |
 | --- | --- | --- | --- | --- |
@@ -488,10 +489,10 @@ erDiagram
 
 ### Database Design Artifacts
 
-- Narrative database design: [NVOMS_DATABASE_DESIGN.md](04-database-design/NVOMS_DATABASE_DESIGN.md)
-- Implementation-ready PostgreSQL schema: [NVOMS_POSTGRESQL_SCHEMA.sql](04-database-design/NVOMS_POSTGRESQL_SCHEMA.sql)
-- Diagram-oriented DBML schema: [NVOMS_SCHEMA_DBML.dbml](04-database-design/NVOMS_SCHEMA_DBML.dbml)
-- Functional-requirements traceability: [NVOMS_REQUIREMENTS_VERIFICATION.md](04-database-design/NVOMS_REQUIREMENTS_VERIFICATION.md)
+- Narrative database design: [NVOMS_DATABASE_DESIGN.md](../assets/chapter-4-design/NVOMS_DATABASE_DESIGN.md)
+- Implementation-ready PostgreSQL schema: [NVOMS_POSTGRESQL_SCHEMA.sql](../assets/chapter-4-design/NVOMS_POSTGRESQL_SCHEMA.sql)
+- Diagram-oriented DBML schema: [NVOMS_SCHEMA_DBML.dbml](../assets/chapter-4-design/NVOMS_SCHEMA_DBML.dbml)
+- Functional-requirements traceability: [NVOMS_REQUIREMENTS_VERIFICATION.md](../assets/chapter-4-design/NVOMS_REQUIREMENTS_VERIFICATION.md)
 
 ## 4.4 Design Verification
 

@@ -39,7 +39,11 @@ FIGURE_TO_MERMAID = {
     "3.19": "assets/diagrams/mermaid/figure-3-19-activity-reporting-and-interoperability.mmd",
     "3.20": "assets/diagrams/mermaid/figure-3-20-collaboration-diagram.mmd",
     "4.1": "assets/diagrams/mermaid/figure-4-01-layered-service-oriented-architecture.mmd",
+    "4.2": "assets/diagrams/mermaid/figure-4-02-subsystem-decomposition.mmd",
+    "4.3": "assets/diagrams/mermaid/figure-4-03-deployment-diagram.mmd",
 }
+
+CHAPTER_FOUR_ARTIFACTS = "assets/chapter-4-design"
 
 
 def write_text(path: Path, content: str) -> None:
@@ -71,6 +75,34 @@ def retarget_links(text: str, source_relative_path: str, output_path: Path) -> s
 
 def read_for_draft(relative_path: str, output_path: Path) -> str:
     return retarget_links(read_markdown(relative_path), relative_path, output_path)
+
+
+def extract_section(text: str, *prefixes: str) -> str:
+    lines = text.splitlines()
+    start: int | None = None
+    level: int | None = None
+
+    for index, line in enumerate(lines):
+        match = re.match(r"^(#{1,6})\s+(.*)$", line)
+        if not match:
+            continue
+        heading = match.group(2).strip()
+        if any(heading.startswith(prefix) for prefix in prefixes):
+            start = index
+            level = len(match.group(1))
+            break
+
+    if start is None or level is None:
+        raise ValueError(f"Could not find section starting with one of: {', '.join(prefixes)}")
+
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        match = re.match(r"^(#{1,6})\s+(.*)$", lines[index])
+        if match and len(match.group(1)) <= level:
+            end = index
+            break
+
+    return "\n".join(lines[start:end]).strip()
 
 
 def cleanup_spacing(text: str) -> str:
@@ -139,14 +171,15 @@ def clean_front_matter() -> str:
 
 def clean_chapter_one() -> str:
     output_path = DOC_ROOT / "02-chapter-1-introduction/chapter-draft.md"
-    chapter = read_for_draft("02-chapter-1-introduction/chapter-source.md", output_path)
-    s11 = sectionize_source(read_for_draft("02-chapter-1-introduction/01-statement-of-the-problem/report-source.md", output_path))
-    s13 = sectionize_source(read_for_draft("02-chapter-1-introduction/03-scope-and-limitation/report-source.md", output_path))
-    s14 = sectionize_source(read_for_draft("02-chapter-1-introduction/04-methodology/report-source.md", output_path))
-    s15 = sectionize_source(read_for_draft("02-chapter-1-introduction/05-plan-of-activities/report-source.md", output_path))
-    s16 = sectionize_source(read_for_draft("02-chapter-1-introduction/06-budget-required/report-source.md", output_path))
-    s17 = sectionize_source(read_for_draft("02-chapter-1-introduction/07-significance-of-the-study/report-source.md", output_path))
-    s18 = sectionize_source(read_for_draft("02-chapter-1-introduction/08-outline-of-the-study/report-source.md", output_path))
+    chapter_report = read_for_draft("02-chapter-1-introduction/report-source.md", output_path)
+    chapter = extract_section(chapter_report, "Chapter One: Introduction")
+    s11 = sectionize_source(extract_section(chapter_report, "1.1"))
+    s13 = sectionize_source(extract_section(chapter_report, "1.3"))
+    s14 = sectionize_source(extract_section(chapter_report, "1.4"))
+    s15 = sectionize_source(extract_section(chapter_report, "1.5"))
+    s16 = sectionize_source(extract_section(chapter_report, "1.6"))
+    s17 = sectionize_source(extract_section(chapter_report, "1.7"))
+    s18 = sectionize_source(extract_section(chapter_report, "1.8"))
 
     objectives = """## 1.2 Objectives
 
@@ -172,10 +205,11 @@ The general objective of this study is to design and develop a functional, secur
 
 def clean_chapter_two() -> str:
     output_path = DOC_ROOT / "03-chapter-2-literature-review/chapter-draft.md"
-    chapter = read_for_draft("03-chapter-2-literature-review/chapter-source.md", output_path)
-    s21 = sectionize_source(read_for_draft("03-chapter-2-literature-review/01-study-related-works/report-source.md", output_path))
-    s22 = sectionize_source(read_for_draft("03-chapter-2-literature-review/02-milestones-and-gaps/report-source.md", output_path))
-    s23 = sectionize_source(read_for_draft("03-chapter-2-literature-review/03-lessons-learned/report-source.md", output_path))
+    chapter_report = read_for_draft("03-chapter-2-literature-review/report-source.md", output_path)
+    chapter = extract_section(chapter_report, "Chapter Two: Literature Review")
+    s21 = sectionize_source(extract_section(chapter_report, "2.1"))
+    s22 = sectionize_source(extract_section(chapter_report, "2.2"))
+    s23 = sectionize_source(extract_section(chapter_report, "2.3"))
 
     draft = "\n\n".join([chapter, s21, s22, s23])
     draft = re.sub(r"(?m)^1\. eXtreme Gradient Boosting \(XGBoost\) in Disease Modeling$", "### 1. eXtreme Gradient Boosting (XGBoost) in Disease Modeling", draft)
@@ -210,15 +244,16 @@ def clean_dynamic_models_headings(text: str) -> str:
 
 
 def clean_chapter_three(draft_path: Path) -> str:
+    chapter_report = read_for_draft("04-chapter-3-problem-analysis-and-modeling/report-source.md", draft_path)
     parts = [
-        read_for_draft("04-chapter-3-problem-analysis-and-modeling/chapter-source.md", draft_path),
-        sectionize_source(read_for_draft("04-chapter-3-problem-analysis-and-modeling/01-existing-system-and-problems/report-source.md", draft_path)),
-        sectionize_source(read_for_draft("04-chapter-3-problem-analysis-and-modeling/02-requirements-elicitation/report-source.md", draft_path)),
-        sectionize_source(read_for_draft("04-chapter-3-problem-analysis-and-modeling/03-functional-requirements/report-source.md", draft_path)),
-        sectionize_source(read_for_draft("04-chapter-3-problem-analysis-and-modeling/04-non-functional-requirements/report-source.md", draft_path)),
-        sectionize_source(read_for_draft("04-chapter-3-problem-analysis-and-modeling/05-use-case-models/report-source.md", draft_path)),
-        sectionize_source(read_for_draft("04-chapter-3-problem-analysis-and-modeling/06-dynamic-models/report-source.md", draft_path)),
-        sectionize_source(read_for_draft("04-chapter-3-problem-analysis-and-modeling/07-model-validation/report-source.md", draft_path)),
+        extract_section(chapter_report, "Chapter Three: Problem Analysis and Modeling"),
+        sectionize_source(extract_section(chapter_report, "3.1")),
+        sectionize_source(extract_section(chapter_report, "3.2")),
+        sectionize_source(extract_section(chapter_report, "3.3 System Modeling", "3.3.1")),
+        sectionize_source(extract_section(chapter_report, "3.3.2")),
+        sectionize_source(extract_section(chapter_report, "3.3.3")),
+        sectionize_source(extract_section(chapter_report, "3.3.4")),
+        sectionize_source(extract_section(chapter_report, "3.5")),
     ]
     draft = "\n\n".join(parts)
     draft = clean_dynamic_models_headings(draft)
@@ -230,7 +265,7 @@ def clean_chapter_three(draft_path: Path) -> str:
 
 
 def extract_er_diagram() -> str:
-    db_design = read_markdown("05-chapter-4-system-design/04-database-design/NVOMS_DATABASE_DESIGN.md")
+    db_design = read_markdown(f"{CHAPTER_FOUR_ARTIFACTS}/NVOMS_DATABASE_DESIGN.md")
     match = re.search(r"```mermaid\n(.*?)```", db_design, re.DOTALL)
     if not match:
         return ""
@@ -242,9 +277,10 @@ def clean_chapter_four(draft_path: Path) -> str:
 
 This chapter presents the detailed system design of the National Vaccination and Outbreak Monitoring System (NVOMS) for Ethiopia. The design translates the validated requirements and models from Chapter Three into a structured technical solution that supports secure data capture, vaccination tracking, predictive analytics, interoperability, and scalable public health decision support.
 """
-    goals = sectionize_source(read_for_draft("05-chapter-4-system-design/01-overview-and-design-goals/report-source.md", draft_path))
-    architecture = sectionize_source(read_for_draft("05-chapter-4-system-design/02-software-architecture/report-source.md", draft_path))
-    subsystem = nest_standalone_doc(read_for_draft("05-chapter-4-system-design/04-database-design/NVOMS_SUBSYSTEM_DECOMPOSITION.md", draft_path))
+    chapter_report = read_for_draft("05-chapter-4-system-design/report-source.md", draft_path)
+    goals = sectionize_source(extract_section(chapter_report, "4.1 Overview"))
+    architecture = sectionize_source(extract_section(chapter_report, "4.3.1"))
+    subsystem = nest_standalone_doc(read_for_draft(f"{CHAPTER_FOUR_ARTIFACTS}/NVOMS_SUBSYSTEM_DECOMPOSITION.md", draft_path))
 
     architecture = architecture.replace(
         "*Figure 4.0. System Architecture*",
@@ -282,10 +318,10 @@ The database design of NVOMS is derived directly from the system requirements, t
 
 ### Database Design Artifacts
 
-- Narrative database design: [NVOMS_DATABASE_DESIGN.md]({rel_link(draft_path, '05-chapter-4-system-design/04-database-design/NVOMS_DATABASE_DESIGN.md')})
-- Implementation-ready PostgreSQL schema: [NVOMS_POSTGRESQL_SCHEMA.sql]({rel_link(draft_path, '05-chapter-4-system-design/04-database-design/NVOMS_POSTGRESQL_SCHEMA.sql')})
-- Diagram-oriented DBML schema: [NVOMS_SCHEMA_DBML.dbml]({rel_link(draft_path, '05-chapter-4-system-design/04-database-design/NVOMS_SCHEMA_DBML.dbml')})
-- Functional-requirements traceability: [NVOMS_REQUIREMENTS_VERIFICATION.md]({rel_link(draft_path, '05-chapter-4-system-design/04-database-design/NVOMS_REQUIREMENTS_VERIFICATION.md')})
+- Narrative database design: [NVOMS_DATABASE_DESIGN.md]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/NVOMS_DATABASE_DESIGN.md')})
+- Implementation-ready PostgreSQL schema: [NVOMS_POSTGRESQL_SCHEMA.sql]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/NVOMS_POSTGRESQL_SCHEMA.sql')})
+- Diagram-oriented DBML schema: [NVOMS_SCHEMA_DBML.dbml]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/NVOMS_SCHEMA_DBML.dbml')})
+- Functional-requirements traceability: [NVOMS_REQUIREMENTS_VERIFICATION.md]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/NVOMS_REQUIREMENTS_VERIFICATION.md')})
 """
 
     design_verification = """## 4.4 Design Verification

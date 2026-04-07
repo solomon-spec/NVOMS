@@ -15,19 +15,19 @@ This folder is organized to match the AASTU senior research guideline and the cu
 - `01-front-matter/`
   cover page, title page, acknowledgement, TOC, lists, and abstract
 - `02-chapter-1-introduction/`
-  introduction, objectives, scope, methodology, activity plan, budget, significance, and outline
+  flat chapter workspace with `report-source.md` and `chapter-draft.md`
 - `03-chapter-2-literature-review/`
-  related works, milestones and gaps, lessons learned
+  flat chapter workspace with `report-source.md` and `chapter-draft.md`
 - `04-chapter-3-problem-analysis-and-modeling/`
-  existing system analysis, requirements, use cases, dynamic models, and validation
+  flat chapter workspace with `report-source.md` and `chapter-draft.md`
 - `05-chapter-4-system-design/`
-  architecture, subsystem decomposition, database design, deployment, UI, integration, security, and design verification
+  flat chapter workspace with `report-source.md` and `chapter-draft.md`
 - `06-chapter-5-system-implementation/`
-  review of design, tools, and implementation write-up
+  flat chapter workspace with `report-source.md` and `chapter-draft.md`
 - `07-chapter-6-system-evaluation/`
-  test plans, results, and discussion
+  flat chapter workspace with `report-source.md` and `chapter-draft.md`
 - `08-chapter-7-conclusion-and-recommendations/`
-  conclusion and future recommendations
+  flat chapter workspace with `report-source.md` and `chapter-draft.md`
 - `09-references/`
   reference materials and citation work
 - `10-appendices/`
@@ -38,21 +38,21 @@ This folder is organized to match the AASTU senior research guideline and the cu
 ## Notes
 
 - the extracted source report is now split into `report-source.md` files across the chapter folders
+- chapter folders are intentionally flat so each chapter keeps only `report-source.md` and `chapter-draft.md`
 - the copied original sources are stored under `assets/source-files/original-report/`
 - the copied report images are stored under `assets/images/report-original/`
 - Mermaid versions of the major diagrams are stored under `assets/diagrams/mermaid/`
+- Chapter Four support artifacts such as the subsystem write-up and database design files are stored under `assets/chapter-4-design/`
 - the section-to-file map is in `REPORT_SOURCE_INDEX.md`
 - the rebuild manifest is in `REPORT_ASSEMBLY_MANIFEST.json`
 - the reconstructed combined markdown output is written to `build/FinalYearProjectReport.reconstructed.md`
 - the cleaner submission-oriented chapter drafts are written as `front-matter-draft.md`, `chapter-draft.md`, and `references-draft.md` files inside the corresponding chapter folders
 - the combined submission-oriented markdown is written to `build/NVOMS_Submission_Draft.md`
-- the existing database design work has been placed under:
-  `05-chapter-4-system-design/04-database-design/`
 
 ## Recommended Workflow
 
 1. use the generated `report-source.md` files as the baseline reference for the original report content
-2. write refined chapter drafts beside or on top of those source files inside the same numbered folders
+2. keep each chapter folder flat and do your editing in `report-source.md` and `chapter-draft.md`
 3. keep major diagrams and editable Mermaid code under `assets/diagrams/mermaid/`
 4. run `python3 documentation/tools/dissect_report.py` if the source HTML or report mapping changes
 5. run `python3 documentation/tools/assemble_report.py` when you want one reconstructed markdown document again
