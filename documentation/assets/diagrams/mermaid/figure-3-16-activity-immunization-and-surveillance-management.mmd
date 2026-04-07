@@ -1,35 +1,36 @@
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#eef0ff",
-    "primaryBorderColor": "#b8b9ff",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "secondaryColor": "#fff4b8",
-    "tertiaryColor": "#ffffff",
-    "lineColor": "#6c708f",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   },
   "flowchart": {
     "curve": "linear",
-    "nodeSpacing": 28,
-    "rankSpacing": 40,
+    "nodeSpacing": 34,
+    "rankSpacing": 50,
     "htmlLabels": true
   }
 }}%%
 flowchart TD
-    start([Start]) --> schedule["System generates vaccination schedule based on EPI guidelines"]
-    schedule --> record["Healthcare worker records administered dose, batch ID, route, site"]
-    record --> observe["Record surveillance observations e.g. AFP, rash, fever"]
-    observe --> offline{"Offline mode?"}
-    offline -- Yes --> local["Store data locally"]
-    local --> restored{"Connectivity restored?"}
-    restored -- Yes --> sync["Auto-synchronize with central server"]
-    restored -- No --> continue["Continue offline operations"] --> end([End])
-    offline -- No --> server["Save to central server immediately"]
-    server --> analyze["Analyze patient record"]
+    start([Start]) --> schedule["System generates the vaccination schedule based on EPI guidelines"]
+    finish([End])
+    schedule --> record["Health worker records the administered dose, batch ID, route, and site"]
+    record --> observe["Health worker records surveillance observations<br/>AFP, rash, fever"]
+    observe --> offline{"Offline mode is enabled?"}
+    offline -- Yes --> local["System stores the data locally"]
+    local --> restored{"Connectivity is restored?"}
+    restored -- Yes --> sync["System synchronizes the data with the central server"]
+    restored -- No --> continue["Health worker continues offline operations"] --> finish
+    offline -- No --> server["System saves the data to the central server immediately"]
+    server --> analyze["System analyzes the updated patient record"]
     sync --> analyze
-    analyze --> defaulter{"Is patient zero-dose or defaulter?"}
-    defaulter -- Yes --> flag["Flag and alert health worker"]
-    flag --> follow["Log for follow-up"] --> end
-    defaulter -- No --> update["Update vaccination history"]
-    update --> audit["Ensure data accuracy and audit log"] --> end
+    analyze --> defaulter{"Patient is zero-dose or a defaulter?"}
+    defaulter -- Yes --> flag["System flags the patient and alerts the health worker"]
+    flag --> follow["System logs the case for follow-up"] --> finish
+    defaulter -- No --> update["System updates the vaccination history"]
+    update --> audit["System records an audit trail and validates data quality"] --> finish

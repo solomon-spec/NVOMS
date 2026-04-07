@@ -1,12 +1,12 @@
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#79aefc",
-    "primaryBorderColor": "#4987dd",
-    "primaryTextColor": "#163867",
-    "secondaryColor": "#ff79d8",
-    "tertiaryColor": "#ffffff",
-    "lineColor": "#686d89",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
+    "primaryTextColor": "#2f3152",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   },
   "flowchart": {
@@ -17,50 +17,45 @@
   }
 }}%%
 flowchart LR
-    classDef actor fill:#ff8be2,stroke:#c84fb0,color:#4d1d47,stroke-width:1px
-    classDef module fill:#7fb2ff,stroke:#4a87de,color:#163867,stroke-width:1px
-    classDef service fill:#ff8be2,stroke:#c84fb0,color:#4d1d47,stroke-width:1px
-    classDef external fill:#ffffff,stroke:#4a87de,color:#2f3152,stroke-width:1px
+    classDef actor fill:#ffffff,stroke:#7e90b6,color:#2f3152,stroke-width:1px
+    classDef module fill:#eef4ff,stroke:#4d6fb8,color:#24314f,stroke-width:1px
+    classDef external fill:#ffffff,stroke:#8f79c8,color:#3f2d73,stroke-width:1px
 
-    admin{{Administrator}}:::actor
-    official[Public Health Official]:::external
-    outbreak[Outbreak Prediction & Alert Module]:::service
-    epi[Epidemiology & Analytics Module]:::service
-    defaulter[Defaulter Monitoring Module]:::service
-    notification[Notification Service]:::service
-    vaccination[Vaccination Module]:::service
-
-    report[Report Generation Module]:::module
+    admin[Administrator]:::actor
+    worker[Health Worker]:::actor
+    official[Public Health Official]:::actor
+    caregiver[Caregiver]:::actor
     userMgmt[User Management Module]:::module
     config[System Configuration Module]:::module
-    reg[Patient Registration Module]:::module
-    worker[Health Worker]:::external
+    registry[Patient Registry Module]:::module
+    vaccination[Vaccination Tracking Module]:::module
+    defaulter[Defaulter Monitoring Module]:::module
+    notification[Notification Service]:::module
+    analytics[Analytics Service]:::module
+    prediction[Prediction Service]:::module
+    reporting[Reporting Service]:::module
+    interop[Interoperability Module]:::module
+
     dhis2[DHIS2]:::external
-    fhir[FHIR System]:::external
-    sms[SMS Gateway]:::service
-    caregiver[Caregiver]:::external
+    fhir[FHIR Server]:::external
+    sms[SMS Gateway]:::external
+    weather[Weather API]:::external
 
-    admin -->|1: create/update/deleteUser(userData)| userMgmt
-    admin -->|2: updateSystemSettings(settings)| config
-    admin -->|3: generateReport(parameters)| report
-    report -->|4: exportReport(format)| admin
-    report -->|14: displayReport| official
-    report -->|16: generateReport(parameters)| epi
-
-    epi -->|15: getDefaulterData(region)| defaulter
-    epi -->|25: updateRiskMap(regionRiskLevel)| outbreak
-    outbreak -->|22: sendEpiData(diseaseIndicators)| epi
-    outbreak -->|21: sendDefaulterData(childData, region)| defaulter
-
-    defaulter -->|8: scheduleReminderSMS(patientID, caregiverContact)| notification
-    defaulter -->|11: sendMissedAppointmentAlert(patientID)| notification
-    notification -->|0 / 12 / 20: sendSMS(...)| sms
-    sms -->|10: receiveSMS(reminderMessage)| caregiver
-    sms -->|13: receiveMissedAppointmentAlert()| caregiver
-
-    vaccination -->|7: addToMonitoring(patientID, schedule)| defaulter
-    reg -->|5: registerPatient(patientData)| worker
-    vaccination -->|6: generateVaccinationSchedule(patientID)| dhis2
-    vaccination -->|18: syncData(patientHealthData)| reg
-    vaccination -->|19: exchangeData(patientHealthData)| fhir
-    worker -->|23: generateOutbreakAlert(regionRiskLevel)| outbreak
+    admin -->|1: manage users| userMgmt
+    admin -->|2: configure settings| config
+    worker -->|3: register patient and caregiver| registry
+    registry -->|4: create vaccination schedule| vaccination
+    worker -->|5: record dose and surveillance data| vaccination
+    vaccination -->|6: update follow-up status| defaulter
+    defaulter -->|7: schedule reminder or alert| notification
+    notification -->|8: send SMS message| sms
+    sms -->|9: deliver reminder or alert| caregiver
+    official -->|10: request dashboard insights| analytics
+    analytics -->|11: request outbreak prediction| prediction
+    prediction -->|12: fetch environmental factors| weather
+    prediction -->|13: return risk indicators| analytics
+    admin -->|14: generate report| reporting
+    official -->|15: review report| reporting
+    reporting -->|16: prepare export bundle| interop
+    interop -->|17: exchange standardized data| fhir
+    interop -->|18: synchronize data with DHIS2| dhis2

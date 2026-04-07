@@ -2,15 +2,15 @@
   "theme": "base",
   "themeVariables": {
     "actorBkg": "#ffffff",
-    "actorBorder": "#a98de6",
+    "actorBorder": "#4d6fb8",
     "actorTextColor": "#2f3152",
-    "signalColor": "#3f425d",
+    "signalColor": "#40455d",
     "signalTextColor": "#2f3152",
-    "labelBoxBkgColor": "#fff4b8",
-    "labelBoxBorderColor": "#f1c84c",
+    "labelBoxBkgColor": "#eef4ff",
+    "labelBoxBorderColor": "#8fa4d6",
     "labelTextColor": "#2f3152",
-    "noteBkgColor": "#fffdf1",
-    "noteBorderColor": "#d3d7f0",
+    "noteBkgColor": "#f8fbff",
+    "noteBorderColor": "#c7d3f0",
     "sequenceNumberColor": "#2f3152",
     "fontFamily": "Arial, Helvetica, sans-serif"
   }
@@ -19,31 +19,31 @@ sequenceDiagram
     autonumber
     actor PublicHealth as "Public Health Official"
     participant WebPortal as "Web Portal"
-    participant Analytics as "Analytics Engine"
-    participant ML as "ML Model Service"
-    participant Weather as "Meteorological Service (External)"
+    participant Analytics as "Analytics Service"
+    participant ML as "Prediction Service"
+    participant Weather as "Weather API (External)"
     participant CentralDB as "Central Database"
 
     Note over PublicHealth,CentralDB: FR14-FR17: Outbreak Prediction and Visualization
-    PublicHealth->>WebPortal: Request risk map (region: Somali)
+    PublicHealth->>WebPortal: Request outbreak risk map (region: Somali)
     WebPortal->>Analytics: GET /prediction/risk-map
     par Data aggregation
       Analytics->>CentralDB: Fetch health data (coverage, zero-dose)
       CentralDB-->>Analytics: Health dataset
-      Analytics->>Weather: Fetch rainfall/temp (last 30 days)
+      Analytics->>Weather: Fetch rainfall and temperature data (last 30 days)
       Weather-->>Analytics: Weather dataset
     end
     Analytics->>ML: Execute models (health + weather)
     rect rgb(255, 248, 180)
-    ML->>ML: Run KNN (spatial clustering)
-    ML->>ML: Run XGBoost (cholera prediction)
-    alt Risk score > threshold
-      ML->>ML: Tag "High Risk Zone"
-    else No data reporting
-      ML->>ML: Tag "Silent District"
+    ML->>ML: Run KNN spatial clustering
+    ML->>ML: Run XGBoost outbreak prediction
+    alt Risk score exceeds threshold
+      ML->>ML: Tag region as "High Risk"
+    else Reporting gap detected
+      ML->>ML: Tag region as "Silent District"
     end
     end
-    ML-->>Analytics: Return GeoJSON vectors
+    ML-->>Analytics: Return GeoJSON layers
     Analytics-->>WebPortal: Risk map data
-    WebPortal->>WebPortal: Render heatmap layer
+    WebPortal->>WebPortal: Render risk map
     WebPortal-->>PublicHealth: Display interactive map

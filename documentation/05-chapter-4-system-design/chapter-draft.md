@@ -89,20 +89,40 @@ Mermaid source: [`figure-4-01-layered-service-oriented-architecture.mmd`](../ass
 
 ## 4.3.2 Subsystem Decomposition
 
-Subsystem decomposition is used to divide the National Vaccination and Outbreak Monitoring System into manageable and logically related parts. This makes the architecture easier to understand, supports focused development, and allows each major system function to be implemented, tested, and maintained independently. Based on the project report and design diagrams, the system can be decomposed into the following subsystems.
+Subsystem decomposition is used to divide the National Vaccination and Outbreak Monitoring System into manageable and logically related parts. This makes the architecture easier to understand, supports focused development, and allows each major system function to be implemented, tested, and maintained independently. Based on the project report, the dynamic models, and the Chapter Four guideline structure, the system can be decomposed into the following subsystems.
 
 ### Overview
 
 The decomposition follows the layered service-oriented architecture shown in the design:
 
-- Presentation Layer
-- Application Layer
-- Data Layer
-- Integration Layer
+- Presentation and access layer
+- Application subsystem layer
+- Shared data layer
+- External integration layer
 
-Within these layers, the system is divided into functional subsystems that align with the use cases, sequence diagrams, state diagrams, activity diagrams, and collaboration diagram.
+Within these layers, the system is divided into functional subsystems that align with the use cases, sequence diagrams, state diagrams, activity diagrams, and collaboration diagram. The guide also expects a clear subsystem breakdown before the database and deployment sections, so this subsection includes both a high-level decomposition figure and a guide-aligned service catalog.
 
-### Subsystems
+### High-Level Decomposition View
+
+*Figure 4.2: High-Level Subsystem Decomposition of the National Vaccination and Outbreak Monitoring System*  
+Mermaid source: [`figure-4-02-subsystem-decomposition.mmd`](../assets/diagrams/mermaid/figure-4-02-subsystem-decomposition.mmd)
+
+### Guide-Aligned Service Catalog
+
+| No. | Service Name | Primary Responsibility | Main Consumers | Key Technologies / Notes |
+| --- | --- | --- | --- | --- |
+| 1 | User Management and Security Service | User registration, authentication, role-based authorization, password reset, session control, audit logging | All internal users and services | JWT, RBAC, audit logs |
+| 2 | Patient and Caregiver Registry Service | Patient registration, caregiver linkage, UID generation, duplicate prevention | Health Worker, Vaccination Service, Reporting Service | Unique patient identity is the foundation of the platform |
+| 3 | Vaccination Scheduling and Tracking Service | Schedule generation, dose recording, history maintenance, status tracking | Health Worker, Surveillance Service, Notification Service | EPI rules, vaccination lifecycle states |
+| 4 | Surveillance and Defaulter Monitoring Service | Clinical observation capture, zero-dose detection, defaulter identification, follow-up flagging | Health Worker, Public Health Official, Prediction Service | AFP, rash, fever, AEFI, follow-up workflows |
+| 5 | Notification and Reminder Service | SMS reminders, missed-appointment alerts, outbreak-related messaging, delivery tracking | Caregiver, Health Worker, Scheduler | SMS gateway integration, queueing, retries |
+| 6 | Analytics and Dashboard Service | Coverage indicators, dropout analytics, hotspot summaries, dashboard aggregation | Administrator, Public Health Official | KPI aggregation and visualization support |
+| 7 | Prediction and Outbreak Alert Service | Risk scoring, cluster detection, model execution, outbreak alert generation | Public Health Official, Analytics Service, Notification Service | XGBoost, KNN, environmental factors |
+| 8 | Reporting and Interoperability Service | Report generation, export, HL7 FHIR mapping, DHIS2 exchange, sync logging | Administrator, Public Health Official, External Platforms | PDF/CSV export, FHIR, DHIS2 integration |
+| 9 | Offline Sync Service | Local transaction queueing, batch synchronization, acknowledgement, conflict handling | Health Worker, Registry Service, Vaccination Service | Offline-first support for low-connectivity settings |
+| 10 | Data Management Service | Persistent storage, integrity enforcement, historical retention, secure shared data access | All subsystems | PostgreSQL, auditability, structured integration logs |
+
+### Detailed Subsystems
 
 #### 1. User Management and Security Subsystem
 

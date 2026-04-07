@@ -1,34 +1,35 @@
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#eef0ff",
-    "primaryBorderColor": "#b8b9ff",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "secondaryColor": "#fff4b8",
-    "tertiaryColor": "#ffffff",
-    "lineColor": "#6c708f",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   },
   "flowchart": {
     "curve": "linear",
-    "nodeSpacing": 28,
-    "rankSpacing": 40,
+    "nodeSpacing": 34,
+    "rankSpacing": 50,
     "htmlLabels": true
   }
 }}%%
 flowchart TD
-    start([Start]) --> init["Healthcare worker initiates registration"]
-    init --> patient["Enter patient demographics<br/>DOB, sex, location"]
-    patient --> caregiver["Enter caregiver details<br/>name, phone, relationship"]
-    caregiver --> valid{"Validate input data"}
-    valid -- Yes --> uid["Generate unique persistent identifier (UID)"]
-    valid -- No --> correct["Prompt for corrections"] --> patient
-    uid --> link["Link patient to caregiver entity"]
-    link --> history["Initialize digital vaccination history record"]
-    history --> offline{"Offline mode?"}
-    offline -- Yes --> local["Store locally and queue for sync"]
-    local --> restored{"Connectivity restored?"}
-    restored -- Yes --> sync["Synchronize data with server"] --> end([End])
-    restored -- No --> cont["Continue offline"] --> end
-    offline -- No --> save["Save to central database securely"]
-    save --> confirm["Confirm registration and notify caregiver via SMS"] --> end
+    start([Start]) --> init["Health worker starts registration"]
+    finish([End])
+    init --> patient["Health worker enters patient demographics<br/>DOB, sex, location"]
+    patient --> caregiver["Health worker enters caregiver details<br/>name, phone, relationship"]
+    caregiver --> valid{"Input data is valid?"}
+    valid -- Yes --> uid["System generates a unique patient identifier"]
+    valid -- No --> correct["System prompts for corrections"] --> patient
+    uid --> link["System links the patient and caregiver records"]
+    link --> history["System initializes the digital vaccination history"]
+    history --> offline{"Offline mode is enabled?"}
+    offline -- Yes --> local["System stores the data locally and queues synchronization"]
+    local --> restored{"Connectivity is restored?"}
+    restored -- Yes --> sync["System synchronizes the data with the server"] --> finish
+    restored -- No --> cont["Health worker continues working offline"] --> finish
+    offline -- No --> save["System saves the records in the central database"]
+    save --> confirm["System confirms registration and sends an SMS notification"] --> finish

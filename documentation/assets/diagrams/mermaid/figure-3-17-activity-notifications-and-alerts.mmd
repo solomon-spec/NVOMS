@@ -1,32 +1,33 @@
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#eef0ff",
-    "primaryBorderColor": "#b8b9ff",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "secondaryColor": "#fff4b8",
-    "tertiaryColor": "#ffffff",
-    "lineColor": "#6c708f",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   },
   "flowchart": {
     "curve": "linear",
-    "nodeSpacing": 28,
-    "rankSpacing": 40,
+    "nodeSpacing": 34,
+    "rankSpacing": 50,
     "htmlLabels": true
   }
 }}%%
 flowchart TD
-    start([Start]) --> check["System checks vaccination schedule"]
-    check --> upcoming{"Upcoming appointment?"}
-    upcoming -- Yes --> remind["Send SMS reminder to caregiver"]
-    remind --> success{"Delivery successful?"}
-    success -- Yes --> log["Log notification sent"] --> end([End])
-    success -- No --> retry["Retry SMS or queue for later"] --> end
-    upcoming -- No --> missed["Check for missed appointments"]
-    missed --> detected{"Missed appointment detected?"}
-    detected -- Yes --> alert["Send follow-up SMS alert to caregiver"]
-    alert --> delivered{"Delivery successful?"}
-    delivered -- Yes --> monitor["Log alert sent and flag for monitoring"] --> end
-    delivered -- No --> notify["Retry or notify health worker"] --> end
-    detected -- No --> none["No action needed"] --> end
+    start([Start]) --> check["System checks the vaccination schedule"]
+    finish([End])
+    check --> upcoming{"Upcoming appointment is found?"}
+    upcoming -- Yes --> remind["System sends an SMS reminder to the caregiver"]
+    remind --> success{"SMS delivery succeeds?"}
+    success -- Yes --> log["System logs the reminder"] --> finish
+    success -- No --> retry["System retries the SMS or queues it for later delivery"] --> finish
+    upcoming -- No --> missed["System checks for missed appointments"]
+    missed --> detected{"Missed appointment is detected?"}
+    detected -- Yes --> alert["System sends a follow-up SMS alert to the caregiver"]
+    alert --> delivered{"SMS delivery succeeds?"}
+    delivered -- Yes --> monitor["System logs the alert and flags the case for monitoring"] --> finish
+    delivered -- No --> notify["System retries the SMS or notifies the health worker"] --> finish
+    detected -- No --> none["System takes no further action"] --> finish

@@ -1,26 +1,26 @@
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#6da9ff",
-    "primaryBorderColor": "#5f8dde",
-    "primaryTextColor": "#ffffff",
-    "secondaryColor": "#ffffff",
-    "tertiaryColor": "#f8fbff",
-    "lineColor": "#8a8ea6",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
+    "primaryTextColor": "#2f3152",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   },
   "flowchart": {
     "curve": "linear",
-    "nodeSpacing": 26,
-    "rankSpacing": 34,
+    "nodeSpacing": 30,
+    "rankSpacing": 42,
     "htmlLabels": true
   }
 }}%%
 flowchart LR
-    classDef actor fill:#ffffff,stroke:#9da4bb,color:#2f3152,stroke-width:1px
-    classDef usecase fill:#6da9ff,stroke:#5f8dde,color:#ffffff,stroke-width:1px
-    classDef external fill:#ffffff,stroke:#9da4bb,color:#2f3152,stroke-width:1px
-    classDef note fill:#ffffff,stroke:#8c8c8c,color:#2f3152,stroke-width:1px
+    classDef actor fill:#ffffff,stroke:#7e90b6,color:#2f3152,stroke-width:1px
+    classDef usecase fill:#eef4ff,stroke:#4d6fb8,color:#24314f,stroke-width:1px
+    classDef external fill:#ffffff,stroke:#8f79c8,color:#3f2d73,stroke-width:1px
+    classDef note fill:#f8fbff,stroke:#7e90b6,color:#2f3152,stroke-width:1px
 
     admin[Administrator]:::actor
     hw[Health Worker]:::actor
@@ -38,42 +38,36 @@ flowchart LR
         register([Register Patient]):::usecase
         viewRecord([View Patient<br/>Immunization Record]):::usecase
         recordDose([Record Vaccine<br/>Administration]):::usecase
-        epiUpdate([Update Epidemiological<br/>Data]):::usecase
+        surveillance([Record Surveillance<br/>Data]):::usecase
         genSchedule([Generate Vaccination<br/>Schedule]):::usecase
         monitor([Monitor Vaccination<br/>Status]):::usecase
-        identify([Identify Defaulter]):::usecase
+        identify([Identify Defaulters]):::usecase
         reminder([Send Vaccination<br/>Reminder]):::usecase
-        missed([Send Missed<br/>Appointment]):::usecase
+        missed([Send Missed<br/>Appointment Alert]):::usecase
         receiveReminder([Receive Vaccination<br/>Reminder SMS]):::usecase
-        receiveMissed([Receive Missed<br/>Appointment]):::usecase
+        receiveMissed([Receive Missed<br/>Appointment Alert]):::usecase
         analytics([View Analytics<br/>Dashboard]):::usecase
         riskMap([View Outbreak<br/>Risk Map]):::usecase
-        reports([Generate/Export<br/>Reports]):::usecase
+        reports([Generate and Export<br/>Reports]):::usecase
         predict([Predict Disease<br/>Outbreak]):::usecase
-        detect([Detect High<br/>Defaulter]):::usecase
-        share([Share Immunization<br/>Data]):::usecase
-        exchange([Exchange Health Data<br/>(FHIR-compliant)]):::usecase
+        detect([Detect High-Defaulter<br/>Clusters]):::usecase
+        share([Share Immunization<br/>Data with DHIS2]):::usecase
+        exchange([Exchange Health Data<br/>using HL7 FHIR]):::usecase
     end
 
     admin --- auth
     admin --- manage
     admin --- settings
-    admin --- register
-    admin --- viewRecord
-    admin --- recordDose
-    admin --- epiUpdate
-    admin --- analytics
-    admin --- riskMap
     admin --- reports
 
     hw --- auth
     hw --- register
     hw --- viewRecord
     hw --- recordDose
-    hw --- epiUpdate
+    hw --- surveillance
     hw --- monitor
-    hw --- analytics
 
+    official --- auth
     official --- analytics
     official --- riskMap
     official --- reports

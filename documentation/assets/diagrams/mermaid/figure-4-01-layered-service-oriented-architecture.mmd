@@ -2,11 +2,11 @@
   "theme": "base",
   "themeVariables": {
     "primaryColor": "#ffffff",
-    "primaryBorderColor": "#55576a",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
     "secondaryColor": "#f8fbff",
-    "tertiaryColor": "#f8fbff",
-    "lineColor": "#35384f",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   },
   "flowchart": {
@@ -17,45 +17,63 @@
   }
 }}%%
 flowchart TD
-    classDef actor fill:#ffffff,stroke:#2f3152,color:#2f3152,stroke-width:1px
-    classDef layer fill:#f8fbff,stroke:#44475d,color:#2f3152,stroke-width:1px
-    classDef service fill:#ffffff,stroke:#55576a,color:#2f3152,stroke-width:1px
-    classDef store fill:#ffffff,stroke:#ef7ff6,color:#8a2379,stroke-width:2px
-    classDef bucket fill:#ffffff,stroke:#8ca827,color:#5b6d18,stroke-width:2px
+    classDef actor fill:#ffffff,stroke:#7e90b6,color:#2f3152,stroke-width:1px
+    classDef layer fill:#f8fbff,stroke:#5a6278,color:#2f3152,stroke-width:1px
+    classDef service fill:#eef4ff,stroke:#4d6fb8,color:#24314f,stroke-width:1px
+    classDef store fill:#ffffff,stroke:#d17a28,color:#7a4212,stroke-width:2px
+    classDef external fill:#ffffff,stroke:#8f79c8,color:#3f2d73,stroke-width:1px
 
-    hp[Health professional]:::actor
-    cg[Care givers]:::actor
+    hw[Health Worker]:::actor
+    official[Public Health Official]:::actor
+    admin[Administrator]:::actor
+    caregiver[Caregiver]:::actor
 
     subgraph presentation["Presentation layer"]
         direction LR
-        web[Web application]:::service
-        smsUi[SMS]:::service
+        webPortal[Web Portal]:::service
+        dashboard[Analytics Dashboard]:::service
+        adminPanel[Admin Panel]:::service
+        smsChannel[SMS Notification Channel]:::service
     end
 
     subgraph application["Application layer"]
         direction LR
-        userSvc[User Service]:::service
-        analyticsSvc[Analytics Service]:::service
-        vaccinationSvc[Vaccination Service]:::service
+        userSvc[User Management Service]:::service
+        registrySvc[Patient Registry Service]:::service
+        syncSvc[Offline Sync Service]:::service
+        vaccinationSvc[Vaccination Tracking Service]:::service
         notificationSvc[Notification Service]:::service
+        analyticsSvc[Analytics Service]:::service
         predictionSvc[Prediction Service]:::service
+        reportingSvc[Reporting Service]:::service
+        interopSvc[Interoperability Service]:::service
     end
 
     subgraph data["Data layer"]
         direction LR
         postgres[(PostgreSQL)]:::store
-        fileStore[(File Storage)]:::bucket
     end
 
-    subgraph integration["Integration Layer"]
+    subgraph integration["Integration layer"]
         direction LR
-        dhis2[DHIS2]:::service
-        gateway[SMS Gateway]:::service
+        dhis2[DHIS2]:::external
+        fhir[FHIR Server]:::external
+        gateway[SMS Gateway]:::external
+        weather[Weather API]:::external
     end
 
-    hp --> web
-    cg --> smsUi
-    web --> application
-    smsUi --> application
+    hw --> webPortal
+    official --> dashboard
+    admin --> adminPanel
+    caregiver --> smsChannel
+
+    webPortal --> application
+    dashboard --> application
+    adminPanel --> application
+    smsChannel --> application
+
     application --> data
-    data --> integration
+    notificationSvc --> gateway
+    predictionSvc --> weather
+    interopSvc --> fhir
+    interopSvc --> dhis2

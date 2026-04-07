@@ -2,21 +2,25 @@
   "theme": "base",
   "themeVariables": {
     "primaryColor": "#ffffff",
-    "primaryBorderColor": "#41445f",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "tertiaryColor": "#f4f6ff",
-    "lineColor": "#2f3152",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   }
 }}%%
 stateDiagram-v2
     direction TB
-    [*] --> AssemblingData: Scheduled trigger
-    AssemblingData --> MappingFHIR: Convert format
-    MappingFHIR --> Validating: Check structure
-    Validating --> Sending: Validation result / valid
-    Validating --> Error: Invalid schema
-    Sending --> Complete: DHIS2 accepts data
-    Sending --> Error: Connection failed
-    Complete --> [*]
-    Error --> [*]
+    state "Data Assembly" as DataAssembly
+    state "FHIR Mapping" as FHIRMapping
+    state "Validation Check" as ValidationCheck
+    state "Transmission" as Transmission
+    [*] --> DataAssembly: Scheduled export starts
+    DataAssembly --> FHIRMapping: System prepares standardized records
+    FHIRMapping --> ValidationCheck: Bundle is created
+    ValidationCheck --> Transmission: Bundle passes validation
+    ValidationCheck --> Error: Bundle fails schema validation
+    Transmission --> Complete: External endpoint accepts the data
+    Transmission --> Error: Transport or authentication error occurs
+    Complete --> [*]: Export completes
+    Error --> [*]: Error is logged

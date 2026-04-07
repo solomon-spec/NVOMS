@@ -1,0 +1,96 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
+    "primaryTextColor": "#2f3152",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 34,
+    "rankSpacing": 50,
+    "htmlLabels": true
+  }
+}}%%
+flowchart TB
+    classDef access fill:#ffffff,stroke:#7e90b6,color:#2f3152,stroke-width:1px
+    classDef subsystem fill:#eef4ff,stroke:#4d6fb8,color:#24314f,stroke-width:1px
+    classDef store fill:#ffffff,stroke:#d17a28,color:#7a4212,stroke-width:2px
+    classDef external fill:#ffffff,stroke:#8f79c8,color:#3f2d73,stroke-width:1px
+
+    subgraph presentation["Presentation and Access Layer"]
+        direction LR
+        webPortal[Web Portal]:::access
+        dashboard[Analytics Dashboard]:::access
+        adminPanel[Admin Panel]:::access
+        smsChannel[SMS Channel]:::access
+    end
+
+    subgraph application["Application Subsystems"]
+        direction TB
+        userMgmt[User Management and Security]:::subsystem
+        registry[Patient and Caregiver Registry]:::subsystem
+        vaccination[Vaccination Scheduling and Tracking]:::subsystem
+        surveillance[Surveillance and Defaulter Monitoring]:::subsystem
+        notification[Notification and Reminder]:::subsystem
+        analytics[Analytics and Dashboard]:::subsystem
+        prediction[Prediction and Outbreak Alert]:::subsystem
+        reporting[Reporting and Interoperability]:::subsystem
+        offlineSync[Offline Sync]:::subsystem
+    end
+
+    subgraph data["Shared Data Layer"]
+        direction LR
+        dataMgmt[(Data Management / PostgreSQL)]:::store
+    end
+
+    subgraph externalSystems["External Integration Endpoints"]
+        direction LR
+        smsGateway[SMS Gateway]:::external
+        weather[Weather API]:::external
+        fhir[FHIR Server]:::external
+        dhis2[DHIS2]:::external
+    end
+
+    webPortal --> userMgmt
+    webPortal --> registry
+    webPortal --> vaccination
+    webPortal --> surveillance
+    dashboard --> analytics
+    dashboard --> reporting
+    adminPanel --> userMgmt
+    adminPanel --> reporting
+    smsChannel --> notification
+
+    userMgmt --> registry
+    registry --> vaccination
+    vaccination --> surveillance
+    vaccination --> notification
+    surveillance --> notification
+    surveillance --> prediction
+    analytics --> prediction
+    prediction --> analytics
+    reporting --> analytics
+    reporting --> prediction
+    offlineSync --> registry
+    offlineSync --> vaccination
+    offlineSync --> surveillance
+
+    userMgmt --> dataMgmt
+    registry --> dataMgmt
+    vaccination --> dataMgmt
+    surveillance --> dataMgmt
+    notification --> dataMgmt
+    analytics --> dataMgmt
+    prediction --> dataMgmt
+    reporting --> dataMgmt
+    offlineSync --> dataMgmt
+
+    notification --> smsGateway
+    prediction --> weather
+    reporting --> fhir
+    reporting --> dhis2

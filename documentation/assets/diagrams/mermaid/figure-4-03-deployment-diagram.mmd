@@ -1,0 +1,102 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
+    "primaryTextColor": "#2f3152",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
+    "fontFamily": "Arial, Helvetica, sans-serif"
+  },
+  "flowchart": {
+    "curve": "linear",
+    "nodeSpacing": 34,
+    "rankSpacing": 50,
+    "htmlLabels": true
+  }
+}}%%
+%% Mermaid flowchart approximation of a UML deployment diagram for the NVOMS MVP.
+flowchart LR
+    classDef client fill:#ffffff,stroke:#4d6fb8,color:#24314f,stroke-width:1.5px
+    classDef edge fill:#f8fbff,stroke:#7e90b6,color:#2f3152,stroke-width:1.5px
+    classDef service fill:#eef4ff,stroke:#4d6fb8,color:#24314f,stroke-width:1px
+    classDef store fill:#ffffff,stroke:#d17a28,color:#7a4212,stroke-width:2px
+    classDef external fill:#ffffff,stroke:#7c5cc6,color:#3f2d73,stroke-width:1.5px
+    classDef device fill:#fff8ea,stroke:#c89a38,color:#6f4e08,stroke-width:1.5px
+
+    subgraph clients["Client and Field Access"]
+        direction TB
+        subgraph hwNode["Health worker device"]
+            direction TB
+            hwBrowser["Offline-capable web client"]:::client
+            hwCache[("IndexedDB / local browser cache")]:::store
+            hwBrowser <--> hwCache
+        end
+        dashboard["Public health dashboard (browser)"]:::client
+        admin["Admin panel (browser)"]:::client
+        caregiver["Caregiver mobile phone"]:::device
+    end
+
+    subgraph platform["Central NVOMS deployment environment"]
+        direction TB
+        ingress["HTTPS reverse proxy / load balancer"]:::edge
+
+        subgraph webTier["Web and API tier"]
+            direction LR
+            web["Web frontend (React / Next.js)"]:::service
+            api["REST API (Spring Boot)"]:::service
+        end
+
+        subgraph appTier["Application and processing tier"]
+            direction LR
+            auth["Auth and RBAC module"]:::service
+            sync["Offline sync processor"]:::service
+            analytics["Analytics service"]:::service
+            prediction["Prediction service (Python ML)"]:::service
+            interoperability["FHIR / DHIS2 integration service"]:::service
+            scheduler["Scheduler / background jobs"]:::service
+            notification["Notification worker"]:::service
+        end
+
+        subgraph dataTier["Data tier"]
+            direction LR
+            postgres[(PostgreSQL)]:::store
+        end
+    end
+
+    subgraph externalSystems["External systems"]
+        direction TB
+        sms["SMS Gateway"]:::external
+        weather["Weather API"]:::external
+        fhir["FHIR Server"]:::external
+        dhis2["DHIS2"]:::external
+    end
+
+    hwBrowser -->|HTTPS| ingress
+    dashboard -->|HTTPS| ingress
+    admin -->|HTTPS| ingress
+
+    ingress --> web
+    web --> api
+
+    hwCache -. sync when online .-> api
+
+    api --> auth
+    api --> sync
+    api --> analytics
+    api --> interoperability
+    api --> scheduler
+    analytics --> prediction
+    scheduler --> notification
+
+    api --> postgres
+    prediction --> postgres
+    scheduler --> postgres
+    interoperability --> postgres
+
+    notification --> sms
+    sms -->|appointment reminders and alerts| caregiver
+    prediction --> weather
+    interoperability --> fhir
+    interoperability --> dhis2

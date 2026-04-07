@@ -2,20 +2,21 @@
   "theme": "base",
   "themeVariables": {
     "primaryColor": "#ffffff",
-    "primaryBorderColor": "#41445f",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "tertiaryColor": "#f4f6ff",
-    "lineColor": "#2f3152",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   }
 }}%%
 stateDiagram-v2
     direction TB
-    [*] --> Generated: Daily batch job
-    Generated --> SentToGateway
-    SentToGateway --> Delivered: Success (200 OK)
-    SentToGateway --> Retrying: Failure (5xx)
-    Retrying --> SentToGateway: Retry (max 3x)
-    Retrying --> Failed: Max retries exceeded
-    Delivered --> [*]
-    Failed --> [*]
+    state "Submitted" as Submitted
+    [*] --> Queued: Daily batch job creates the message
+    Queued --> Submitted: Notification service sends the message
+    Submitted --> Delivered: Gateway accepts the message
+    Submitted --> Retrying: Gateway returns a transient failure
+    Retrying --> Submitted: Retry attempt is scheduled
+    Retrying --> Failed: Maximum retry limit is reached
+    Delivered --> [*]: Notification completes
+    Failed --> [*]: Notification is marked failed

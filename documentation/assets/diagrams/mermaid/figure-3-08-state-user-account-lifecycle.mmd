@@ -2,24 +2,25 @@
   "theme": "base",
   "themeVariables": {
     "primaryColor": "#ffffff",
-    "primaryBorderColor": "#41445f",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "tertiaryColor": "#f4f6ff",
-    "lineColor": "#2f3152",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   }
 }}%%
 stateDiagram-v2
     direction TB
-    [*] --> Inactive: Admin creates account
-    Inactive --> Active: First login / change password
-    Active --> Inactive: Logout / timeout
-    Active --> Locked: 3 failed login attempts
-    Locked --> Inactive: Admin unlocks account
-    Active --> Deleted: Account deleted
+    state "Idle Session" as IdleSession
+    [*] --> Inactive: Administrator creates the account
+    Inactive --> Active: User signs in and changes the password
+    Active --> Inactive: User signs out or the session expires
+    Active --> Locked: Three failed sign-in attempts occur
+    Locked --> Inactive: Administrator unlocks the account
+    Active --> Deleted: Administrator deletes the account
 
     state Active {
         [*] --> Idle
-        Idle --> Working: User interaction
-        Working --> Idle: Task complete
+        Idle --> IdleSession: User performs a task
+        IdleSession --> Idle: Task completes
     }

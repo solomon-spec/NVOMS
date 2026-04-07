@@ -1,30 +1,31 @@
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#eef0ff",
-    "primaryBorderColor": "#b8b9ff",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "secondaryColor": "#fff4b8",
-    "tertiaryColor": "#ffffff",
-    "lineColor": "#6c708f",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   },
   "flowchart": {
     "curve": "linear",
-    "nodeSpacing": 28,
-    "rankSpacing": 40,
+    "nodeSpacing": 34,
+    "rankSpacing": 50,
     "htmlLabels": true
   }
 }}%%
 flowchart TD
-    start([Start]) --> request["User requests configurable report on immunization/outbreak indicators"]
-    request --> generate["Generate report using aggregated data"]
-    generate --> export{"Export format specified?"}
-    export -- Yes --> file["Export in standard formats e.g. CSV, PDF"]
-    export -- No --> dashboard["Default to viewable dashboard"]
-    file --> map["Map data to HL7 FHIR resources: patient, immunization, observation"]
+    start([Start]) --> request["Authorized user requests a configurable report"]
+    finish([End])
+    request --> generate["System generates a report from aggregated data"]
+    generate --> export{"Export format is specified?"}
+    export -- Yes --> file["System exports the report in standard formats<br/>CSV, PDF"]
+    export -- No --> dashboard["System displays the report in the dashboard"]
+    file --> map["System maps the data to HL7 FHIR resources<br/>Patient, Immunization, Observation"]
     dashboard --> map
-    map --> exchange["Exchange data with DHIS2 and national platforms"]
-    exchange --> ok{"Interoperability successful?"}
-    ok -- Yes --> log["Log exchange and ensure audit trail"] --> end([End])
-    ok -- No --> retry["Handle error and retry exchange"] --> end
+    map --> exchange["System exchanges the data with DHIS2 and partner platforms"]
+    exchange --> ok{"Interoperability exchange succeeds?"}
+    ok -- Yes --> log["System logs the exchange and audit trail"] --> finish
+    ok -- No --> retry["System handles the error and retries the exchange"] --> finish

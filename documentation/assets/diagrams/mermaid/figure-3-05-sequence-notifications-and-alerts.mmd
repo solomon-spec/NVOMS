@@ -2,15 +2,15 @@
   "theme": "base",
   "themeVariables": {
     "actorBkg": "#ffffff",
-    "actorBorder": "#a98de6",
+    "actorBorder": "#4d6fb8",
     "actorTextColor": "#2f3152",
-    "signalColor": "#3f425d",
+    "signalColor": "#40455d",
     "signalTextColor": "#2f3152",
-    "labelBoxBkgColor": "#fff4b8",
-    "labelBoxBorderColor": "#f1c84c",
+    "labelBoxBkgColor": "#eef4ff",
+    "labelBoxBorderColor": "#8fa4d6",
     "labelTextColor": "#2f3152",
-    "noteBkgColor": "#fffdf1",
-    "noteBorderColor": "#d3d7f0",
+    "noteBkgColor": "#f8fbff",
+    "noteBorderColor": "#c7d3f0",
     "sequenceNumberColor": "#2f3152",
     "fontFamily": "Arial, Helvetica, sans-serif"
   }
@@ -24,27 +24,27 @@ sequenceDiagram
     actor Caregiver
 
     Note over Scheduler,Gateway: FR12-FR13: Automated SMS Alerts
-    Scheduler->>Notification: Trigger daily batch (00:00 AM)
+    Scheduler->>Notification: Trigger daily batch (00:00)
     par Fetch recipient groups
-      Notification->>CentralDB: Query due tomorrow (FR12)
+      Notification->>CentralDB: Query appointments due tomorrow
       CentralDB-->>Notification: List of reminder recipients
-      Notification->>CentralDB: Query missed > 48hrs (FR13)
+      Notification->>CentralDB: Query appointments missed by more than 48 hours
       CentralDB-->>Notification: List of defaulter recipients
     end
-    loop Process each caregiver
-      Notification->>Notification: Localize message (Amharic/Oromiffa)
+    loop For each caregiver record
+      Notification->>Notification: Localize message template
       alt Reminder
-        Notification->>Gateway: Send(phone, "Reminder: Vaccine due")
-      else Defaulter alert
-        Notification->>Gateway: Send(phone, "Alert: Missed Appointment")
+        Notification->>Gateway: Send reminder SMS
+      else Missed appointment alert
+        Notification->>Gateway: Send missed-appointment alert
       end
-      alt Network failure
+      alt Gateway unavailable
         Gateway-->>Notification: 500 error
-        Notification->>CentralDB: Log retry queue
-        CentralDB-->>Notification: 200 OK (queued)
+        Notification->>CentralDB: Queue retry record
+        CentralDB-->>Notification: Retry queued
       else Accepted
         Gateway-->>Notification: 200 OK
+        Gateway-->>Caregiver: Deliver SMS
       end
-      Gateway-->>Caregiver: Deliver SMS (asynchronous)
     end
     Notification-->>Scheduler: Batch job complete

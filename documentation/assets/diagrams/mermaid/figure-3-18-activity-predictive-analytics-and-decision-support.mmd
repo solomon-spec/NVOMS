@@ -1,29 +1,30 @@
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#eef0ff",
-    "primaryBorderColor": "#b8b9ff",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "secondaryColor": "#fff4b8",
-    "tertiaryColor": "#ffffff",
-    "lineColor": "#6c708f",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   },
   "flowchart": {
     "curve": "linear",
-    "nodeSpacing": 28,
-    "rankSpacing": 40,
+    "nodeSpacing": 34,
+    "rankSpacing": 50,
     "htmlLabels": true
   }
 }}%%
 flowchart TD
     start([Start]) --> collect["System collects vaccination, demographic, and environmental data"]
-    collect --> weather["Ingest meteorological data: rainfall, temperature"]
-    weather --> cluster["Apply spatial clustering algorithms to detect high-dropout/risk clusters"]
-    cluster --> models["Execute prediction models: XGBoost/KNN using integrated data"]
-    models --> risk{"Analyze for outbreak risks?"}
-    risk -- Yes --> high["Identify high-risk areas and silent districts"]
-    high --> viz["Generate visualizations: dashboards and maps for risk levels"]
-    viz --> alerts["Provide decision-support alerts to health officials"] --> end([End])
-    risk -- No --> monitoring["No immediate risk - continue monitoring"]
-    monitoring --> log["Log for ongoing analysis"] --> end
+    finish([End])
+    collect --> weather["System ingests weather data<br/>rainfall and temperature"]
+    weather --> cluster["System applies spatial clustering to detect high-risk or high-dropout areas"]
+    cluster --> models["System executes outbreak prediction models"]
+    models --> risk{"Outbreak risk is detected?"}
+    risk -- Yes --> high["System identifies high-risk areas and silent districts"]
+    high --> viz["System generates dashboards and risk maps"]
+    viz --> alerts["System issues decision-support alerts to public health officials"] --> finish
+    risk -- No --> monitoring["System continues routine monitoring"]
+    monitoring --> log["System logs the result for ongoing analysis"] --> finish

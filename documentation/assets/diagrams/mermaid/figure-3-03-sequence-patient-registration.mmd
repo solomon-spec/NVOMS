@@ -2,15 +2,15 @@
   "theme": "base",
   "themeVariables": {
     "actorBkg": "#ffffff",
-    "actorBorder": "#a98de6",
+    "actorBorder": "#4d6fb8",
     "actorTextColor": "#2f3152",
-    "signalColor": "#3f425d",
+    "signalColor": "#40455d",
     "signalTextColor": "#2f3152",
-    "labelBoxBkgColor": "#fff4b8",
-    "labelBoxBorderColor": "#f1c84c",
+    "labelBoxBkgColor": "#eef4ff",
+    "labelBoxBorderColor": "#8fa4d6",
     "labelTextColor": "#2f3152",
-    "noteBkgColor": "#fffdf1",
-    "noteBorderColor": "#d3d7f0",
+    "noteBkgColor": "#f8fbff",
+    "noteBorderColor": "#c7d3f0",
     "sequenceNumberColor": "#2f3152",
     "fontFamily": "Arial, Helvetica, sans-serif"
   }
@@ -25,20 +25,20 @@ sequenceDiagram
 
     Note over HealthWorker,CentralDB: FR4-FR6: Core Registry and UID Generation
     HealthWorker->>WebPortal: Submit registration (patient + caregiver)
-    WebPortal->>WebPortal: Validate mandatory fields
+    WebPortal->>WebPortal: Validate required fields
     WebPortal->>Registration: POST /patients/register
-    Registration->>CentralDB: Check duplicates (name, location)
-    CentralDB-->>Registration: No match found
-    par Generate UID and format
+    Registration->>CentralDB: Check for duplicate patient records
+    CentralDB-->>Registration: No matching record found
+    par Generate UID and prepare record
       Registration->>UID: Request unique ID (e.g. ETH-1001)
       UID-->>Registration: Return UID
-      Registration->>Registration: Format as FHIR Patient
+      Registration->>Registration: Prepare standardized patient record
     end
     Registration->>CentralDB: Begin transaction
     Registration->>CentralDB: Insert caregiver entity
     Registration->>CentralDB: Insert patient entity (linked)
     Registration->>CentralDB: Commit transaction
-    CentralDB-->>Registration: Success (entities linked)
+    CentralDB-->>Registration: Registration committed
     Registration->>CentralDB: Initialize empty vaccination history
     CentralDB-->>Registration: History created
     Registration-->>WebPortal: Registration successful

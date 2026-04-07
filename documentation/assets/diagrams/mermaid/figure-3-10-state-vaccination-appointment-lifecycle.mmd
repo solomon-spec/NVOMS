@@ -2,26 +2,28 @@
   "theme": "base",
   "themeVariables": {
     "primaryColor": "#ffffff",
-    "primaryBorderColor": "#41445f",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "tertiaryColor": "#f4f6ff",
-    "lineColor": "#2f3152",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   }
 }}%%
 stateDiagram-v2
     direction TB
+    state "Sync Pending" as SyncPending
+    state "Synchronized" as Synchronized
     [*] --> Scheduled
-    Scheduled --> Due: Date arrived
-    Scheduled --> Administered: Early dose
-    Due --> Administered: On-time dose
-    Due --> Overdue: 24 hours passed
-    Overdue --> Defaulter: 7 days passed
-    Defaulter --> Administered: Catch-up dose
+    Scheduled --> Due: Appointment date arrives
+    Scheduled --> Administered: Early dose is recorded
+    Due --> Administered: On-time dose is recorded
+    Due --> Overdue: 24 hours elapse
+    Overdue --> Defaulter: 7 days elapse
+    Defaulter --> Administered: Catch-up dose is recorded
 
     state Administered {
-        [*] --> StoredLocally
-        StoredLocally --> Synced: Internet connected
+        [*] --> SyncPending
+        SyncPending --> Synchronized: Connectivity is restored
     }
 
-    Administered --> [*]: Archived
+    Administered --> [*]: Record is archived

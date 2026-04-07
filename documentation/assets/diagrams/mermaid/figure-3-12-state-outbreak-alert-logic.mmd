@@ -2,25 +2,27 @@
   "theme": "base",
   "themeVariables": {
     "primaryColor": "#ffffff",
-    "primaryBorderColor": "#41445f",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "tertiaryColor": "#f4f6ff",
-    "lineColor": "#2f3152",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   }
 }}%%
 stateDiagram-v2
     direction TB
-    [*] --> Monitoring
-    Monitoring --> Processing: New data received
-    state Processing {
-        [*] --> RunningModels
-        RunningModels --> CalculatingRisk
+    state "Risk Assessment" as RiskAssessment {
+        [*] --> ModelExecution
+        ModelExecution --> RiskScoring
     }
-    Processing --> Normal: Score < threshold
-    Processing --> PotentialAlert: Score > threshold
-    PotentialAlert --> ConfirmedOutbreak: Verified by official
-    PotentialAlert --> FalseAlarm: Dismissed
-    Normal --> Monitoring: Return to watch
-    ConfirmedOutbreak --> [*]
-    FalseAlarm --> [*]
+    state "Alert Pending Review" as AlertPendingReview
+    state "Dismissed Alert" as DismissedAlert
+    [*] --> Monitoring
+    Monitoring --> RiskAssessment: New surveillance data is received
+    RiskAssessment --> Normal: Risk score remains below the threshold
+    RiskAssessment --> AlertPendingReview: Risk score exceeds the threshold
+    AlertPendingReview --> ConfirmedOutbreak: Public health official confirms the alert
+    AlertPendingReview --> DismissedAlert: Public health official dismisses the alert
+    Normal --> Monitoring: Monitoring cycle continues
+    ConfirmedOutbreak --> [*]: Response workflow starts
+    DismissedAlert --> [*]: Alert is closed

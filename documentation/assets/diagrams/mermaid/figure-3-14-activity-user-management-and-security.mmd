@@ -1,38 +1,39 @@
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#eef0ff",
-    "primaryBorderColor": "#b8b9ff",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#5a6278",
     "primaryTextColor": "#2f3152",
-    "secondaryColor": "#fff4b8",
-    "tertiaryColor": "#ffffff",
-    "lineColor": "#6c708f",
+    "secondaryColor": "#f8fbff",
+    "tertiaryColor": "#eef4ff",
+    "lineColor": "#40455d",
     "fontFamily": "Arial, Helvetica, sans-serif"
   },
   "flowchart": {
     "curve": "linear",
-    "nodeSpacing": 28,
-    "rankSpacing": 40,
+    "nodeSpacing": 34,
+    "rankSpacing": 50,
     "htmlLabels": true
   }
 }}%%
 flowchart TD
-    start([Start]) --> create["Admin creates role-based user account"]
-    create --> valid{"Valid role and details?"}
-    valid -- Yes --> assign["Assign unique user ID and role"]
-    valid -- No --> reject["Reject creation and notify admin"] --> end([End])
-    assign --> login["User attempts login"]
-    login --> auth{"Authenticate credentials securely?"}
-    auth -- Yes --> enforce["Enforce authorization rules based on role"]
-    auth -- No --> deny["Deny access and log attempt"]
+    start([Start]) --> create["Administrator creates a role-based user account"]
+    create --> valid{"Role and account details are valid?"}
+    finish([End])
+    valid -- Yes --> assign["System assigns a unique user ID and role"]
+    valid -- No --> reject["System rejects the account creation and notifies the administrator"] --> finish
+    assign --> login["User enters credentials"]
+    login --> auth{"Credentials are valid?"}
+    auth -- Yes --> enforce["System enforces authorization rules based on the assigned role"]
+    auth -- No --> deny["System denies access and logs the attempt"]
     deny --> recovery["User requests password recovery"]
-    recovery --> identity{"Verify identity?"}
-    identity -- Yes --> link["Send secure recovery link/token"]
-    link --> reset["User resets password"] --> end
-    identity -- No --> recoveryReject["Reject recovery and notify"] --> end
-    enforce --> offline{"Offline mode?"}
-    offline -- Yes --> local["Allow local actions and queue for sync"]
-    local --> restored{"Connectivity restored?"}
-    restored -- Yes --> sync["Synchronize with central server"] --> end
-    restored -- No --> continue["Continue offline"] --> end
-    offline -- No --> grant["Grant full access"] --> end
+    recovery --> identity{"Identity is verified?"}
+    identity -- Yes --> link["System issues a secure recovery token"]
+    link --> reset["User resets the password"] --> finish
+    identity -- No --> recoveryReject["System rejects the recovery request and notifies the user"] --> finish
+    enforce --> offline{"Offline mode is enabled?"}
+    offline -- Yes --> local["System allows local actions and queues them for synchronization"]
+    local --> restored{"Connectivity is restored?"}
+    restored -- Yes --> sync["System synchronizes queued actions with the central server"] --> finish
+    restored -- No --> continue["User continues working offline"] --> finish
+    offline -- No --> grant["System grants full access"] --> finish
