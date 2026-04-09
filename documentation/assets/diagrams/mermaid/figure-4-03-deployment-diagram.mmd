@@ -45,7 +45,7 @@ flowchart LR
         subgraph webTier["Web and API tier"]
             direction LR
             web["Web frontend (React / Next.js)"]:::service
-            api["REST API (Spring Boot)"]:::service
+            api["REST API (Express.js + TypeScript)"]:::service
         end
 
         subgraph appTier["Application and processing tier"]

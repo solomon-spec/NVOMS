@@ -364,7 +364,7 @@ Tools and Technologies:
 - Design Tools: Lucidchart, Draw.io, UMLet
 - Database Design: PostgreSQL pgModeler / MySQL Workbench
 - Modeling & Analysis: Python (NumPy, pandas, matplotlib)
-- Architecture Planning: Spring Boot (backend), React/Next.js (frontend)
+- Architecture Planning: Express.js with TypeScript (backend), React/Next.js (frontend)
 - Documentation: Markdown / LaTeX
 
 Deliverables:
@@ -382,19 +382,19 @@ Activities:
 - Implement the analytics and outbreak prediction module, integrating the selected mathematical or ML-based model for anomaly detection.
 - Design and implement an interactive dashboard interface for visualizing vaccination coverage, outbreak risks, and regional trends.
 - Establish a notification subsystem for automated alerts when outbreak likelihood exceeds defined thresholds.
-- Perform module-level testing using JUnit and Postman to verify individual component functionality.
+- Perform module-level testing using Jest, Supertest, and Postman to verify individual component functionality.
 - Conduct short Agile sprints with continuous integration (CI) and frequent feedback cycles to refine implementation.
 - Validate intermediate builds with simulated datasets to ensure the accuracy and reliability of the outbreak prediction model.
 
 Tools and Technologies:
 
-- Backend: Spring Boot (Java), RESTful APIs
+- Backend: Express.js (TypeScript), RESTful APIs
 - Frontend: React / Next.js, Tailwind CSS
 - Database: PostgreSQL / MySQL
 - Machine Learning (if used): Python (scikit-learn, TensorFlow, pandas, NumPy)
 - Data Processing: Apache Kafka / Apache Airflow
 - Visualization: Recharts, Chart.js, D3.js
-- Testing: JUnit, Jest, Postman
+- Testing: Jest, Supertest, Postman
 - Deployment: Docker / Docker Compose
 
 Deliverables:
