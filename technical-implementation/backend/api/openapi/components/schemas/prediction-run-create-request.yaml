@@ -1,0 +1,30 @@
+type: object
+required: [runType, disease, modelCode, asOfDate, scopeLevel, requestedByUserId]
+properties:
+  runType:
+    type: string
+    enum: [batch]
+    example: batch
+  disease:
+    type: string
+    enum: [measles, cholera, polio]
+    example: measles
+  modelCode:
+    type: string
+    example: xgboost-measles-v1
+  asOfDate:
+    type: string
+    format: date
+    example: "2026-04-09"
+  scopeLevel:
+    type: string
+    enum: [national, region, woreda]
+    example: region
+  regionCodes:
+    type: array
+    items:
+      type: string
+    example: [OR, SO]
+  requestedByUserId:
+    type: string
+    example: user-ph-001

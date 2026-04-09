@@ -1,0 +1,166 @@
+patients:
+  get:
+    tags: [Registry]
+    summary: Search or list registered patients
+    description: >
+      Returns a paginated list of registered patients. This endpoint can be used as a
+      plain list endpoint or filtered by name, UID, region, or facility for dashboard
+      and registration workflows.
+    operationId: searchPatients
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ../components/parameters/search.yaml
+      - $ref: ../components/parameters/page.yaml
+      - $ref: ../components/parameters/page-size.yaml
+      - $ref: ../components/parameters/region-code.yaml
+      - $ref: ../components/parameters/facility-code.yaml
+    responses:
+      "200":
+        description: Matching patients
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/patient-list-response.yaml
+            examples:
+              patientSearchResult:
+                summary: Search result with one patient
+                value:
+                  items:
+                    - id: patient-123
+                      uid: ETH-AA-2025-000123
+                      givenName: Lidya
+                      familyName: Tesfaye
+                      sex: female
+                      dateOfBirth: "2025-11-21"
+                      birthPlace: Bole, Addis Ababa
+                      caregiver:
+                        id: caregiver-001
+                        givenName: Mekdes
+                        familyName: Alemu
+                        phoneNumber: "+251900000001"
+                        relationship: mother
+                        preferredLanguage: am
+                      regionCode: AA
+                      facilityCode: AA-BOLE-HC-001
+                      immunizationStatus: due
+                      createdAt: "2026-04-09T08:30:00Z"
+                  page: 1
+                  pageSize: 20
+                  total: 1
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+  post:
+    tags: [Registry]
+    summary: Register a patient and primary caregiver
+    description: >
+      Registers a child together with a required primary caregiver. This endpoint is
+      the entry point for the immunization journey and should create a persistent
+      patient identity that later modules can reuse.
+    operationId: registerPatient
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/patient-create-request.yaml
+          examples:
+            registerPatientExample:
+              summary: Register a child and caregiver
+              value:
+                givenName: Lidya
+                familyName: Tesfaye
+                sex: female
+                dateOfBirth: "2025-11-21"
+                birthPlace: Bole, Addis Ababa
+                regionCode: AA
+                facilityCode: AA-BOLE-HC-001
+                caregiver:
+                  givenName: Mekdes
+                  familyName: Alemu
+                  phoneNumber: "+251900000001"
+                  relationship: mother
+                  preferredLanguage: am
+    responses:
+      "201":
+        description: Patient successfully registered
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/patient.yaml
+            examples:
+              patientCreated:
+                summary: Registered patient
+                value:
+                  id: patient-123
+                  uid: ETH-AA-2025-000123
+                  givenName: Lidya
+                  familyName: Tesfaye
+                  sex: female
+                  dateOfBirth: "2025-11-21"
+                  birthPlace: Bole, Addis Ababa
+                  caregiver:
+                    id: caregiver-001
+                    givenName: Mekdes
+                    familyName: Alemu
+                    phoneNumber: "+251900000001"
+                    relationship: mother
+                    preferredLanguage: am
+                  regionCode: AA
+                  facilityCode: AA-BOLE-HC-001
+                  immunizationStatus: due
+                  createdAt: "2026-04-09T08:30:00Z"
+      "400":
+        $ref: ../components/responses/bad-request.yaml
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+      "409":
+        $ref: ../components/responses/duplicate-patient.yaml
+
+patientById:
+  get:
+    tags: [Registry]
+    summary: Get a single patient by identifier
+    description: >
+      Returns the patient profile and linked caregiver details for the provided patient
+      identifier.
+    operationId: getPatientById
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ../components/parameters/patient-id.yaml
+    responses:
+      "200":
+        description: Patient found
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/patient.yaml
+            examples:
+              patientDetails:
+                summary: Detailed patient record
+                value:
+                  id: patient-123
+                  uid: ETH-AA-2025-000123
+                  givenName: Lidya
+                  familyName: Tesfaye
+                  sex: female
+                  dateOfBirth: "2025-11-21"
+                  birthPlace: Bole, Addis Ababa
+                  caregiver:
+                    id: caregiver-001
+                    givenName: Mekdes
+                    familyName: Alemu
+                    phoneNumber: "+251900000001"
+                    relationship: mother
+                    preferredLanguage: am
+                  regionCode: AA
+                  facilityCode: AA-BOLE-HC-001
+                  immunizationStatus: due
+                  createdAt: "2026-04-09T08:30:00Z"
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+      "404":
+        $ref: ../components/responses/not-found.yaml

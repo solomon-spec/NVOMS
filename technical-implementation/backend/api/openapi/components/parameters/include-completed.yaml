@@ -1,0 +1,8 @@
+name: includeCompleted
+in: query
+required: false
+description: Whether already administered schedule items should be included in the response
+schema:
+  type: boolean
+  default: true
+  example: true

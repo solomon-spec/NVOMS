@@ -1,0 +1,95 @@
+login:
+  post:
+    tags: [Auth]
+    summary: Authenticate a user
+    security: []
+    description: >
+      Authenticates an administrator, health worker, or public health official using
+      email and password credentials. On success, the API returns the authenticated
+      user profile together with an access token and refresh token pair.
+    operationId: login
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/login-request.yaml
+          examples:
+            healthWorkerLogin:
+              summary: Health worker login
+              value:
+                email: selamawit.bekele@ethiopia-example.org
+                password: securepass123
+    responses:
+      "200":
+        description: Authentication successful
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/login-response.yaml
+            examples:
+              loginSuccess:
+                summary: Successful login
+                value:
+                  user:
+                    id: user-001
+                    email: selamawit.bekele@ethiopia-example.org
+                    role: health-worker
+                    displayName: Selamawit Bekele
+                    facilityCode: AA-BOLE-HC-001
+                  tokens:
+                    accessToken: access-token-ethiopia-demo
+                    refreshToken: refresh-token-ethiopia-demo
+                    tokenType: Bearer
+                    expiresIn: 3600
+      "400":
+        $ref: ../components/responses/bad-request.yaml
+      "401":
+        $ref: ../components/responses/invalid-credentials.yaml
+
+refresh:
+  post:
+    tags: [Auth]
+    summary: Exchange a refresh token for a new session token pair
+    security: []
+    description: >
+      Accepts a valid refresh token and returns a fresh access token and refresh token
+      pair. The client should call this endpoint when the access token expires.
+    operationId: refreshSession
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/refresh-token-request.yaml
+          examples:
+            refreshExample:
+              summary: Refresh session
+              value:
+                refreshToken: refresh-token-ethiopia-demo
+    responses:
+      "200":
+        description: Refresh successful
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/login-response.yaml
+            examples:
+              refreshSuccess:
+                summary: Successful refresh
+                value:
+                  user:
+                    id: user-001
+                    email: selamawit.bekele@ethiopia-example.org
+                    role: health-worker
+                    displayName: Selamawit Bekele
+                    facilityCode: AA-BOLE-HC-001
+                  tokens:
+                    accessToken: refreshed-access-token-ethiopia-demo
+                    refreshToken: refreshed-refresh-token-ethiopia-demo
+                    tokenType: Bearer
+                    expiresIn: 3600
+      "400":
+        $ref: ../components/responses/bad-request.yaml
+      "401":
+        $ref: ../components/responses/unauthorized.yaml

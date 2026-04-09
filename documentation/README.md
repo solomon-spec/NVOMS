@@ -43,6 +43,7 @@ This folder is organized to match the AASTU senior research guideline and the cu
 - the copied report images are stored under `assets/images/report-original/`
 - Mermaid versions of the major diagrams are stored under `assets/diagrams/mermaid/`
 - Chapter Four support artifacts such as the subsystem write-up and database design files are stored under `assets/chapter-4-design/`
+- Chapter Five implementation support artifacts such as API contract notes can be stored under `assets/chapter-5-implementation/`
 - the section-to-file map is in `REPORT_SOURCE_INDEX.md`
 - the rebuild manifest is in `REPORT_ASSEMBLY_MANIFEST.json`
 - the reconstructed combined markdown output is written to `build/FinalYearProjectReport.reconstructed.md`

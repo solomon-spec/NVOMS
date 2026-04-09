@@ -1,0 +1,52 @@
+type: object
+required:
+  - id
+  - patientId
+  - reportType
+  - observedAt
+  - facilityCode
+  - reportedByUserId
+  - symptoms
+  - followUpRequired
+  - followUpStatus
+  - createdAt
+properties:
+  id:
+    type: string
+    example: surv-001
+  patientId:
+    type: string
+    example: patient-123
+  reportType:
+    type: string
+    example: measles-suspected
+  observedAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T10:20:00Z"
+  facilityCode:
+    type: string
+    example: AA-BOLE-HC-001
+  reportedByUserId:
+    type: string
+    example: user-001
+  conditionStatus:
+    type: string
+    example: suspected
+  symptoms:
+    type: array
+    items:
+      $ref: ./symptom-observation.yaml
+  followUpRequired:
+    type: boolean
+    example: true
+  followUpStatus:
+    type: string
+    example: open
+  notes:
+    type: string
+    example: Child presented with fever and generalized rash during routine visit.
+  createdAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T10:21:02Z"

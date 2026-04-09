@@ -1,0 +1,39 @@
+type: object
+required: [id, reportType, format, scopeLevel, status, requestedByUserId, createdAt]
+properties:
+  id:
+    type: string
+    example: report-001
+  reportType:
+    type: string
+    example: coverage-summary
+  format:
+    type: string
+    example: pdf
+  scopeLevel:
+    type: string
+    example: region
+  regionCode:
+    type: string
+    example: AA
+  facilityCode:
+    type: string
+    example: AA-BOLE-HC-001
+  status:
+    type: string
+    enum: [queued, generating, completed, failed]
+    example: completed
+  requestedByUserId:
+    type: string
+    example: user-admin-001
+  downloadUrl:
+    type: string
+    example: https://example.invalid/reports/report-001.pdf
+  createdAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T09:40:00Z"
+  generatedAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T09:42:10Z"

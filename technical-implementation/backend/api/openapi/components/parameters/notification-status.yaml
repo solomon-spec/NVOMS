@@ -1,0 +1,8 @@
+name: deliveryStatus
+in: query
+required: false
+description: Filter notifications by delivery status
+schema:
+  type: string
+  enum: [queued, sent, delivered, failed]
+  example: delivered

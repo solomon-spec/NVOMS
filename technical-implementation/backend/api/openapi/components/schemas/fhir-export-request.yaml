@@ -1,0 +1,26 @@
+type: object
+required: [resourceTypes, scopeLevel, asOfDate, requestedByUserId]
+properties:
+  resourceTypes:
+    type: array
+    items:
+      type: string
+      enum: [Patient, Immunization, Observation]
+    example: [Patient, Immunization, Observation]
+  scopeLevel:
+    type: string
+    enum: [national, region, facility]
+    example: region
+  regionCode:
+    type: string
+    example: AA
+  facilityCode:
+    type: string
+    example: AA-BOLE-HC-001
+  asOfDate:
+    type: string
+    format: date
+    example: "2026-04-09"
+  requestedByUserId:
+    type: string
+    example: user-admin-001

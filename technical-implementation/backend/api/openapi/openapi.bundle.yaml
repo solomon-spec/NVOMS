@@ -1,0 +1,3114 @@
+openapi: 3.1.0
+info:
+  title: Vaccination and Outbreak Monitoring API
+  version: 0.1.0
+  license:
+    name: UNLICENSED
+    identifier: UNLICENSED
+  description: |
+    Current contract set for the project MVP and phase-two integration planning. This version documents authentication, registry, immunization, surveillance, notifications, analytics, prediction, reporting, interoperability, and offline synchronization workflows. Example payloads use Ethiopia-context sample data and are fictional.
+jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
+servers:
+  - url: http://127.0.0.1:3000/api/v1
+    description: Local development
+tags:
+  - name: Auth
+    description: Login and token refresh endpoints used by the web client and admin users
+  - name: Registry
+    description: Patient and caregiver registration, retrieval, and search
+  - name: Immunization
+    description: Vaccination schedules and dose recording
+  - name: Surveillance
+    description: Surveillance observations, follow-up cases, and field monitoring
+  - name: Notifications
+    description: Reminder, alert, and notification history workflows
+  - name: Analytics
+    description: Dashboard summary endpoints
+  - name: Prediction
+    description: Risk scoring, prediction runs, and outbreak alert endpoints
+  - name: Reporting
+    description: Report generation, retrieval, and export endpoints
+  - name: Interoperability
+    description: FHIR and DHIS2 exchange workflows
+  - name: Offline Sync
+    description: Device registration and offline synchronization workflows
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Authenticate a user
+      security: []
+      description: |
+        Authenticates an administrator, health worker, or public health official using email and password credentials. On success, the API returns the authenticated user profile together with an access token and refresh token pair.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/login-request'
+            examples:
+              healthWorkerLogin:
+                summary: Health worker login
+                value:
+                  email: selamawit.bekele@ethiopia-example.org
+                  password: securepass123
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/login-response'
+              examples:
+                loginSuccess:
+                  summary: Successful login
+                  value:
+                    user:
+                      id: user-001
+                      email: selamawit.bekele@ethiopia-example.org
+                      role: health-worker
+                      displayName: Selamawit Bekele
+                      facilityCode: AA-BOLE-HC-001
+                    tokens:
+                      accessToken: access-token-ethiopia-demo
+                      refreshToken: refresh-token-ethiopia-demo
+                      tokenType: Bearer
+                      expiresIn: 3600
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/invalid-credentials'
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Exchange a refresh token for a new session token pair
+      security: []
+      description: |
+        Accepts a valid refresh token and returns a fresh access token and refresh token pair. The client should call this endpoint when the access token expires.
+      operationId: refreshSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/refresh-token-request'
+            examples:
+              refreshExample:
+                summary: Refresh session
+                value:
+                  refreshToken: refresh-token-ethiopia-demo
+      responses:
+        '200':
+          description: Refresh successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/login-response'
+              examples:
+                refreshSuccess:
+                  summary: Successful refresh
+                  value:
+                    user:
+                      id: user-001
+                      email: selamawit.bekele@ethiopia-example.org
+                      role: health-worker
+                      displayName: Selamawit Bekele
+                      facilityCode: AA-BOLE-HC-001
+                    tokens:
+                      accessToken: refreshed-access-token-ethiopia-demo
+                      refreshToken: refreshed-refresh-token-ethiopia-demo
+                      tokenType: Bearer
+                      expiresIn: 3600
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /patients:
+    get:
+      tags:
+        - Registry
+      summary: Search or list registered patients
+      description: |
+        Returns a paginated list of registered patients. This endpoint can be used as a plain list endpoint or filtered by name, UID, region, or facility for dashboard and registration workflows.
+      operationId: searchPatients
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/page-size'
+        - $ref: '#/components/parameters/region-code'
+        - $ref: '#/components/parameters/facility-code'
+      responses:
+        '200':
+          description: Matching patients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/patient-list-response'
+              examples:
+                patientSearchResult:
+                  summary: Search result with one patient
+                  value:
+                    items:
+                      - id: patient-123
+                        uid: ETH-AA-2025-000123
+                        givenName: Lidya
+                        familyName: Tesfaye
+                        sex: female
+                        dateOfBirth: '2025-11-21'
+                        birthPlace: Bole, Addis Ababa
+                        caregiver:
+                          id: caregiver-001
+                          givenName: Mekdes
+                          familyName: Alemu
+                          phoneNumber: '+251900000001'
+                          relationship: mother
+                          preferredLanguage: am
+                        regionCode: AA
+                        facilityCode: AA-BOLE-HC-001
+                        immunizationStatus: due
+                        createdAt: '2026-04-09T08:30:00Z'
+                    page: 1
+                    pageSize: 20
+                    total: 1
+        '401':
+          $ref: '#/components/responses/unauthorized'
+    post:
+      tags:
+        - Registry
+      summary: Register a patient and primary caregiver
+      description: |
+        Registers a child together with a required primary caregiver. This endpoint is the entry point for the immunization journey and should create a persistent patient identity that later modules can reuse.
+      operationId: registerPatient
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/patient-create-request'
+            examples:
+              registerPatientExample:
+                summary: Register a child and caregiver
+                value:
+                  givenName: Lidya
+                  familyName: Tesfaye
+                  sex: female
+                  dateOfBirth: '2025-11-21'
+                  birthPlace: Bole, Addis Ababa
+                  regionCode: AA
+                  facilityCode: AA-BOLE-HC-001
+                  caregiver:
+                    givenName: Mekdes
+                    familyName: Alemu
+                    phoneNumber: '+251900000001'
+                    relationship: mother
+                    preferredLanguage: am
+      responses:
+        '201':
+          description: Patient successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/patient'
+              examples:
+                patientCreated:
+                  summary: Registered patient
+                  value:
+                    id: patient-123
+                    uid: ETH-AA-2025-000123
+                    givenName: Lidya
+                    familyName: Tesfaye
+                    sex: female
+                    dateOfBirth: '2025-11-21'
+                    birthPlace: Bole, Addis Ababa
+                    caregiver:
+                      id: caregiver-001
+                      givenName: Mekdes
+                      familyName: Alemu
+                      phoneNumber: '+251900000001'
+                      relationship: mother
+                      preferredLanguage: am
+                    regionCode: AA
+                    facilityCode: AA-BOLE-HC-001
+                    immunizationStatus: due
+                    createdAt: '2026-04-09T08:30:00Z'
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '409':
+          $ref: '#/components/responses/duplicate-patient'
+  /patients/{patientId}:
+    get:
+      tags:
+        - Registry
+      summary: Get a single patient by identifier
+      description: |
+        Returns the patient profile and linked caregiver details for the provided patient identifier.
+      operationId: getPatientById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/patient-id'
+      responses:
+        '200':
+          description: Patient found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/patient'
+              examples:
+                patientDetails:
+                  summary: Detailed patient record
+                  value:
+                    id: patient-123
+                    uid: ETH-AA-2025-000123
+                    givenName: Lidya
+                    familyName: Tesfaye
+                    sex: female
+                    dateOfBirth: '2025-11-21'
+                    birthPlace: Bole, Addis Ababa
+                    caregiver:
+                      id: caregiver-001
+                      givenName: Mekdes
+                      familyName: Alemu
+                      phoneNumber: '+251900000001'
+                      relationship: mother
+                      preferredLanguage: am
+                    regionCode: AA
+                    facilityCode: AA-BOLE-HC-001
+                    immunizationStatus: due
+                    createdAt: '2026-04-09T08:30:00Z'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not-found'
+  /patients/{patientId}/schedule:
+    get:
+      tags:
+        - Immunization
+      summary: Get a patient's vaccination schedule
+      description: |
+        Returns the generated immunization schedule for a registered child based on the Ethiopian EPI schedule. The response is intended to drive the child detail page, upcoming appointments list, and due or overdue reminders in the web client.
+      operationId: getPatientSchedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/patient-id'
+        - $ref: '#/components/parameters/include-completed'
+      responses:
+        '200':
+          description: Vaccination schedule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/vaccination-schedule'
+              examples:
+                bolePatientSchedule:
+                  summary: Schedule for a child registered in Addis Ababa
+                  value:
+                    patientId: patient-123
+                    scheduleVersion: ETH-EPI-2025
+                    generatedAt: '2026-04-09T09:15:00Z'
+                    items:
+                      - code: bcg-0
+                        vaccineCode: BCG
+                        antigenGroup: tuberculosis
+                        label: BCG at birth
+                        doseNumber: 0
+                        recommendedAgeWeeks: 0
+                        dueDate: '2025-11-21'
+                        status: administered
+                      - code: opv-0
+                        vaccineCode: OPV0
+                        antigenGroup: polio
+                        label: Oral polio vaccine at birth
+                        doseNumber: 0
+                        recommendedAgeWeeks: 0
+                        dueDate: '2025-11-21'
+                        status: administered
+                      - code: penta-1
+                        vaccineCode: PENTA1
+                        antigenGroup: pentavalent
+                        label: Pentavalent dose 1
+                        doseNumber: 1
+                        recommendedAgeWeeks: 6
+                        dueDate: '2026-01-02'
+                        status: due
+                      - code: pcv-1
+                        vaccineCode: PCV1
+                        antigenGroup: pneumococcal
+                        label: Pneumococcal conjugate vaccine dose 1
+                        doseNumber: 1
+                        recommendedAgeWeeks: 6
+                        dueDate: '2026-01-02'
+                        status: scheduled
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not-found'
+  /patients/{patientId}/immunizations:
+    post:
+      tags:
+        - Immunization
+      summary: Record an administered vaccine dose
+      description: |
+        Records a completed immunization event for a given patient schedule item. The payload captures the administered antigen, administration metadata, and the facility and user that recorded the dose.
+      operationId: recordImmunization
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/patient-id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/immunization-event-create-request'
+            examples:
+              recordPentaDose:
+                summary: Record Pentavalent dose 1 at Bole Health Center
+                value:
+                  scheduleCode: penta-1
+                  vaccineCode: PENTA1
+                  batchNumber: ETH-PENTA-2401
+                  administeredAt: '2026-01-02T09:45:00Z'
+                  facilityCode: AA-BOLE-HC-001
+                  administeredByUserId: user-001
+                  route: intramuscular
+                  site: left-thigh
+                  source: routine
+                  notes: Child arrived on scheduled appointment date.
+      responses:
+        '201':
+          description: Immunization event recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/immunization-event'
+              examples:
+                immunizationRecorded:
+                  summary: Recorded Pentavalent dose event
+                  value:
+                    id: imm-001
+                    patientId: patient-123
+                    scheduleCode: penta-1
+                    vaccineCode: PENTA1
+                    batchNumber: ETH-PENTA-2401
+                    administeredAt: '2026-01-02T09:45:00Z'
+                    recordedAt: '2026-01-02T09:46:08Z'
+                    facilityCode: AA-BOLE-HC-001
+                    administeredByUserId: user-001
+                    route: intramuscular
+                    site: left-thigh
+                    source: routine
+                    notes: Child arrived on scheduled appointment date.
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not-found'
+        '409':
+          $ref: '#/components/responses/state-conflict'
+  /patients/{patientId}/surveillance-reports:
+    post:
+      tags:
+        - Surveillance
+      summary: Record a surveillance observation for a patient
+      description: |
+        Captures a surveillance observation linked to a registered patient. This endpoint supports symptom reporting, AEFI capture, suspected measles or cholera cases, and zero-dose or follow-up related observations from the field.
+      operationId: createSurveillanceReport
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/patient-id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/surveillance-report-create-request'
+            examples:
+              measlesSuspicion:
+                summary: Suspected measles observation recorded in Addis Ababa
+                value:
+                  reportType: measles-suspected
+                  observedAt: '2026-04-09T10:20:00Z'
+                  facilityCode: AA-BOLE-HC-001
+                  reportedByUserId: user-001
+                  conditionStatus: suspected
+                  symptoms:
+                    - code: fever
+                      label: Fever
+                      present: true
+                    - code: rash
+                      label: Rash
+                      present: true
+                    - code: cough
+                      label: Cough
+                      present: true
+                  followUpRequired: true
+                  followUpStatus: open
+                  notes: Child presented with fever and generalized rash during routine visit.
+      responses:
+        '201':
+          description: Surveillance report created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/surveillance-report'
+              examples:
+                createdReport:
+                  summary: Created surveillance report
+                  value:
+                    id: surv-001
+                    patientId: patient-123
+                    reportType: measles-suspected
+                    observedAt: '2026-04-09T10:20:00Z'
+                    facilityCode: AA-BOLE-HC-001
+                    reportedByUserId: user-001
+                    conditionStatus: suspected
+                    symptoms:
+                      - code: fever
+                        label: Fever
+                        present: true
+                      - code: rash
+                        label: Rash
+                        present: true
+                      - code: cough
+                        label: Cough
+                        present: true
+                    followUpRequired: true
+                    followUpStatus: open
+                    notes: Child presented with fever and generalized rash during routine visit.
+                    createdAt: '2026-04-09T10:21:02Z'
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not-found'
+  /surveillance/follow-up-cases:
+    get:
+      tags:
+        - Surveillance
+      summary: List follow-up cases requiring public health action
+      description: |
+        Returns patient-level follow-up cases generated from surveillance reports, zero-dose detection, and defaulter monitoring. This endpoint supports health worker outreach views and public health review workflows.
+      operationId: listFollowUpCases
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/page-size'
+        - $ref: '#/components/parameters/region-code'
+        - $ref: '#/components/parameters/facility-code'
+        - $ref: '#/components/parameters/follow-up-status'
+      responses:
+        '200':
+          description: Follow-up cases
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/follow-up-case-list-response'
+              examples:
+                followUpList:
+                  summary: Open follow-up cases
+                  value:
+                    items:
+                      - caseId: followup-001
+                        patientId: patient-123
+                        patientUid: ETH-AA-2025-000123
+                        patientName: Lidya Tesfaye
+                        alertType: symptom-follow-up
+                        regionCode: AA
+                        facilityCode: AA-BOLE-HC-001
+                        status: open
+                        flaggedAt: '2026-04-09T10:21:02Z'
+                      - caseId: followup-002
+                        patientId: patient-250
+                        patientUid: ETH-OR-2025-000250
+                        patientName: Nahom Hailu
+                        alertType: defaulter
+                        regionCode: OR
+                        facilityCode: OR-ADAMA-HC-004
+                        status: in-progress
+                        flaggedAt: '2026-04-08T14:10:00Z'
+                    page: 1
+                    pageSize: 20
+                    total: 2
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /surveillance/reports/{reportId}:
+    get:
+      tags:
+        - Surveillance
+      summary: Get a surveillance report by identifier
+      description: |
+        Returns the full surveillance report payload including symptom observations, follow-up state, and field notes.
+      operationId: getSurveillanceReportById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/report-id'
+      responses:
+        '200':
+          description: Surveillance report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/surveillance-report'
+              examples:
+                measlesReport:
+                  summary: Full surveillance report record
+                  value:
+                    id: surv-001
+                    patientId: patient-123
+                    reportType: measles-suspected
+                    observedAt: '2026-04-09T10:20:00Z'
+                    facilityCode: AA-BOLE-HC-001
+                    reportedByUserId: user-001
+                    conditionStatus: suspected
+                    symptoms:
+                      - code: fever
+                        label: Fever
+                        present: true
+                      - code: rash
+                        label: Rash
+                        present: true
+                      - code: cough
+                        label: Cough
+                        present: true
+                    followUpRequired: true
+                    followUpStatus: open
+                    notes: Child presented with fever and generalized rash during routine visit.
+                    createdAt: '2026-04-09T10:21:02Z'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not-found'
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: List notifications and reminder history
+      description: |
+        Returns queued, sent, delivered, or failed notifications. This endpoint supports audit trails, caregiver communication review, and operational monitoring of SMS reminder delivery.
+      operationId: listNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/page-size'
+        - $ref: '#/components/parameters/patient-id-query'
+        - $ref: '#/components/parameters/notification-type'
+        - $ref: '#/components/parameters/notification-status'
+      responses:
+        '200':
+          description: Notification history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/notification-list-response'
+              examples:
+                notificationHistory:
+                  summary: SMS notification history
+                  value:
+                    items:
+                      - id: notif-001
+                        notificationType: appointment-reminder
+                        channel: sms
+                        templateCode: epi-reminder-am
+                        patientId: patient-123
+                        caregiverId: caregiver-001
+                        recipientPhoneNumber: '+251900000001'
+                        language: am
+                        deliveryStatus: delivered
+                        dispatchMode: queued
+                        messageBody: Lidya Tesfaye has Pentavalent dose 1 due on 02 Jan 2026 at Bole Health Center.
+                        retryCount: 0
+                        dispatchedAt: '2026-01-01T06:00:00Z'
+                    page: 1
+                    pageSize: 20
+                    total: 1
+        '401':
+          $ref: '#/components/responses/unauthorized'
+    post:
+      tags:
+        - Notifications
+      summary: Create and dispatch a notification request
+      description: |
+        Creates a notification record and queues it for dispatch. This endpoint supports appointment reminders, missed-dose alerts, and outbreak alerts sent through the SMS channel.
+      operationId: createNotification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/notification-create-request'
+            examples:
+              missedDoseAlert:
+                summary: Missed-dose SMS alert
+                value:
+                  notificationType: missed-dose-alert
+                  channel: sms
+                  templateCode: missed-dose-am
+                  patientId: patient-123
+                  caregiverId: caregiver-001
+                  recipientPhoneNumber: '+251900000001'
+                  language: am
+                  dispatchMode: queued
+                  messageBody: Lidya Tesfaye missed Pentavalent dose 1. Please visit Bole Health Center as soon as possible.
+      responses:
+        '201':
+          description: Notification created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/notification'
+              examples:
+                createdNotification:
+                  summary: Queued missed-dose alert
+                  value:
+                    id: notif-002
+                    notificationType: missed-dose-alert
+                    channel: sms
+                    templateCode: missed-dose-am
+                    patientId: patient-123
+                    caregiverId: caregiver-001
+                    recipientPhoneNumber: '+251900000001'
+                    language: am
+                    deliveryStatus: queued
+                    dispatchMode: queued
+                    messageBody: Lidya Tesfaye missed Pentavalent dose 1. Please visit Bole Health Center as soon as possible.
+                    retryCount: 0
+                    dispatchedAt: '2026-04-09T11:30:00Z'
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /analytics/coverage-summary:
+    get:
+      tags:
+        - Analytics
+      summary: Get a dashboard-ready immunization coverage summary
+      description: |
+        Returns an aggregated immunization coverage summary for dashboard views. The endpoint supports national, regional, or facility-focused views and exposes both top-line KPI values and antigen-level coverage summaries.
+      operationId: getCoverageSummary
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/region-code'
+        - $ref: '#/components/parameters/facility-code'
+        - $ref: '#/components/parameters/as-of-date'
+      responses:
+        '200':
+          description: Coverage summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/coverage-summary'
+              examples:
+                addisAbabaCoverage:
+                  summary: Addis Ababa regional summary
+                  value:
+                    scope:
+                      level: region
+                      regionCode: AA
+                      label: Addis Ababa
+                      asOfDate: '2026-04-09'
+                    summary:
+                      totalRegisteredChildren: 1240
+                      fullyImmunizedChildren: 1048
+                      dueToday: 36
+                      overdue: 91
+                      zeroDose: 28
+                      coverageRate: 84.5
+                      dropoutRatePentavalent1ToMeasles1: 7.2
+                    coverageByAntigen:
+                      - vaccineCode: BCG
+                        label: BCG
+                        targetChildren: 1240
+                        administeredChildren: 1182
+                        coverageRate: 95.3
+                      - vaccineCode: PENTA3
+                        label: Pentavalent dose 3
+                        targetChildren: 1240
+                        administeredChildren: 1076
+                        coverageRate: 86.8
+                      - vaccineCode: MEASLES1
+                        label: Measles dose 1
+                        targetChildren: 1240
+                        administeredChildren: 998
+                        coverageRate: 80.5
+                    generatedAt: '2026-04-09T09:00:00Z'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /predictions/runs:
+    post:
+      tags:
+        - Prediction
+      summary: Start a prediction run
+      description: |
+        Starts a batch prediction run for a selected disease and scope. The run produces risk scores and alerts for administrative areas using the configured model and the latest available health and environmental features.
+      operationId: createPredictionRun
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/prediction-run-create-request'
+            examples:
+              measlesRiskRun:
+                summary: Measles risk run for Oromia and Somali
+                value:
+                  runType: batch
+                  disease: measles
+                  modelCode: xgboost-measles-v1
+                  asOfDate: '2026-04-09'
+                  scopeLevel: region
+                  regionCodes:
+                    - OR
+                    - SO
+                  requestedByUserId: user-ph-001
+      responses:
+        '202':
+          description: Prediction run accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/prediction-run'
+              examples:
+                acceptedRun:
+                  summary: Accepted measles prediction run
+                  value:
+                    id: run-001
+                    runType: batch
+                    disease: measles
+                    modelCode: xgboost-measles-v1
+                    scopeLevel: region
+                    status: queued
+                    asOfDate: '2026-04-09'
+                    requestedByUserId: user-ph-001
+                    createdAt: '2026-04-09T09:25:00Z'
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /predictions/scores:
+    get:
+      tags:
+        - Prediction
+      summary: List risk scores by area
+      description: |
+        Returns the latest prediction scores for the selected disease and area filters. This endpoint supports dashboard map layers, hotspot views, and silent district review.
+      operationId: listPredictionScores
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/page-size'
+        - $ref: '#/components/parameters/disease'
+        - $ref: '#/components/parameters/region-code'
+        - $ref: '#/components/parameters/risk-level'
+        - $ref: '#/components/parameters/as-of-date'
+      responses:
+        '200':
+          description: Prediction scores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/prediction-score-list-response'
+              examples:
+                measlesScores:
+                  summary: Regional measles risk scores
+                  value:
+                    items:
+                      - id: score-001
+                        disease: measles
+                        areaLevel: region
+                        areaCode: SO
+                        areaLabel: Somali
+                        riskScore: 0.89
+                        riskLevel: critical
+                        confidence: 0.81
+                        silentDistrict: true
+                        drivers:
+                          - low measles coverage
+                          - high zero-dose burden
+                          - surveillance silence
+                        modelVersion: xgboost-measles-v1
+                        generatedAt: '2026-04-09T09:30:00Z'
+                    page: 1
+                    pageSize: 20
+                    total: 1
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /predictions/alerts:
+    get:
+      tags:
+        - Prediction
+      summary: List outbreak alerts
+      description: |
+        Returns operational outbreak alerts derived from prediction scores and alerting rules. Alerts support escalation, acknowledgement, and targeted response.
+      operationId: listPredictionAlerts
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/page-size'
+        - $ref: '#/components/parameters/disease'
+        - $ref: '#/components/parameters/risk-level'
+        - $ref: '#/components/parameters/region-code'
+      responses:
+        '200':
+          description: Outbreak alerts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/outbreak-alert-list-response'
+              examples:
+                alertList:
+                  summary: Active outbreak alerts
+                  value:
+                    items:
+                      - id: alert-001
+                        disease: measles
+                        areaLevel: region
+                        areaCode: SO
+                        areaLabel: Somali
+                        riskLevel: critical
+                        riskScore: 0.89
+                        alertStatus: open
+                        recommendedAction: Verify field reports and prioritize supplemental outreach in silent districts.
+                        generatedAt: '2026-04-09T09:35:00Z'
+                    page: 1
+                    pageSize: 20
+                    total: 1
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /reports:
+    get:
+      tags:
+        - Reporting
+      summary: List generated reports
+      description: |
+        Returns generated reports and their current processing state. Reports may cover coverage summaries, defaulter lists, surveillance summaries, and outbreak risk outputs.
+      operationId: listReports
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/page-size'
+        - $ref: '#/components/parameters/report-type'
+        - $ref: '#/components/parameters/region-code'
+        - $ref: '#/components/parameters/facility-code'
+      responses:
+        '200':
+          description: Generated reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/report-list-response'
+              examples:
+                reportHistory:
+                  summary: Available generated reports
+                  value:
+                    items:
+                      - id: report-001
+                        reportType: coverage-summary
+                        format: pdf
+                        scopeLevel: region
+                        regionCode: AA
+                        status: completed
+                        requestedByUserId: user-admin-001
+                        downloadUrl: https://example.invalid/reports/report-001.pdf
+                        createdAt: '2026-04-09T09:40:00Z'
+                        generatedAt: '2026-04-09T09:42:10Z'
+                      - id: report-002
+                        reportType: defaulter-list
+                        format: csv
+                        scopeLevel: facility
+                        facilityCode: AA-BOLE-HC-001
+                        status: generating
+                        requestedByUserId: user-001
+                        createdAt: '2026-04-09T10:05:00Z'
+                    page: 1
+                    pageSize: 20
+                    total: 2
+        '401':
+          $ref: '#/components/responses/unauthorized'
+    post:
+      tags:
+        - Reporting
+      summary: Generate a report
+      description: |
+        Creates a report generation job and returns the generated report metadata once accepted. Supported formats include PDF, CSV, and JSON.
+      operationId: createReport
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/report-generation-request'
+            examples:
+              districtCoverageReport:
+                summary: Generate coverage summary report for Addis Ababa
+                value:
+                  reportType: coverage-summary
+                  format: pdf
+                  scopeLevel: region
+                  regionCode: AA
+                  asOfDate: '2026-04-09'
+                  requestedByUserId: user-admin-001
+      responses:
+        '202':
+          description: Report generation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/report'
+              examples:
+                acceptedCoverageReport:
+                  summary: Accepted coverage summary report
+                  value:
+                    id: report-003
+                    reportType: coverage-summary
+                    format: pdf
+                    scopeLevel: region
+                    regionCode: AA
+                    status: queued
+                    requestedByUserId: user-admin-001
+                    createdAt: '2026-04-09T10:15:00Z'
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /reports/{reportId}:
+    get:
+      tags:
+        - Reporting
+      summary: Get a generated report by identifier
+      description: |
+        Returns the current state and metadata for a previously requested report, including the download link when report generation is complete.
+      operationId: getReportById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/report-id'
+      responses:
+        '200':
+          description: Report details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/report'
+              examples:
+                completedCoverageReport:
+                  summary: Completed report with download URL
+                  value:
+                    id: report-001
+                    reportType: coverage-summary
+                    format: pdf
+                    scopeLevel: region
+                    regionCode: AA
+                    status: completed
+                    requestedByUserId: user-admin-001
+                    downloadUrl: https://example.invalid/reports/report-001.pdf
+                    createdAt: '2026-04-09T09:40:00Z'
+                    generatedAt: '2026-04-09T09:42:10Z'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not-found'
+  /interop/fhir/exports:
+    post:
+      tags:
+        - Interoperability
+      summary: Create a FHIR export job
+      description: |
+        Creates an interoperability job that maps internal records into HL7 FHIR resources such as Patient, Immunization, and Observation.
+      operationId: createFhirExportJob
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/fhir-export-request'
+            examples:
+              immunizationBundleExport:
+                summary: Export immunization bundle for Addis Ababa
+                value:
+                  resourceTypes:
+                    - Patient
+                    - Immunization
+                    - Observation
+                  scopeLevel: region
+                  regionCode: AA
+                  asOfDate: '2026-04-09'
+                  requestedByUserId: user-admin-001
+      responses:
+        '202':
+          description: FHIR export accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/interoperability-job'
+              examples:
+                acceptedFhirExport:
+                  summary: Accepted FHIR export job
+                  value:
+                    id: job-001
+                    targetSystem: fhir
+                    jobType: export
+                    status: queued
+                    submittedAt: '2026-04-09T10:00:00Z'
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /interop/dhis2/sync-jobs:
+    post:
+      tags:
+        - Interoperability
+      summary: Create a DHIS2 synchronization job
+      description: |
+        Creates a synchronization job that prepares and sends aggregate or case-derived records to DHIS2 and tracks the exchange result.
+      operationId: createDhis2SyncJob
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/dhis2-sync-request'
+            examples:
+              monthlyCoverageSync:
+                summary: Monthly DHIS2 sync for Addis Ababa
+                value:
+                  datasetCode: EPI_MONTHLY_COVERAGE
+                  period: 2026-03
+                  scopeLevel: region
+                  regionCode: AA
+                  requestedByUserId: user-admin-001
+      responses:
+        '202':
+          description: DHIS2 sync accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/interoperability-job'
+              examples:
+                acceptedDhis2Sync:
+                  summary: Accepted DHIS2 synchronization job
+                  value:
+                    id: job-002
+                    targetSystem: dhis2
+                    jobType: sync
+                    status: queued
+                    submittedAt: '2026-04-09T10:05:00Z'
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /interop/jobs/{jobId}:
+    get:
+      tags:
+        - Interoperability
+      summary: Get interoperability job status
+      description: |
+        Returns job status, processed record counts, and any reported interoperability errors for a FHIR export or DHIS2 synchronization task.
+      operationId: getInteroperabilityJobById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/job-id'
+      responses:
+        '200':
+          description: Interoperability job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/interoperability-job'
+              examples:
+                completedDhis2Sync:
+                  summary: Completed DHIS2 synchronization
+                  value:
+                    id: job-002
+                    targetSystem: dhis2
+                    jobType: sync
+                    status: completed
+                    submittedAt: '2026-04-09T10:05:00Z'
+                    completedAt: '2026-04-09T10:08:30Z'
+                    recordsProcessed: 128
+                    successCount: 126
+                    errorCount: 2
+                    lastError: Two records were rejected because of missing org unit mappings.
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not-found'
+  /sync/devices:
+    post:
+      tags:
+        - Offline Sync
+      summary: Register a field device for offline use
+      description: |
+        Registers a device used by a health worker for offline data capture. Device registration links the device to a user and facility and prepares it for later synchronization.
+      operationId: registerDevice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/device-registration-request'
+            examples:
+              androidTablet:
+                summary: Register a field tablet
+                value:
+                  deviceId: samsung-tab-a9-001
+                  deviceName: Bole outreach tablet 1
+                  deviceType: tablet
+                  healthWorkerId: user-001
+                  facilityCode: AA-BOLE-HC-001
+                  appVersion: 0.1.0
+      responses:
+        '201':
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/device-registration'
+              examples:
+                registeredTablet:
+                  summary: Registered field tablet
+                  value:
+                    id: device-reg-001
+                    deviceId: samsung-tab-a9-001
+                    deviceName: Bole outreach tablet 1
+                    deviceType: tablet
+                    healthWorkerId: user-001
+                    facilityCode: AA-BOLE-HC-001
+                    status: active
+                    registeredAt: '2026-04-09T10:55:00Z'
+                    lastSeenAt: '2026-04-09T11:00:00Z'
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /sync/batches:
+    post:
+      tags:
+        - Offline Sync
+      summary: Submit an offline sync batch
+      description: |
+        Submits a batch of offline transactions captured on a field device. The central server validates the batch, records the payload, and returns processing status.
+      operationId: createSyncBatch
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/sync-batch-create-request'
+            examples:
+              mixedSyncBatch:
+                summary: Batch containing registration and immunization transactions
+                value:
+                  deviceId: samsung-tab-a9-001
+                  submittedAt: '2026-04-09T11:00:00Z'
+                  entityType: mixed
+                  itemCount: 2
+                  items:
+                    - localId: local-reg-001
+                      entityType: patient-registration
+                      operation: create
+                      occurredAt: '2026-04-09T09:10:00Z'
+                    - localId: local-imm-001
+                      entityType: immunization-event
+                      operation: create
+                      occurredAt: '2026-04-09T09:30:00Z'
+      responses:
+        '202':
+          description: Sync batch accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/sync-batch'
+              examples:
+                acceptedBatch:
+                  summary: Accepted mixed offline sync batch
+                  value:
+                    batchId: batch-001
+                    deviceId: samsung-tab-a9-001
+                    status: received
+                    acceptedCount: 0
+                    rejectedCount: 0
+                    conflicts: []
+                    receivedAt: '2026-04-09T11:00:10Z'
+        '400':
+          $ref: '#/components/responses/bad-request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+  /sync/batches/{batchId}:
+    get:
+      tags:
+        - Offline Sync
+      summary: Get sync batch status
+      description: |
+        Returns the processing result for a submitted sync batch, including accepted and rejected transaction counts and any detected conflicts.
+      operationId: getSyncBatchById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/batch-id'
+      responses:
+        '200':
+          description: Sync batch details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/sync-batch'
+              examples:
+                completedBatch:
+                  summary: Processed offline sync batch
+                  value:
+                    batchId: batch-001
+                    deviceId: samsung-tab-a9-001
+                    status: completed
+                    acceptedCount: 2
+                    rejectedCount: 0
+                    conflicts: []
+                    receivedAt: '2026-04-09T11:00:10Z'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not-found'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    login-request:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User login email
+          example: selamawit.bekele@ethiopia-example.org
+        password:
+          type: string
+          minLength: 8
+          description: Plain text password entered by the user
+          example: securepass123
+    session-user:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - displayName
+      properties:
+        id:
+          type: string
+          example: user-001
+        email:
+          type: string
+          format: email
+          example: selamawit.bekele@ethiopia-example.org
+        role:
+          type: string
+          enum:
+            - administrator
+            - health-worker
+            - public-health-official
+          example: health-worker
+        displayName:
+          type: string
+          example: Selamawit Bekele
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+    token-pair:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - tokenType
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+          example: access-token-ethiopia-demo
+        refreshToken:
+          type: string
+          example: refresh-token-ethiopia-demo
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: Access token lifetime in seconds
+          example: 3600
+    login-response:
+      type: object
+      required:
+        - user
+        - tokens
+      properties:
+        user:
+          $ref: '#/components/schemas/session-user'
+        tokens:
+          $ref: '#/components/schemas/token-pair'
+    api-error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: RESOURCE_NOT_FOUND
+            message:
+              type: string
+              example: The requested resource could not be found.
+            details:
+              description: Optional machine-readable error details
+    refresh-token-request:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          example: refresh-token-ethiopia-demo
+    caregiver:
+      type: object
+      required:
+        - id
+        - givenName
+        - familyName
+        - phoneNumber
+        - relationship
+      properties:
+        id:
+          type: string
+          example: caregiver-001
+        givenName:
+          type: string
+          example: Mekdes
+        familyName:
+          type: string
+          example: Alemu
+        phoneNumber:
+          type: string
+          example: '+251900000001'
+        relationship:
+          type: string
+          example: mother
+        preferredLanguage:
+          type: string
+          enum:
+            - am
+            - en
+            - om
+          example: am
+    patient:
+      type: object
+      required:
+        - id
+        - uid
+        - givenName
+        - familyName
+        - sex
+        - dateOfBirth
+        - caregiver
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: patient-123
+        uid:
+          type: string
+          example: ETH-AA-2025-000123
+        givenName:
+          type: string
+          example: Lidya
+        familyName:
+          type: string
+          example: Tesfaye
+        sex:
+          type: string
+          enum:
+            - female
+            - male
+          example: female
+        dateOfBirth:
+          type: string
+          format: date
+          example: '2025-11-21'
+        birthPlace:
+          type: string
+          example: Bole, Addis Ababa
+        caregiver:
+          $ref: '#/components/schemas/caregiver'
+        regionCode:
+          type: string
+          example: AA
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        immunizationStatus:
+          type: string
+          enum:
+            - scheduled
+            - due
+            - overdue
+            - defaulter
+            - fully-immunized
+          example: due
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T08:30:00Z'
+    patient-list-response:
+      type: object
+      required:
+        - items
+        - page
+        - pageSize
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/patient'
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 1
+    caregiver-input:
+      type: object
+      required:
+        - givenName
+        - familyName
+        - phoneNumber
+        - relationship
+      properties:
+        givenName:
+          type: string
+          minLength: 1
+          example: Mekdes
+        familyName:
+          type: string
+          minLength: 1
+          example: Alemu
+        phoneNumber:
+          type: string
+          minLength: 7
+          example: '+251900000001'
+        relationship:
+          type: string
+          example: mother
+        preferredLanguage:
+          type: string
+          enum:
+            - am
+            - en
+            - om
+          example: am
+    patient-create-request:
+      type: object
+      required:
+        - givenName
+        - familyName
+        - sex
+        - dateOfBirth
+        - caregiver
+      properties:
+        givenName:
+          type: string
+          minLength: 1
+          example: Lidya
+        familyName:
+          type: string
+          minLength: 1
+          example: Tesfaye
+        sex:
+          type: string
+          enum:
+            - female
+            - male
+          example: female
+        dateOfBirth:
+          type: string
+          format: date
+          example: '2025-11-21'
+        birthPlace:
+          type: string
+          example: Bole, Addis Ababa
+        caregiver:
+          $ref: '#/components/schemas/caregiver-input'
+        regionCode:
+          type: string
+          example: AA
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+    vaccination-schedule-item:
+      type: object
+      required:
+        - code
+        - vaccineCode
+        - antigenGroup
+        - label
+        - doseNumber
+        - recommendedAgeWeeks
+        - dueDate
+        - status
+      properties:
+        code:
+          type: string
+          example: penta-1
+        vaccineCode:
+          type: string
+          example: PENTA1
+        antigenGroup:
+          type: string
+          example: pentavalent
+        label:
+          type: string
+          example: Pentavalent dose 1
+        doseNumber:
+          type: integer
+          example: 1
+        recommendedAgeWeeks:
+          type: integer
+          example: 6
+        dueDate:
+          type: string
+          format: date
+          example: '2026-01-02'
+        status:
+          type: string
+          enum:
+            - scheduled
+            - due
+            - overdue
+            - administered
+          example: due
+    vaccination-schedule:
+      type: object
+      required:
+        - patientId
+        - scheduleVersion
+        - generatedAt
+        - items
+      properties:
+        patientId:
+          type: string
+          example: patient-123
+        scheduleVersion:
+          type: string
+          example: ETH-EPI-2025
+        generatedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:15:00Z'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/vaccination-schedule-item'
+    immunization-event-create-request:
+      type: object
+      required:
+        - scheduleCode
+        - vaccineCode
+        - administeredAt
+        - facilityCode
+        - administeredByUserId
+        - route
+        - site
+        - source
+      properties:
+        scheduleCode:
+          type: string
+          example: penta-1
+        vaccineCode:
+          type: string
+          example: PENTA1
+        batchNumber:
+          type: string
+          example: ETH-PENTA-2401
+        administeredAt:
+          type: string
+          format: date-time
+          example: '2026-01-02T09:45:00Z'
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        administeredByUserId:
+          type: string
+          example: user-001
+        route:
+          type: string
+          enum:
+            - intramuscular
+            - oral
+            - subcutaneous
+            - intradermal
+          example: intramuscular
+        site:
+          type: string
+          example: left-thigh
+        source:
+          type: string
+          enum:
+            - routine
+            - outreach
+            - campaign
+          example: routine
+        notes:
+          type: string
+          example: Child arrived on scheduled appointment date.
+    immunization-event:
+      type: object
+      required:
+        - id
+        - patientId
+        - scheduleCode
+        - vaccineCode
+        - administeredAt
+        - recordedAt
+        - facilityCode
+        - administeredByUserId
+        - route
+        - site
+        - source
+      properties:
+        id:
+          type: string
+          example: imm-001
+        patientId:
+          type: string
+          example: patient-123
+        scheduleCode:
+          type: string
+          example: penta-1
+        vaccineCode:
+          type: string
+          example: PENTA1
+        batchNumber:
+          type: string
+          example: ETH-PENTA-2401
+        administeredAt:
+          type: string
+          format: date-time
+          example: '2026-01-02T09:45:00Z'
+        recordedAt:
+          type: string
+          format: date-time
+          example: '2026-01-02T09:46:08Z'
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        administeredByUserId:
+          type: string
+          example: user-001
+        route:
+          type: string
+          example: intramuscular
+        site:
+          type: string
+          example: left-thigh
+        source:
+          type: string
+          example: routine
+        notes:
+          type: string
+          example: Child arrived on scheduled appointment date.
+    symptom-observation:
+      type: object
+      required:
+        - code
+        - label
+        - present
+      properties:
+        code:
+          type: string
+          example: rash
+        label:
+          type: string
+          example: Rash
+        present:
+          type: boolean
+          example: true
+    surveillance-report-create-request:
+      type: object
+      required:
+        - reportType
+        - observedAt
+        - facilityCode
+        - reportedByUserId
+        - symptoms
+        - followUpRequired
+        - followUpStatus
+      properties:
+        reportType:
+          type: string
+          enum:
+            - afp
+            - measles-suspected
+            - cholera-suspected
+            - aefi
+            - zero-dose-follow-up
+          example: measles-suspected
+        observedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T10:20:00Z'
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        reportedByUserId:
+          type: string
+          example: user-001
+        conditionStatus:
+          type: string
+          enum:
+            - suspected
+            - confirmed
+            - ruled-out
+          example: suspected
+        symptoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/symptom-observation'
+        followUpRequired:
+          type: boolean
+          example: true
+        followUpStatus:
+          type: string
+          enum:
+            - open
+            - in-progress
+            - closed
+          example: open
+        notes:
+          type: string
+          example: Child presented with fever and generalized rash during routine visit.
+    surveillance-report:
+      type: object
+      required:
+        - id
+        - patientId
+        - reportType
+        - observedAt
+        - facilityCode
+        - reportedByUserId
+        - symptoms
+        - followUpRequired
+        - followUpStatus
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: surv-001
+        patientId:
+          type: string
+          example: patient-123
+        reportType:
+          type: string
+          example: measles-suspected
+        observedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T10:20:00Z'
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        reportedByUserId:
+          type: string
+          example: user-001
+        conditionStatus:
+          type: string
+          example: suspected
+        symptoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/symptom-observation'
+        followUpRequired:
+          type: boolean
+          example: true
+        followUpStatus:
+          type: string
+          example: open
+        notes:
+          type: string
+          example: Child presented with fever and generalized rash during routine visit.
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T10:21:02Z'
+    follow-up-case:
+      type: object
+      required:
+        - caseId
+        - patientId
+        - patientUid
+        - patientName
+        - alertType
+        - regionCode
+        - facilityCode
+        - status
+        - flaggedAt
+      properties:
+        caseId:
+          type: string
+          example: followup-001
+        patientId:
+          type: string
+          example: patient-123
+        patientUid:
+          type: string
+          example: ETH-AA-2025-000123
+        patientName:
+          type: string
+          example: Lidya Tesfaye
+        alertType:
+          type: string
+          enum:
+            - symptom-follow-up
+            - zero-dose
+            - defaulter
+            - aefi-follow-up
+          example: symptom-follow-up
+        regionCode:
+          type: string
+          example: AA
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        status:
+          type: string
+          enum:
+            - open
+            - in-progress
+            - closed
+          example: open
+        flaggedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T10:21:02Z'
+    follow-up-case-list-response:
+      type: object
+      required:
+        - items
+        - page
+        - pageSize
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/follow-up-case'
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 2
+    notification:
+      type: object
+      required:
+        - id
+        - notificationType
+        - channel
+        - templateCode
+        - recipientPhoneNumber
+        - language
+        - deliveryStatus
+        - dispatchMode
+        - messageBody
+        - dispatchedAt
+      properties:
+        id:
+          type: string
+          example: notif-001
+        notificationType:
+          type: string
+          example: appointment-reminder
+        channel:
+          type: string
+          example: sms
+        templateCode:
+          type: string
+          example: epi-reminder-am
+        patientId:
+          type: string
+          example: patient-123
+        caregiverId:
+          type: string
+          example: caregiver-001
+        recipientPhoneNumber:
+          type: string
+          example: '+251900000001'
+        language:
+          type: string
+          example: am
+        deliveryStatus:
+          type: string
+          enum:
+            - queued
+            - sent
+            - delivered
+            - failed
+          example: delivered
+        dispatchMode:
+          type: string
+          example: queued
+        messageBody:
+          type: string
+          example: Lidya Tesfaye has Pentavalent dose 1 due on 02 Jan 2026 at Bole Health Center.
+        retryCount:
+          type: integer
+          example: 0
+        dispatchedAt:
+          type: string
+          format: date-time
+          example: '2026-01-01T06:00:00Z'
+    notification-list-response:
+      type: object
+      required:
+        - items
+        - page
+        - pageSize
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/notification'
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 1
+    notification-create-request:
+      type: object
+      required:
+        - notificationType
+        - channel
+        - templateCode
+        - recipientPhoneNumber
+        - language
+        - dispatchMode
+        - messageBody
+      properties:
+        notificationType:
+          type: string
+          enum:
+            - appointment-reminder
+            - missed-dose-alert
+            - outbreak-alert
+          example: missed-dose-alert
+        channel:
+          type: string
+          enum:
+            - sms
+          example: sms
+        templateCode:
+          type: string
+          example: missed-dose-am
+        patientId:
+          type: string
+          example: patient-123
+        caregiverId:
+          type: string
+          example: caregiver-001
+        recipientPhoneNumber:
+          type: string
+          example: '+251900000001'
+        language:
+          type: string
+          enum:
+            - am
+            - en
+            - om
+          example: am
+        dispatchMode:
+          type: string
+          enum:
+            - immediate
+            - queued
+          example: queued
+        messageBody:
+          type: string
+          example: Lidya Tesfaye missed Pentavalent dose 1. Please visit Bole Health Center as soon as possible.
+    coverage-summary-antigen-item:
+      type: object
+      required:
+        - vaccineCode
+        - label
+        - targetChildren
+        - administeredChildren
+        - coverageRate
+      properties:
+        vaccineCode:
+          type: string
+          example: PENTA3
+        label:
+          type: string
+          example: Pentavalent dose 3
+        targetChildren:
+          type: integer
+          example: 1240
+        administeredChildren:
+          type: integer
+          example: 1076
+        coverageRate:
+          type: number
+          format: float
+          example: 86.8
+    coverage-summary:
+      type: object
+      required:
+        - scope
+        - summary
+        - coverageByAntigen
+        - generatedAt
+      properties:
+        scope:
+          type: object
+          required:
+            - level
+            - label
+            - asOfDate
+          properties:
+            level:
+              type: string
+              enum:
+                - national
+                - region
+                - facility
+              example: region
+            regionCode:
+              type: string
+              example: AA
+            facilityCode:
+              type: string
+              example: AA-BOLE-HC-001
+            label:
+              type: string
+              example: Addis Ababa
+            asOfDate:
+              type: string
+              format: date
+              example: '2026-04-09'
+        summary:
+          type: object
+          required:
+            - totalRegisteredChildren
+            - fullyImmunizedChildren
+            - dueToday
+            - overdue
+            - zeroDose
+            - coverageRate
+            - dropoutRatePentavalent1ToMeasles1
+          properties:
+            totalRegisteredChildren:
+              type: integer
+              example: 1240
+            fullyImmunizedChildren:
+              type: integer
+              example: 1048
+            dueToday:
+              type: integer
+              example: 36
+            overdue:
+              type: integer
+              example: 91
+            zeroDose:
+              type: integer
+              example: 28
+            coverageRate:
+              type: number
+              format: float
+              example: 84.5
+            dropoutRatePentavalent1ToMeasles1:
+              type: number
+              format: float
+              example: 7.2
+        coverageByAntigen:
+          type: array
+          items:
+            $ref: '#/components/schemas/coverage-summary-antigen-item'
+        generatedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:00:00Z'
+    prediction-run-create-request:
+      type: object
+      required:
+        - runType
+        - disease
+        - modelCode
+        - asOfDate
+        - scopeLevel
+        - requestedByUserId
+      properties:
+        runType:
+          type: string
+          enum:
+            - batch
+          example: batch
+        disease:
+          type: string
+          enum:
+            - measles
+            - cholera
+            - polio
+          example: measles
+        modelCode:
+          type: string
+          example: xgboost-measles-v1
+        asOfDate:
+          type: string
+          format: date
+          example: '2026-04-09'
+        scopeLevel:
+          type: string
+          enum:
+            - national
+            - region
+            - woreda
+          example: region
+        regionCodes:
+          type: array
+          items:
+            type: string
+          example:
+            - OR
+            - SO
+        requestedByUserId:
+          type: string
+          example: user-ph-001
+    prediction-run:
+      type: object
+      required:
+        - id
+        - runType
+        - disease
+        - modelCode
+        - scopeLevel
+        - status
+        - asOfDate
+        - requestedByUserId
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: run-001
+        runType:
+          type: string
+          example: batch
+        disease:
+          type: string
+          example: measles
+        modelCode:
+          type: string
+          example: xgboost-measles-v1
+        scopeLevel:
+          type: string
+          example: region
+        status:
+          type: string
+          enum:
+            - queued
+            - running
+            - completed
+            - failed
+          example: queued
+        asOfDate:
+          type: string
+          format: date
+          example: '2026-04-09'
+        requestedByUserId:
+          type: string
+          example: user-ph-001
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:25:00Z'
+        completedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:29:30Z'
+    prediction-score:
+      type: object
+      required:
+        - id
+        - disease
+        - areaLevel
+        - areaCode
+        - areaLabel
+        - riskScore
+        - riskLevel
+        - confidence
+        - silentDistrict
+        - drivers
+        - modelVersion
+        - generatedAt
+      properties:
+        id:
+          type: string
+          example: score-001
+        disease:
+          type: string
+          example: measles
+        areaLevel:
+          type: string
+          enum:
+            - region
+            - woreda
+          example: region
+        areaCode:
+          type: string
+          example: SO
+        areaLabel:
+          type: string
+          example: Somali
+        riskScore:
+          type: number
+          format: float
+          example: 0.89
+        riskLevel:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+          example: critical
+        confidence:
+          type: number
+          format: float
+          example: 0.81
+        silentDistrict:
+          type: boolean
+          example: true
+        drivers:
+          type: array
+          items:
+            type: string
+          example:
+            - low measles coverage
+            - high zero-dose burden
+            - surveillance silence
+        modelVersion:
+          type: string
+          example: xgboost-measles-v1
+        generatedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:30:00Z'
+    prediction-score-list-response:
+      type: object
+      required:
+        - items
+        - page
+        - pageSize
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/prediction-score'
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 1
+    outbreak-alert:
+      type: object
+      required:
+        - id
+        - disease
+        - areaLevel
+        - areaCode
+        - areaLabel
+        - riskLevel
+        - riskScore
+        - alertStatus
+        - recommendedAction
+        - generatedAt
+      properties:
+        id:
+          type: string
+          example: alert-001
+        disease:
+          type: string
+          example: measles
+        areaLevel:
+          type: string
+          example: region
+        areaCode:
+          type: string
+          example: SO
+        areaLabel:
+          type: string
+          example: Somali
+        riskLevel:
+          type: string
+          example: critical
+        riskScore:
+          type: number
+          format: float
+          example: 0.89
+        alertStatus:
+          type: string
+          enum:
+            - open
+            - acknowledged
+            - closed
+          example: open
+        recommendedAction:
+          type: string
+          example: Verify field reports and prioritize supplemental outreach in silent districts.
+        generatedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:35:00Z'
+    outbreak-alert-list-response:
+      type: object
+      required:
+        - items
+        - page
+        - pageSize
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/outbreak-alert'
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 1
+    report:
+      type: object
+      required:
+        - id
+        - reportType
+        - format
+        - scopeLevel
+        - status
+        - requestedByUserId
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: report-001
+        reportType:
+          type: string
+          example: coverage-summary
+        format:
+          type: string
+          example: pdf
+        scopeLevel:
+          type: string
+          example: region
+        regionCode:
+          type: string
+          example: AA
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        status:
+          type: string
+          enum:
+            - queued
+            - generating
+            - completed
+            - failed
+          example: completed
+        requestedByUserId:
+          type: string
+          example: user-admin-001
+        downloadUrl:
+          type: string
+          example: https://example.invalid/reports/report-001.pdf
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:40:00Z'
+        generatedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:42:10Z'
+    report-list-response:
+      type: object
+      required:
+        - items
+        - page
+        - pageSize
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/report'
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 1
+    report-generation-request:
+      type: object
+      required:
+        - reportType
+        - format
+        - scopeLevel
+        - asOfDate
+        - requestedByUserId
+      properties:
+        reportType:
+          type: string
+          enum:
+            - coverage-summary
+            - zero-dose-list
+            - defaulter-list
+            - outbreak-risk-summary
+            - surveillance-case-summary
+          example: coverage-summary
+        format:
+          type: string
+          enum:
+            - pdf
+            - csv
+            - json
+          example: pdf
+        scopeLevel:
+          type: string
+          enum:
+            - national
+            - region
+            - facility
+          example: region
+        regionCode:
+          type: string
+          example: AA
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        asOfDate:
+          type: string
+          format: date
+          example: '2026-04-09'
+        requestedByUserId:
+          type: string
+          example: user-admin-001
+    fhir-export-request:
+      type: object
+      required:
+        - resourceTypes
+        - scopeLevel
+        - asOfDate
+        - requestedByUserId
+      properties:
+        resourceTypes:
+          type: array
+          items:
+            type: string
+            enum:
+              - Patient
+              - Immunization
+              - Observation
+          example:
+            - Patient
+            - Immunization
+            - Observation
+        scopeLevel:
+          type: string
+          enum:
+            - national
+            - region
+            - facility
+          example: region
+        regionCode:
+          type: string
+          example: AA
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        asOfDate:
+          type: string
+          format: date
+          example: '2026-04-09'
+        requestedByUserId:
+          type: string
+          example: user-admin-001
+    interoperability-job:
+      type: object
+      required:
+        - id
+        - targetSystem
+        - jobType
+        - status
+        - submittedAt
+      properties:
+        id:
+          type: string
+          example: job-001
+        targetSystem:
+          type: string
+          enum:
+            - fhir
+            - dhis2
+          example: dhis2
+        jobType:
+          type: string
+          enum:
+            - export
+            - sync
+          example: sync
+        status:
+          type: string
+          enum:
+            - queued
+            - running
+            - completed
+            - failed
+          example: completed
+        submittedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T10:00:00Z'
+        completedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T10:03:20Z'
+        recordsProcessed:
+          type: integer
+          example: 128
+        successCount:
+          type: integer
+          example: 126
+        errorCount:
+          type: integer
+          example: 2
+        lastError:
+          type: string
+          example: Two records were rejected because of missing org unit mappings.
+    dhis2-sync-request:
+      type: object
+      required:
+        - datasetCode
+        - period
+        - scopeLevel
+        - requestedByUserId
+      properties:
+        datasetCode:
+          type: string
+          example: EPI_MONTHLY_COVERAGE
+        period:
+          type: string
+          example: 2026-03
+        scopeLevel:
+          type: string
+          enum:
+            - national
+            - region
+            - facility
+          example: region
+        regionCode:
+          type: string
+          example: AA
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        requestedByUserId:
+          type: string
+          example: user-admin-001
+    device-registration-request:
+      type: object
+      required:
+        - deviceId
+        - deviceName
+        - deviceType
+        - healthWorkerId
+        - facilityCode
+        - appVersion
+      properties:
+        deviceId:
+          type: string
+          example: samsung-tab-a9-001
+        deviceName:
+          type: string
+          example: Bole outreach tablet 1
+        deviceType:
+          type: string
+          enum:
+            - tablet
+            - android-phone
+            - browser
+          example: tablet
+        healthWorkerId:
+          type: string
+          example: user-001
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        appVersion:
+          type: string
+          example: 0.1.0
+    device-registration:
+      type: object
+      required:
+        - id
+        - deviceId
+        - deviceName
+        - deviceType
+        - healthWorkerId
+        - facilityCode
+        - status
+        - registeredAt
+      properties:
+        id:
+          type: string
+          example: device-reg-001
+        deviceId:
+          type: string
+          example: samsung-tab-a9-001
+        deviceName:
+          type: string
+          example: Bole outreach tablet 1
+        deviceType:
+          type: string
+          example: tablet
+        healthWorkerId:
+          type: string
+          example: user-001
+        facilityCode:
+          type: string
+          example: AA-BOLE-HC-001
+        status:
+          type: string
+          enum:
+            - active
+            - blocked
+            - retired
+          example: active
+        registeredAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T10:55:00Z'
+        lastSeenAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T11:00:00Z'
+    sync-batch-item-input:
+      type: object
+      required:
+        - localId
+        - entityType
+        - operation
+        - occurredAt
+      properties:
+        localId:
+          type: string
+          example: local-imm-001
+        entityType:
+          type: string
+          enum:
+            - patient-registration
+            - immunization-event
+            - surveillance-report
+            - caregiver-update
+            - mixed
+          example: immunization-event
+        operation:
+          type: string
+          enum:
+            - create
+            - update
+          example: create
+        occurredAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:30:00Z'
+    sync-batch-create-request:
+      type: object
+      required:
+        - deviceId
+        - submittedAt
+        - entityType
+        - itemCount
+        - items
+      properties:
+        deviceId:
+          type: string
+          example: samsung-tab-a9-001
+        submittedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T11:00:00Z'
+        entityType:
+          type: string
+          enum:
+            - patient-registration
+            - immunization-event
+            - surveillance-report
+            - caregiver-update
+            - mixed
+          example: mixed
+        itemCount:
+          type: integer
+          example: 2
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/sync-batch-item-input'
+    sync-batch:
+      type: object
+      required:
+        - batchId
+        - deviceId
+        - status
+        - acceptedCount
+        - rejectedCount
+        - receivedAt
+      properties:
+        batchId:
+          type: string
+          example: batch-001
+        deviceId:
+          type: string
+          example: samsung-tab-a9-001
+        status:
+          type: string
+          enum:
+            - received
+            - processing
+            - completed
+            - conflict
+          example: completed
+        acceptedCount:
+          type: integer
+          example: 2
+        rejectedCount:
+          type: integer
+          example: 0
+        conflicts:
+          type: array
+          items:
+            type: string
+          example: []
+        receivedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T11:00:10Z'
+  responses:
+    bad-request:
+      description: The request could not be processed because validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/api-error'
+          example:
+            error:
+              code: REQUEST_VALIDATION_FAILED
+              message: Request validation failed.
+              details:
+                field: dateOfBirth
+    invalid-credentials:
+      description: The supplied login credentials were rejected.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/api-error'
+          example:
+            error:
+              code: AUTH_INVALID_CREDENTIALS
+              message: The provided email or password is incorrect.
+    unauthorized:
+      description: Authentication is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/api-error'
+          example:
+            error:
+              code: AUTH_UNAUTHORIZED
+              message: Authentication is required for this endpoint.
+    duplicate-patient:
+      description: A potential duplicate patient was detected.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/api-error'
+          example:
+            error:
+              code: REGISTRY_DUPLICATE_PATIENT_SUSPECTED
+              message: A patient with closely matching details already exists.
+              details:
+                matchedPatientId: patient-120
+    not-found:
+      description: The requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/api-error'
+          example:
+            error:
+              code: RESOURCE_NOT_FOUND
+              message: The requested resource could not be found.
+    state-conflict:
+      description: The requested change conflicts with the current vaccination schedule state.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/api-error'
+          example:
+            error:
+              code: IMMUNIZATION_STATE_CONFLICT
+              message: The selected schedule item has already been recorded as administered.
+              details:
+                scheduleCode: penta-1
+  parameters:
+    search:
+      name: search
+      in: query
+      required: false
+      description: Search by patient given name, family name, or generated UID
+      schema:
+        type: string
+        minLength: 1
+        example: Lidya
+    page:
+      name: page
+      in: query
+      required: false
+      description: One-based page index
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+    page-size:
+      name: pageSize
+      in: query
+      required: false
+      description: Number of records returned per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+    region-code:
+      name: regionCode
+      in: query
+      required: false
+      description: Filter patients by region code
+      schema:
+        type: string
+        example: AA
+    facility-code:
+      name: facilityCode
+      in: query
+      required: false
+      description: Filter patients by facility code
+      schema:
+        type: string
+        example: AA-BOLE-HC-001
+    patient-id:
+      name: patientId
+      in: path
+      required: true
+      description: Unique patient identifier
+      schema:
+        type: string
+        example: patient-123
+    include-completed:
+      name: includeCompleted
+      in: query
+      required: false
+      description: Whether already administered schedule items should be included in the response
+      schema:
+        type: boolean
+        default: true
+        example: true
+    follow-up-status:
+      name: followUpStatus
+      in: query
+      required: false
+      description: Filter follow-up cases by current status
+      schema:
+        type: string
+        enum:
+          - open
+          - in-progress
+          - closed
+        example: open
+    report-id:
+      name: reportId
+      in: path
+      required: true
+      description: Generated report identifier
+      schema:
+        type: string
+        example: report-001
+    patient-id-query:
+      name: patientId
+      in: query
+      required: false
+      description: Filter by patient identifier
+      schema:
+        type: string
+        example: patient-123
+    notification-type:
+      name: notificationType
+      in: query
+      required: false
+      description: Filter notifications by message type
+      schema:
+        type: string
+        enum:
+          - appointment-reminder
+          - missed-dose-alert
+          - outbreak-alert
+        example: appointment-reminder
+    notification-status:
+      name: deliveryStatus
+      in: query
+      required: false
+      description: Filter notifications by delivery status
+      schema:
+        type: string
+        enum:
+          - queued
+          - sent
+          - delivered
+          - failed
+        example: delivered
+    as-of-date:
+      name: asOfDate
+      in: query
+      required: false
+      description: Date used as the reporting cutoff for analytics queries
+      schema:
+        type: string
+        format: date
+        example: '2026-04-09'
+    disease:
+      name: disease
+      in: query
+      required: false
+      description: Disease or syndrome filter for prediction endpoints
+      schema:
+        type: string
+        enum:
+          - measles
+          - cholera
+          - polio
+        example: measles
+    risk-level:
+      name: riskLevel
+      in: query
+      required: false
+      description: Filter by risk level
+      schema:
+        type: string
+        enum:
+          - low
+          - medium
+          - high
+          - critical
+        example: high
+    report-type:
+      name: reportType
+      in: query
+      required: false
+      description: Filter reports by report type
+      schema:
+        type: string
+        enum:
+          - coverage-summary
+          - zero-dose-list
+          - defaulter-list
+          - outbreak-risk-summary
+          - surveillance-case-summary
+        example: coverage-summary
+    job-id:
+      name: jobId
+      in: path
+      required: true
+      description: Interoperability job identifier
+      schema:
+        type: string
+        example: job-001
+    batch-id:
+      name: batchId
+      in: path
+      required: true
+      description: Offline synchronization batch identifier
+      schema:
+        type: string
+        example: batch-001

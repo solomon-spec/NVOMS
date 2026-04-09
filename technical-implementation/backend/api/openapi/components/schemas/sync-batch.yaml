@@ -1,0 +1,28 @@
+type: object
+required: [batchId, deviceId, status, acceptedCount, rejectedCount, receivedAt]
+properties:
+  batchId:
+    type: string
+    example: batch-001
+  deviceId:
+    type: string
+    example: samsung-tab-a9-001
+  status:
+    type: string
+    enum: [received, processing, completed, conflict]
+    example: completed
+  acceptedCount:
+    type: integer
+    example: 2
+  rejectedCount:
+    type: integer
+    example: 0
+  conflicts:
+    type: array
+    items:
+      type: string
+    example: []
+  receivedAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T11:00:10Z"

@@ -1,0 +1,28 @@
+type: object
+required: [reportType, format, scopeLevel, asOfDate, requestedByUserId]
+properties:
+  reportType:
+    type: string
+    enum: [coverage-summary, zero-dose-list, defaulter-list, outbreak-risk-summary, surveillance-case-summary]
+    example: coverage-summary
+  format:
+    type: string
+    enum: [pdf, csv, json]
+    example: pdf
+  scopeLevel:
+    type: string
+    enum: [national, region, facility]
+    example: region
+  regionCode:
+    type: string
+    example: AA
+  facilityCode:
+    type: string
+    example: AA-BOLE-HC-001
+  asOfDate:
+    type: string
+    format: date
+    example: "2026-04-09"
+  requestedByUserId:
+    type: string
+    example: user-admin-001

@@ -1,0 +1,8 @@
+name: disease
+in: query
+required: false
+description: Disease or syndrome filter for prediction endpoints
+schema:
+  type: string
+  enum: [measles, cholera, polio]
+  example: measles

@@ -1,0 +1,41 @@
+type: object
+required:
+  - notificationType
+  - channel
+  - templateCode
+  - recipientPhoneNumber
+  - language
+  - dispatchMode
+  - messageBody
+properties:
+  notificationType:
+    type: string
+    enum: [appointment-reminder, missed-dose-alert, outbreak-alert]
+    example: missed-dose-alert
+  channel:
+    type: string
+    enum: [sms]
+    example: sms
+  templateCode:
+    type: string
+    example: missed-dose-am
+  patientId:
+    type: string
+    example: patient-123
+  caregiverId:
+    type: string
+    example: caregiver-001
+  recipientPhoneNumber:
+    type: string
+    example: "+251900000001"
+  language:
+    type: string
+    enum: [am, en, om]
+    example: am
+  dispatchMode:
+    type: string
+    enum: [immediate, queued]
+    example: queued
+  messageBody:
+    type: string
+    example: Lidya Tesfaye missed Pentavalent dose 1. Please visit Bole Health Center as soon as possible.

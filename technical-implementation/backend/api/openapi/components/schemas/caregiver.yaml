@@ -1,0 +1,22 @@
+type: object
+required: [id, givenName, familyName, phoneNumber, relationship]
+properties:
+  id:
+    type: string
+    example: caregiver-001
+  givenName:
+    type: string
+    example: Mekdes
+  familyName:
+    type: string
+    example: Alemu
+  phoneNumber:
+    type: string
+    example: "+251900000001"
+  relationship:
+    type: string
+    example: mother
+  preferredLanguage:
+    type: string
+    enum: [am, en, om]
+    example: am

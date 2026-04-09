@@ -1,0 +1,36 @@
+type: object
+required: [id, disease, areaLevel, areaCode, areaLabel, riskLevel, riskScore, alertStatus, recommendedAction, generatedAt]
+properties:
+  id:
+    type: string
+    example: alert-001
+  disease:
+    type: string
+    example: measles
+  areaLevel:
+    type: string
+    example: region
+  areaCode:
+    type: string
+    example: SO
+  areaLabel:
+    type: string
+    example: Somali
+  riskLevel:
+    type: string
+    example: critical
+  riskScore:
+    type: number
+    format: float
+    example: 0.89
+  alertStatus:
+    type: string
+    enum: [open, acknowledged, closed]
+    example: open
+  recommendedAction:
+    type: string
+    example: Verify field reports and prioritize supplemental outreach in silent districts.
+  generatedAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T09:35:00Z"

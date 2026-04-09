@@ -1,0 +1,7 @@
+name: batchId
+in: path
+required: true
+description: Offline synchronization batch identifier
+schema:
+  type: string
+  example: batch-001

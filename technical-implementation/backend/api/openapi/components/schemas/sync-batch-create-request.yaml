@@ -1,0 +1,21 @@
+type: object
+required: [deviceId, submittedAt, entityType, itemCount, items]
+properties:
+  deviceId:
+    type: string
+    example: samsung-tab-a9-001
+  submittedAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T11:00:00Z"
+  entityType:
+    type: string
+    enum: [patient-registration, immunization-event, surveillance-report, caregiver-update, mixed]
+    example: mixed
+  itemCount:
+    type: integer
+    example: 2
+  items:
+    type: array
+    items:
+      $ref: ./sync-batch-item-input.yaml

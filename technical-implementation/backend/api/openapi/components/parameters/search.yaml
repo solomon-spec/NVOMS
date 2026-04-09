@@ -1,0 +1,8 @@
+name: search
+in: query
+required: false
+description: Search by patient given name, family name, or generated UID
+schema:
+  type: string
+  minLength: 1
+  example: Lidya

@@ -1,0 +1,33 @@
+type: object
+required: [caseId, patientId, patientUid, patientName, alertType, regionCode, facilityCode, status, flaggedAt]
+properties:
+  caseId:
+    type: string
+    example: followup-001
+  patientId:
+    type: string
+    example: patient-123
+  patientUid:
+    type: string
+    example: ETH-AA-2025-000123
+  patientName:
+    type: string
+    example: Lidya Tesfaye
+  alertType:
+    type: string
+    enum: [symptom-follow-up, zero-dose, defaulter, aefi-follow-up]
+    example: symptom-follow-up
+  regionCode:
+    type: string
+    example: AA
+  facilityCode:
+    type: string
+    example: AA-BOLE-HC-001
+  status:
+    type: string
+    enum: [open, in-progress, closed]
+    example: open
+  flaggedAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T10:21:02Z"

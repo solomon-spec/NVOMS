@@ -1,0 +1,129 @@
+fhirExports:
+  post:
+    tags: [Interoperability]
+    summary: Create a FHIR export job
+    description: >
+      Creates an interoperability job that maps internal records into HL7 FHIR
+      resources such as Patient, Immunization, and Observation.
+    operationId: createFhirExportJob
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/fhir-export-request.yaml
+          examples:
+            immunizationBundleExport:
+              summary: Export immunization bundle for Addis Ababa
+              value:
+                resourceTypes: [Patient, Immunization, Observation]
+                scopeLevel: region
+                regionCode: AA
+                asOfDate: "2026-04-09"
+                requestedByUserId: user-admin-001
+    responses:
+      "202":
+        description: FHIR export accepted
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/interoperability-job.yaml
+            examples:
+              acceptedFhirExport:
+                summary: Accepted FHIR export job
+                value:
+                  id: job-001
+                  targetSystem: fhir
+                  jobType: export
+                  status: queued
+                  submittedAt: "2026-04-09T10:00:00Z"
+      "400":
+        $ref: ../components/responses/bad-request.yaml
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+
+dhis2SyncJobs:
+  post:
+    tags: [Interoperability]
+    summary: Create a DHIS2 synchronization job
+    description: >
+      Creates a synchronization job that prepares and sends aggregate or case-derived
+      records to DHIS2 and tracks the exchange result.
+    operationId: createDhis2SyncJob
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/dhis2-sync-request.yaml
+          examples:
+            monthlyCoverageSync:
+              summary: Monthly DHIS2 sync for Addis Ababa
+              value:
+                datasetCode: EPI_MONTHLY_COVERAGE
+                period: "2026-03"
+                scopeLevel: region
+                regionCode: AA
+                requestedByUserId: user-admin-001
+    responses:
+      "202":
+        description: DHIS2 sync accepted
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/interoperability-job.yaml
+            examples:
+              acceptedDhis2Sync:
+                summary: Accepted DHIS2 synchronization job
+                value:
+                  id: job-002
+                  targetSystem: dhis2
+                  jobType: sync
+                  status: queued
+                  submittedAt: "2026-04-09T10:05:00Z"
+      "400":
+        $ref: ../components/responses/bad-request.yaml
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+
+interoperabilityJobById:
+  get:
+    tags: [Interoperability]
+    summary: Get interoperability job status
+    description: >
+      Returns job status, processed record counts, and any reported interoperability
+      errors for a FHIR export or DHIS2 synchronization task.
+    operationId: getInteroperabilityJobById
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ../components/parameters/job-id.yaml
+    responses:
+      "200":
+        description: Interoperability job details
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/interoperability-job.yaml
+            examples:
+              completedDhis2Sync:
+                summary: Completed DHIS2 synchronization
+                value:
+                  id: job-002
+                  targetSystem: dhis2
+                  jobType: sync
+                  status: completed
+                  submittedAt: "2026-04-09T10:05:00Z"
+                  completedAt: "2026-04-09T10:08:30Z"
+                  recordsProcessed: 128
+                  successCount: 126
+                  errorCount: 2
+                  lastError: Two records were rejected because of missing org unit mappings.
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+      "404":
+        $ref: ../components/responses/not-found.yaml

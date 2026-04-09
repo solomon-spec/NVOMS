@@ -1,0 +1,13 @@
+{
+  "name": "backend-api-contracts",
+  "private": true,
+  "version": "0.1.0",
+  "description": "OpenAPI contract tooling for the backend API",
+  "scripts": {
+    "openapi:lint": "redocly lint openapi/openapi.yaml",
+    "openapi:bundle": "redocly bundle openapi/openapi.yaml --output openapi/openapi.bundle.yaml"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.26.0"
+  }
+}

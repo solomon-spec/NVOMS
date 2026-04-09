@@ -1,0 +1,58 @@
+coverageSummary:
+  get:
+    tags: [Analytics]
+    summary: Get a dashboard-ready immunization coverage summary
+    description: >
+      Returns an aggregated immunization coverage summary for dashboard views. The
+      endpoint supports national, regional, or facility-focused views and exposes both
+      top-line KPI values and antigen-level coverage summaries.
+    operationId: getCoverageSummary
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ../components/parameters/region-code.yaml
+      - $ref: ../components/parameters/facility-code.yaml
+      - $ref: ../components/parameters/as-of-date.yaml
+    responses:
+      "200":
+        description: Coverage summary
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/coverage-summary.yaml
+            examples:
+              addisAbabaCoverage:
+                summary: Addis Ababa regional summary
+                value:
+                  scope:
+                    level: region
+                    regionCode: AA
+                    label: Addis Ababa
+                    asOfDate: "2026-04-09"
+                  summary:
+                    totalRegisteredChildren: 1240
+                    fullyImmunizedChildren: 1048
+                    dueToday: 36
+                    overdue: 91
+                    zeroDose: 28
+                    coverageRate: 84.5
+                    dropoutRatePentavalent1ToMeasles1: 7.2
+                  coverageByAntigen:
+                    - vaccineCode: BCG
+                      label: BCG
+                      targetChildren: 1240
+                      administeredChildren: 1182
+                      coverageRate: 95.3
+                    - vaccineCode: PENTA3
+                      label: Pentavalent dose 3
+                      targetChildren: 1240
+                      administeredChildren: 1076
+                      coverageRate: 86.8
+                    - vaccineCode: MEASLES1
+                      label: Measles dose 1
+                      targetChildren: 1240
+                      administeredChildren: 998
+                      coverageRate: 80.5
+                  generatedAt: "2026-04-09T09:00:00Z"
+      "401":
+        $ref: ../components/responses/unauthorized.yaml

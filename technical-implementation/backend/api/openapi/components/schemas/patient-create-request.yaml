@@ -1,0 +1,30 @@
+type: object
+required: [givenName, familyName, sex, dateOfBirth, caregiver]
+properties:
+  givenName:
+    type: string
+    minLength: 1
+    example: Lidya
+  familyName:
+    type: string
+    minLength: 1
+    example: Tesfaye
+  sex:
+    type: string
+    enum: [female, male]
+    example: female
+  dateOfBirth:
+    type: string
+    format: date
+    example: "2025-11-21"
+  birthPlace:
+    type: string
+    example: Bole, Addis Ababa
+  caregiver:
+    $ref: ./caregiver-input.yaml
+  regionCode:
+    type: string
+    example: AA
+  facilityCode:
+    type: string
+    example: AA-BOLE-HC-001

@@ -1,0 +1,9 @@
+description: Authentication is missing or invalid.
+content:
+  application/json:
+    schema:
+      $ref: ../schemas/api-error.yaml
+    example:
+      error:
+        code: AUTH_UNAUTHORIZED
+        message: Authentication is required for this endpoint.

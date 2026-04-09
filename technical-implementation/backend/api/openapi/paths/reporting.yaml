@@ -1,0 +1,138 @@
+reports:
+  get:
+    tags: [Reporting]
+    summary: List generated reports
+    description: >
+      Returns generated reports and their current processing state. Reports may cover
+      coverage summaries, defaulter lists, surveillance summaries, and outbreak risk
+      outputs.
+    operationId: listReports
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ../components/parameters/page.yaml
+      - $ref: ../components/parameters/page-size.yaml
+      - $ref: ../components/parameters/report-type.yaml
+      - $ref: ../components/parameters/region-code.yaml
+      - $ref: ../components/parameters/facility-code.yaml
+    responses:
+      "200":
+        description: Generated reports
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/report-list-response.yaml
+            examples:
+              reportHistory:
+                summary: Available generated reports
+                value:
+                  items:
+                    - id: report-001
+                      reportType: coverage-summary
+                      format: pdf
+                      scopeLevel: region
+                      regionCode: AA
+                      status: completed
+                      requestedByUserId: user-admin-001
+                      downloadUrl: https://example.invalid/reports/report-001.pdf
+                      createdAt: "2026-04-09T09:40:00Z"
+                      generatedAt: "2026-04-09T09:42:10Z"
+                    - id: report-002
+                      reportType: defaulter-list
+                      format: csv
+                      scopeLevel: facility
+                      facilityCode: AA-BOLE-HC-001
+                      status: generating
+                      requestedByUserId: user-001
+                      createdAt: "2026-04-09T10:05:00Z"
+                  page: 1
+                  pageSize: 20
+                  total: 2
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+  post:
+    tags: [Reporting]
+    summary: Generate a report
+    description: >
+      Creates a report generation job and returns the generated report metadata once
+      accepted. Supported formats include PDF, CSV, and JSON.
+    operationId: createReport
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/report-generation-request.yaml
+          examples:
+            districtCoverageReport:
+              summary: Generate coverage summary report for Addis Ababa
+              value:
+                reportType: coverage-summary
+                format: pdf
+                scopeLevel: region
+                regionCode: AA
+                asOfDate: "2026-04-09"
+                requestedByUserId: user-admin-001
+    responses:
+      "202":
+        description: Report generation accepted
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/report.yaml
+            examples:
+              acceptedCoverageReport:
+                summary: Accepted coverage summary report
+                value:
+                  id: report-003
+                  reportType: coverage-summary
+                  format: pdf
+                  scopeLevel: region
+                  regionCode: AA
+                  status: queued
+                  requestedByUserId: user-admin-001
+                  createdAt: "2026-04-09T10:15:00Z"
+      "400":
+        $ref: ../components/responses/bad-request.yaml
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+
+reportById:
+  get:
+    tags: [Reporting]
+    summary: Get a generated report by identifier
+    description: >
+      Returns the current state and metadata for a previously requested report,
+      including the download link when report generation is complete.
+    operationId: getReportById
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ../components/parameters/report-id.yaml
+    responses:
+      "200":
+        description: Report details
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/report.yaml
+            examples:
+              completedCoverageReport:
+                summary: Completed report with download URL
+                value:
+                  id: report-001
+                  reportType: coverage-summary
+                  format: pdf
+                  scopeLevel: region
+                  regionCode: AA
+                  status: completed
+                  requestedByUserId: user-admin-001
+                  downloadUrl: https://example.invalid/reports/report-001.pdf
+                  createdAt: "2026-04-09T09:40:00Z"
+                  generatedAt: "2026-04-09T09:42:10Z"
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+      "404":
+        $ref: ../components/responses/not-found.yaml

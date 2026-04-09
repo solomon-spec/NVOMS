@@ -1,0 +1,9 @@
+name: page
+in: query
+required: false
+description: One-based page index
+schema:
+  type: integer
+  minimum: 1
+  default: 1
+  example: 1

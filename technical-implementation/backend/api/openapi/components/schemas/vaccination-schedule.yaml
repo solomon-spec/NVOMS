@@ -1,0 +1,17 @@
+type: object
+required: [patientId, scheduleVersion, generatedAt, items]
+properties:
+  patientId:
+    type: string
+    example: patient-123
+  scheduleVersion:
+    type: string
+    example: ETH-EPI-2025
+  generatedAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T09:15:00Z"
+  items:
+    type: array
+    items:
+      $ref: ./vaccination-schedule-item.yaml

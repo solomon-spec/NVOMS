@@ -1,0 +1,181 @@
+patientSurveillanceReports:
+  post:
+    tags: [Surveillance]
+    summary: Record a surveillance observation for a patient
+    description: >
+      Captures a surveillance observation linked to a registered patient. This endpoint
+      supports symptom reporting, AEFI capture, suspected measles or cholera cases,
+      and zero-dose or follow-up related observations from the field.
+    operationId: createSurveillanceReport
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ../components/parameters/patient-id.yaml
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/surveillance-report-create-request.yaml
+          examples:
+            measlesSuspicion:
+              summary: Suspected measles observation recorded in Addis Ababa
+              value:
+                reportType: measles-suspected
+                observedAt: "2026-04-09T10:20:00Z"
+                facilityCode: AA-BOLE-HC-001
+                reportedByUserId: user-001
+                conditionStatus: suspected
+                symptoms:
+                  - code: fever
+                    label: Fever
+                    present: true
+                  - code: rash
+                    label: Rash
+                    present: true
+                  - code: cough
+                    label: Cough
+                    present: true
+                followUpRequired: true
+                followUpStatus: open
+                notes: Child presented with fever and generalized rash during routine visit.
+    responses:
+      "201":
+        description: Surveillance report created
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/surveillance-report.yaml
+            examples:
+              createdReport:
+                summary: Created surveillance report
+                value:
+                  id: surv-001
+                  patientId: patient-123
+                  reportType: measles-suspected
+                  observedAt: "2026-04-09T10:20:00Z"
+                  facilityCode: AA-BOLE-HC-001
+                  reportedByUserId: user-001
+                  conditionStatus: suspected
+                  symptoms:
+                    - code: fever
+                      label: Fever
+                      present: true
+                    - code: rash
+                      label: Rash
+                      present: true
+                    - code: cough
+                      label: Cough
+                      present: true
+                  followUpRequired: true
+                  followUpStatus: open
+                  notes: Child presented with fever and generalized rash during routine visit.
+                  createdAt: "2026-04-09T10:21:02Z"
+      "400":
+        $ref: ../components/responses/bad-request.yaml
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+      "404":
+        $ref: ../components/responses/not-found.yaml
+
+followUpCases:
+  get:
+    tags: [Surveillance]
+    summary: List follow-up cases requiring public health action
+    description: >
+      Returns patient-level follow-up cases generated from surveillance reports,
+      zero-dose detection, and defaulter monitoring. This endpoint supports health
+      worker outreach views and public health review workflows.
+    operationId: listFollowUpCases
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ../components/parameters/page.yaml
+      - $ref: ../components/parameters/page-size.yaml
+      - $ref: ../components/parameters/region-code.yaml
+      - $ref: ../components/parameters/facility-code.yaml
+      - $ref: ../components/parameters/follow-up-status.yaml
+    responses:
+      "200":
+        description: Follow-up cases
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/follow-up-case-list-response.yaml
+            examples:
+              followUpList:
+                summary: Open follow-up cases
+                value:
+                  items:
+                    - caseId: followup-001
+                      patientId: patient-123
+                      patientUid: ETH-AA-2025-000123
+                      patientName: Lidya Tesfaye
+                      alertType: symptom-follow-up
+                      regionCode: AA
+                      facilityCode: AA-BOLE-HC-001
+                      status: open
+                      flaggedAt: "2026-04-09T10:21:02Z"
+                    - caseId: followup-002
+                      patientId: patient-250
+                      patientUid: ETH-OR-2025-000250
+                      patientName: Nahom Hailu
+                      alertType: defaulter
+                      regionCode: OR
+                      facilityCode: OR-ADAMA-HC-004
+                      status: in-progress
+                      flaggedAt: "2026-04-08T14:10:00Z"
+                  page: 1
+                  pageSize: 20
+                  total: 2
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+
+surveillanceReportById:
+  get:
+    tags: [Surveillance]
+    summary: Get a surveillance report by identifier
+    description: >
+      Returns the full surveillance report payload including symptom observations,
+      follow-up state, and field notes.
+    operationId: getSurveillanceReportById
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: ../components/parameters/report-id.yaml
+    responses:
+      "200":
+        description: Surveillance report
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/surveillance-report.yaml
+            examples:
+              measlesReport:
+                summary: Full surveillance report record
+                value:
+                  id: surv-001
+                  patientId: patient-123
+                  reportType: measles-suspected
+                  observedAt: "2026-04-09T10:20:00Z"
+                  facilityCode: AA-BOLE-HC-001
+                  reportedByUserId: user-001
+                  conditionStatus: suspected
+                  symptoms:
+                    - code: fever
+                      label: Fever
+                      present: true
+                    - code: rash
+                      label: Rash
+                      present: true
+                    - code: cough
+                      label: Cough
+                      present: true
+                  followUpRequired: true
+                  followUpStatus: open
+                  notes: Child presented with fever and generalized rash during routine visit.
+                  createdAt: "2026-04-09T10:21:02Z"
+      "401":
+        $ref: ../components/responses/unauthorized.yaml
+      "404":
+        $ref: ../components/responses/not-found.yaml

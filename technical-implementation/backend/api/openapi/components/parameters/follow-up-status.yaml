@@ -1,0 +1,8 @@
+name: followUpStatus
+in: query
+required: false
+description: Filter follow-up cases by current status
+schema:
+  type: string
+  enum: [open, in-progress, closed]
+  example: open

@@ -1,0 +1,7 @@
+name: facilityCode
+in: query
+required: false
+description: Filter patients by facility code
+schema:
+  type: string
+  example: AA-BOLE-HC-001

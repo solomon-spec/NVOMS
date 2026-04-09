@@ -1,0 +1,18 @@
+type: object
+required: [localId, entityType, operation, occurredAt]
+properties:
+  localId:
+    type: string
+    example: local-imm-001
+  entityType:
+    type: string
+    enum: [patient-registration, immunization-event, surveillance-report, caregiver-update, mixed]
+    example: immunization-event
+  operation:
+    type: string
+    enum: [create, update]
+    example: create
+  occurredAt:
+    type: string
+    format: date-time
+    example: "2026-04-09T09:30:00Z"
