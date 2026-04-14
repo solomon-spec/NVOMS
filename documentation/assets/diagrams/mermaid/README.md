@@ -26,3 +26,4 @@ These Mermaid files are approximations of the report diagrams and are ready to p
 | Figure 3.19 | Activity Diagram – Reporting and Interoperability | `image12.png` | [figure-3-19-activity-reporting-and-interoperability.mmd](./figure-3-19-activity-reporting-and-interoperability.mmd) | Mermaid flowchart approximation. |
 | Figure 3.20 | Collaboration Diagram | `image9.png` | [figure-3-20-collaboration-diagram.mmd](./figure-3-20-collaboration-diagram.mmd) | Approximated as a Mermaid flowchart. |
 | Figure 4.1 | Layered Service-Oriented Architecture | `image16.png` | [figure-4-01-layered-service-oriented-architecture.mmd](./figure-4-01-layered-service-oriented-architecture.mmd) | Mermaid flowchart. |
+| Figure 4.4 | Software Architecture | `image24.png` | [figure-4-04-software-architecture.mmd](./figure-4-04-software-architecture.mmd) | Mermaid flowchart. |
