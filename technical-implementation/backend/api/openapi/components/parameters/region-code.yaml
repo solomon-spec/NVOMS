@@ -1,7 +1,0 @@
-name: regionCode
-in: query
-required: false
-description: Filter patients by region code
-schema:
-  type: string
-  example: AA

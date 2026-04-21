@@ -1,7 +1,0 @@
-name: patientId
-in: query
-required: false
-description: Filter by patient identifier
-schema:
-  type: string
-  example: patient-123

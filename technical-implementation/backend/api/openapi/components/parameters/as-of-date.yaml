@@ -1,8 +1,0 @@
-name: asOfDate
-in: query
-required: false
-description: Date used as the reporting cutoff for analytics queries
-schema:
-  type: string
-  format: date
-  example: "2026-04-09"

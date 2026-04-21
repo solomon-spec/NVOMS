@@ -1,7 +1,0 @@
-name: reportId
-in: path
-required: true
-description: Generated report identifier
-schema:
-  type: string
-  example: report-001

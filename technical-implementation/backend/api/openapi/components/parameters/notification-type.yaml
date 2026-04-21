@@ -1,8 +1,0 @@
-name: notificationType
-in: query
-required: false
-description: Filter notifications by message type
-schema:
-  type: string
-  enum: [appointment-reminder, missed-dose-alert, outbreak-alert]
-  example: appointment-reminder

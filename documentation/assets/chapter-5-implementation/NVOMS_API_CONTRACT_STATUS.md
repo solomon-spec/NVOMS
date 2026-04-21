@@ -1,48 +1,71 @@
 # NVOMS API Contract Status
 
-This note summarizes the current state of the API contract work for Chapter Five.
+This note summarizes the current state of the API contract work for Chapter Five after synchronizing the repository with the finalized API documentation.
 
-## Source of Truth
+## Current Source of Truth
 
-The main authoring location is:
+The active contract file is:
 
 - `technical-implementation/backend/api/openapi/openapi.yaml`
 
-The OpenAPI contract is intentionally split into:
+This file reflects the resolved OpenAPI contract titled `NVOMS API`, version `1.1.0`, using OpenAPI `3.0.3`.
 
-- `paths/`
-- `components/parameters/`
-- `components/responses/`
-- `components/schemas/`
-- `components/security/`
+## Coverage Snapshot
 
-## Import-Friendly Output
+The finalized contract currently documents:
 
-For Postman and Swagger imports, the contract can be bundled into:
+- 18 tagged functional areas
+- 77 path entries
+- public, administrative, analytics, interoperability, and operational workflows in one resolved specification
 
-- `technical-implementation/backend/api/openapi/openapi.bundle.yaml`
+Documented API areas:
 
-## Current Detailed Modules
-
-The most detailed documentation work currently covers:
-
-- Auth
-- Registry
-- Immunization
-- Surveillance
+- Authentication
+- User Management
+- Roles & Permissions
+- Geography & Facilities
+- Caregivers
+- Patient Registry
+- Vaccine Reference Data
+- Immunization Workflow
+- Surveillance & Follow-Up
+- Outbreak Alerts
 - Notifications
-- Analytics
-- Prediction
-- Reporting and Interoperability
-- Offline Sync
+- Offline Synchronization
+- Analytics & Risk Map
+- Environmental Data
+- Prediction & ML
+- Reporting
+- Interoperability & FHIR
+- System & Audit
 
-These modules now include:
+Representative endpoints now include:
 
-- endpoint descriptions
-- realistic Ethiopia-context examples
-- reusable parameters and responses
-- standardized error structures
-- Postman and Swagger compatible bundled output
+- `POST /auth/login`
+- `GET /users`
+- `GET /roles`
+- `GET /admin-units`
+- `POST /caregivers`
+- `POST /patients`
+- `GET /vaccines`
+- `POST /patients/{uid}/immunizations`
+- `POST /surveillance`
+- `PATCH /outbreak-alerts/{outbreak_alert_id}`
+- `POST /notifications/trigger`
+- `POST /sync/batch`
+- `GET /analytics/risk-map`
+- `POST /integrations/weather/ingest`
+- `POST /prediction/run`
+- `POST /reports/generate`
+- `GET /fhir/Patient/{uid}/bundle`
+- `GET /system/settings`
+
+## Reference Matrix
+
+The baseline comparison between the wider project documentation and the original
+OpenAPI contract is captured in:
+
+- `documentation/assets/chapter-5-implementation/NVOMS_API_COVERAGE_MATRIX.md`
 
 ## Current Commands
 
@@ -50,15 +73,8 @@ Run the following from `technical-implementation/backend/api/`:
 
 ```bash
 npm run openapi:lint
-npm run openapi:bundle
 ```
 
-## Immediate Next Step
+## Note on Removed Draft Files
 
-The next contract milestone should be the internal backend and ML prediction contract. That contract should define:
-
-- prediction inputs
-- prediction outputs
-- model metadata
-- refresh and scoring mode
-- failure and stale-data handling rules
+The earlier split `paths/` and `components/` files, together with the bundled copy, have been removed from the repository. For current review and reporting, `openapi.yaml` should be treated as the authoritative API documentation.

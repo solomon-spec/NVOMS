@@ -1,7 +1,0 @@
-type: object
-required: [user, tokens]
-properties:
-  user:
-    $ref: ./session-user.yaml
-  tokens:
-    $ref: ./token-pair.yaml
