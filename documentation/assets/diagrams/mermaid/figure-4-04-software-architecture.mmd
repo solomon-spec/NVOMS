@@ -1,0 +1,53 @@
+flowchart TD
+
+%% Actors
+HP[Health professional]
+CG[Care givers]
+
+%% Presentation Layer
+subgraph Presentation Layer
+    WA[Web application]
+    SMS[SMS]
+end
+
+%% Application Layer
+subgraph Application Layer
+    US[User Service]
+    AS[Analytics Service]
+    VS[Vaccination Service]
+    NS[Notification Service]
+    PS[Prediction Service]
+end
+
+%% Data Layer
+subgraph Data Layer
+    DB[(PostgreSQL)]
+    FS[(File Storage)]
+end
+
+%% Integration Layer
+subgraph Integration Layer
+    DHIS2[DHIS2]
+    SG[SMS Gateway]
+end
+
+%% Connections
+HP --> WA
+CG --> SMS
+
+WA --> US
+SMS --> US
+
+US --> AS
+US --> VS
+US --> NS
+US --> PS
+
+AS --> DB
+VS --> DB
+NS --> DB
+PS --> FS
+PS --> DB
+
+DB --> DHIS2
+NS --> SG
