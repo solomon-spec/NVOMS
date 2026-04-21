@@ -29,7 +29,7 @@ The contract workflow now emphasizes:
 
 Supporting implementation note:
 
-- API contract status note: `documentation/assets/chapter-5-implementation/NVOMS_API_CONTRACT_STATUS.md`
+- API contract status note: `documentation/assets/chapter-5-implementation/api-contract-status.md`
 
 ## 5.3 Finalized Contract Modules
 
@@ -189,6 +189,5 @@ The current implementation status can be summarized as follows:
 - the repository now includes the finalized resolved OpenAPI contract as `technical-implementation/backend/api/openapi/openapi.yaml`
 - the documented API surface now spans 18 tagged areas and 77 path entries
 - the contract now covers authentication, administration, roles, geography, caregivers, patients, vaccine references, immunization, surveillance, outbreak alerts, notifications, offline synchronization, analytics, environmental data, prediction, reporting, interoperability, and system or audit workflows
-- the earlier baseline comparison remains available in `documentation/assets/chapter-5-implementation/NVOMS_API_COVERAGE_MATRIX.md`
 
 This updated documentation baseline gives the project a more complete and consistent implementation reference for the remaining development work.

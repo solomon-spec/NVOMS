@@ -300,4 +300,4 @@ FHIR exchange and DHIS2 sharing are not side notes in the report; they are expli
 
 ## Suggested Next Step
 
-The SQL design in `NVOMS_POSTGRESQL_SCHEMA.sql` is ready to use as the logical schema baseline for implementation, ERD drawing, or chapter-four database documentation.
+The SQL design in `postgresql-schema.sql` is ready to use as the logical schema baseline for implementation, ERD drawing, or chapter-four database documentation.
