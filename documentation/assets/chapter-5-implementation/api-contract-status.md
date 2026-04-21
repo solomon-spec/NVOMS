@@ -1,4 +1,4 @@
-# NVOMS API Contract Status
+# API Contract Status
 
 This note summarizes the current state of the API contract work for Chapter Five after synchronizing the repository with the finalized API documentation.
 
@@ -59,13 +59,6 @@ Representative endpoints now include:
 - `POST /reports/generate`
 - `GET /fhir/Patient/{uid}/bundle`
 - `GET /system/settings`
-
-## Reference Matrix
-
-The baseline comparison between the wider project documentation and the original
-OpenAPI contract is captured in:
-
-- `documentation/assets/chapter-5-implementation/NVOMS_API_COVERAGE_MATRIX.md`
 
 ## Current Commands
 

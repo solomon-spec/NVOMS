@@ -48,7 +48,7 @@ This folder is organized to match the AASTU senior research guideline and the cu
 - the rebuild manifest is in `REPORT_ASSEMBLY_MANIFEST.json`
 - the reconstructed combined markdown output is written to `build/FinalYearProjectReport.reconstructed.md`
 - the cleaner submission-oriented chapter drafts are written as `front-matter-draft.md`, `chapter-draft.md`, and `references-draft.md` files inside the corresponding chapter folders
-- the combined submission-oriented markdown is written to `build/NVOMS_Submission_Draft.md`
+- the combined submission-oriented markdown is written to `build/submission-draft.md`
 
 ## Recommended Workflow
 

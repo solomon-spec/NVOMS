@@ -3,7 +3,7 @@
 ## Compared Files
 
 - Source markdown: `/Users/tikursew/Documents/Final Year/paper/Final year Project Report 1-3.md`
-- Generated final draft: `/Users/tikursew/Documents/Final Year/documentation/build/NVOMS_Submission_Draft.md`
+- Generated final draft: `/Users/tikursew/Documents/Final Year/documentation/build/submission-draft.md`
 - Fidelity reference: `/Users/tikursew/Documents/Final Year/documentation/build/FinalYearProjectReport.reconstructed.md`
 
 ## High-Level Result
@@ -21,7 +21,7 @@ The difference is partly intentional and partly a documentation-quality issue:
 ### 1. Scope Difference
 
 - `Final year Project Report 1-3.md` is mainly a source-style export for Chapters 1 to 3 plus references/front matter.
-- `NVOMS_Submission_Draft.md` includes Chapters 1 to 4, including the enriched system design, subsystem decomposition, and database design sections.
+- `submission-draft.md` includes Chapters 1 to 4, including the enriched system design, subsystem decomposition, and database design sections.
 
 ### 2. Raw Export Noise in the Source File
 
@@ -81,7 +81,7 @@ Purpose:
 
 ### Layer 3. Submission Build
 
-Treat `/Users/tikursew/Documents/Final Year/documentation/build/NVOMS_Submission_Draft.md` as the compiled submission draft only.
+Treat `/Users/tikursew/Documents/Final Year/documentation/build/submission-draft.md` as the compiled submission draft only.
 
 Purpose:
 
@@ -112,5 +112,5 @@ The final draft is better than the raw `paper` markdown as a working submission 
 ## Recommended Master Files
 
 - Source truth for content recovery: `/Users/tikursew/Documents/Final Year/documentation/build/FinalYearProjectReport.reconstructed.md`
-- Best working submission draft: `/Users/tikursew/Documents/Final Year/documentation/build/NVOMS_Submission_Draft.md`
+- Best working submission draft: `/Users/tikursew/Documents/Final Year/documentation/build/submission-draft.md`
 - Raw archival source only: `/Users/tikursew/Documents/Final Year/paper/Final year Project Report 1-3.md`

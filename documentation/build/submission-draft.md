@@ -1599,10 +1599,10 @@ erDiagram
 
 ### Database Design Artifacts
 
-- Narrative database design: [NVOMS_DATABASE_DESIGN.md](../assets/chapter-4-design/NVOMS_DATABASE_DESIGN.md)
-- Implementation-ready PostgreSQL schema: [NVOMS_POSTGRESQL_SCHEMA.sql](../assets/chapter-4-design/NVOMS_POSTGRESQL_SCHEMA.sql)
-- Diagram-oriented DBML schema: [NVOMS_SCHEMA_DBML.dbml](../assets/chapter-4-design/NVOMS_SCHEMA_DBML.dbml)
-- Functional-requirements traceability: [NVOMS_REQUIREMENTS_VERIFICATION.md](../assets/chapter-4-design/NVOMS_REQUIREMENTS_VERIFICATION.md)
+- Narrative database design: [report-database-design.md](../assets/chapter-4-design/report-database-design.md)
+- Implementation-ready PostgreSQL schema: [postgresql-schema.sql](../assets/chapter-4-design/postgresql-schema.sql)
+- Diagram-oriented DBML schema: [schema.dbml](../assets/chapter-4-design/schema.dbml)
+- Functional-requirements traceability: [requirements-verification.md](../assets/chapter-4-design/requirements-verification.md)
 
 ## 4.4 Design Verification
 
