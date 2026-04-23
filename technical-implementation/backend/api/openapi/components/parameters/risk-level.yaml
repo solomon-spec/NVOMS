@@ -1,8 +1,0 @@
-name: riskLevel
-in: query
-required: false
-description: Filter by risk level
-schema:
-  type: string
-  enum: [low, medium, high, critical]
-  example: high

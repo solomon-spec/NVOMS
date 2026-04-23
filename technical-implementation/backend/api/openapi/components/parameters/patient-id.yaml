@@ -1,7 +1,0 @@
-name: patientId
-in: path
-required: true
-description: Unique patient identifier
-schema:
-  type: string
-  example: patient-123

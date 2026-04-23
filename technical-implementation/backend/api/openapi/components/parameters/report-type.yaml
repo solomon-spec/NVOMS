@@ -1,8 +1,0 @@
-name: reportType
-in: query
-required: false
-description: Filter reports by report type
-schema:
-  type: string
-  enum: [coverage-summary, zero-dose-list, defaulter-list, outbreak-risk-summary, surveillance-case-summary]
-  example: coverage-summary
