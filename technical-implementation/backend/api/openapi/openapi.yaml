@@ -1,0 +1,3044 @@
+openapi: 3.0.3
+info:
+  title: NVOMS API
+  description: |
+    **National Vaccination and Outbreak Monitoring System — Ethiopia**
+  version: 1.1.0
+servers:
+- url: https://known in the future /v1
+  description: Production
+security:
+- BearerAuth: []
+tags:
+- name: Authentication
+  description: "Login, session management, token refresh, password reset and change."
+- name: User Management
+  description: Create and manage system user accounts. Required role — ADMIN.
+- name: Roles & Permissions
+  description: Role and permission assignment management. Required role — ADMIN.
+- name: Geography & Facilities
+  description: Administrative hierarchy and health facility master data.
+- name: Caregivers
+  description: Primary contacts linked to one or more patients.
+- name: Patient Registry
+  description: "Patient registration, search, immunization status, and duplicate resolution."
+- name: Vaccine Reference Data
+  description: "Vaccine definitions, EPI schedule versions, dose rules, and vaccine batches."
+- name: Immunization Workflow
+  description: "Dose recording, schedule retrieval, status history, defaulter tracking, and schedule regeneration."
+- name: Surveillance & Follow-Up
+  description: "Disease surveillance reports, adverse events, and follow-up case management."
+- name: Outbreak Alerts
+  description: Outbreak alert review and status management.
+- name: Notifications
+  description: "SMS templates, automated dispatch, and delivery tracking."
+- name: Offline Synchronization
+  description: "Batch upload from offline PWA, conflict detection and resolution."
+- name: Analytics & Risk Map
+  description: "Coverage rates, trend analytics, outbreak risk scores, and defaulter clusters."
+- name: Environmental Data
+  description: Meteorological observation ingestion and manual entry.
+- name: Prediction & ML
+  description: ML model registry and prediction run lifecycle.
+- name: Reporting
+  description: Report templates and generated report file management.
+- name: Interoperability & FHIR
+  description: "DHIS2 sync, HL7 FHIR R4 exchange, and integration endpoint configuration."
+- name: System & Audit
+  description: "System settings, configuration management, and audit log access."
+paths:
+  /auth/login:
+    post:
+      tags:
+      - Authentication
+      summary: Authenticate and obtain a JWT access token
+      description: |
+        Backed by: `users`, `user_sessions`.
+        A successful login creates a row in `user_sessions`. The `jwt_id` claim maps to `user_sessions.jwt_id`.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          description: Login successful. `user_sessions` row created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials. `users.failed_login_attempts` incremented.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "423":
+          description: Account locked. `users.status = locked`; `locked_until` is set.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Account suspended or deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security: []
+  /auth/refresh:
+    post:
+      tags:
+      - Authentication
+      summary: Obtain a new access token using a valid refresh token
+      description: Backed by `user_sessions`.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/auth_refresh_body"
+        required: true
+      responses:
+        "200":
+          description: New `access_token` and `refresh_token` returned. Previous session row replaced.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200"
+        "401":
+          description: "Refresh token invalid, expired, or already revoked."
+      security: []
+  /auth/logout:
+    post:
+      tags:
+      - Authentication
+      summary: Revoke the current session
+      description: |
+        Backed by `user_sessions`.
+        Sets `user_sessions.revoked_at` on the record matching the current `jwt_id`.
+        Token is invalid immediately.
+      responses:
+        "200":
+          description: Session revoked. All subsequent requests with this token return 401.
+  /auth/password-reset/request:
+    post:
+      tags:
+      - Authentication
+      summary: Request a password reset token
+      description: |
+        Backed by `password_reset_tokens`.
+        Response is identical whether the email exists or not (prevents enumeration).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/passwordreset_request_body"
+        required: true
+      responses:
+        "200":
+          description: Token created and dispatched (response identical regardless of email existence).
+      security: []
+  /auth/password-reset/confirm:
+    post:
+      tags:
+      - Authentication
+      summary: Set a new password using a valid reset token
+      description: "Backed by `users`, `password_reset_tokens`, `user_sessions`."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/passwordreset_confirm_body"
+        required: true
+      responses:
+        "200":
+          description: Password updated. `password_reset_tokens.used_at` set. All `user_sessions` rows revoked.
+        "400":
+          description: Token expired or already used.
+        "404":
+          description: Token not found.
+      security: []
+  /auth/change-password:
+    post:
+      tags:
+      - Authentication
+      summary: Change password for the currently authenticated user
+      description: |
+        Backed by `users`, `user_sessions`.
+        Required role: Any authenticated user.
+        All other active `user_sessions` are revoked on success.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/auth_changepassword_body"
+        required: true
+      responses:
+        "200":
+          description: Password changed. All other active sessions revoked. `must_change_password` set to false.
+        "401":
+          description: Current password is incorrect.
+        "422":
+          description: New password fails complexity requirements.
+  /users:
+    get:
+      tags:
+      - User Management
+      summary: List user accounts with filters
+      parameters:
+      - name: role_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: facility_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/UserStatus"
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+      responses:
+        "200":
+          description: Paginated list of user records.
+    post:
+      tags:
+      - User Management
+      summary: Create a new user account
+      description: |
+        Backed by `users`. Required role: ADMIN.
+        New account is created with `status = inactive` and `must_change_password = true`.
+        A temporary password is sent via SMS.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/users_body"
+        required: true
+      responses:
+        "201":
+          description: User created with `status = inactive` and `must_change_password = true`.
+        "409":
+          description: Email already exists.
+        "422":
+          description: Validation failed.
+  /users/{user_id}:
+    get:
+      tags:
+      - User Management
+      summary: Retrieve a single user account
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Full user record.
+        "404":
+          description: User not found.
+    put:
+      tags:
+      - User Management
+      summary: Update a user account
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/users_user_id_body"
+        required: true
+      responses:
+        "200":
+          description: User updated. Change recorded in `audit_logs`.
+        "404":
+          description: User not found.
+  /users/{user_id}/unlock:
+    post:
+      tags:
+      - User Management
+      summary: Unlock a locked user account
+      description: |
+        Backed by `users`. Required role: ADMIN.
+        Resets `failed_login_attempts` to 0, clears `locked_until`, sets `status = active`.
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Account unlocked.
+        "404":
+          description: User not found.
+        "422":
+          description: Account is not in locked state.
+  /roles:
+    get:
+      tags:
+      - Roles & Permissions
+      summary: List all roles
+      responses:
+        "200":
+          description: "All roles with `role_id`, `role_code`, `role_name`, and `description`."
+  /roles/{role_id}/permissions:
+    get:
+      tags:
+      - Roles & Permissions
+      summary: List permissions assigned to a role
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: All permission records joined with `permissions`.
+        "404":
+          description: Role not found.
+    post:
+      tags:
+      - Roles & Permissions
+      summary: Assign a permission to a role
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/role_id_permissions_body"
+        required: true
+      responses:
+        "201":
+          description: Permission assigned.
+        "409":
+          description: Permission already assigned to this role.
+  /roles/{role_id}/permissions/{permission_id}:
+    delete:
+      tags:
+      - Roles & Permissions
+      summary: Remove a permission from a role
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Permission removed.
+        "404":
+          description: Assignment not found.
+  /admin-units:
+    get:
+      tags:
+      - Geography & Facilities
+      summary: List administrative units
+      description: |
+        Backed by `administrative_units`. Required role: Any authenticated user.
+        Level values are exact SQL values. UI may display different labels.
+      parameters:
+      - name: level
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/GeographyLevel"
+      - name: parent_unit_id
+        in: query
+        description: Return direct children of this unit.
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: is_active
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+      responses:
+        "200":
+          description: Paginated list of administrative units.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_1"
+  /admin-units/{unit_id}:
+    get:
+      tags:
+      - Geography & Facilities
+      summary: Retrieve a single administrative unit
+      parameters:
+      - name: unit_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Full unit record including `boundary_geojson`.
+        "404":
+          description: Unit not found.
+  /facilities:
+    get:
+      tags:
+      - Geography & Facilities
+      summary: List health facilities
+      parameters:
+      - name: unit_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: facility_type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - health_post
+          - health_center
+          - hospital
+      - name: is_active
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+      responses:
+        "200":
+          description: "Paginated list with `facility_id`, `facility_code`, `facility_name`, `facility_type`, `dhis2_org_unit_code`, `latitude`, and `longitude`."
+  /facilities/{facility_id}:
+    get:
+      tags:
+      - Geography & Facilities
+      summary: Retrieve a single health facility
+      description: Backed by `health_facilities`.
+      parameters:
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Full facility record.
+        "404":
+          description: Facility not found.
+  /caregivers:
+    post:
+      tags:
+      - Caregivers
+      summary: Register a caregiver independently
+      description: |
+        Backed by `caregivers`. Required role: HEALTH_WORKER.
+        Caregivers are also created automatically when registering a new patient via `POST /patients`.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/caregivers_body"
+        required: true
+      responses:
+        "201":
+          description: Caregiver created. Returns `caregiver_id`.
+        "409":
+          description: Phone number already registered.
+  /caregivers/{caregiver_id}:
+    get:
+      tags:
+      - Caregivers
+      summary: Retrieve a caregiver and their linked patients
+      parameters:
+      - name: caregiver_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: "Caregiver record with list of linked patient UIDs, names, and statuses."
+        "404":
+          description: Caregiver not found.
+    put:
+      tags:
+      - Caregivers
+      summary: Update caregiver contact details
+      parameters:
+      - name: caregiver_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/caregivers_caregiver_id_body"
+        required: true
+      responses:
+        "200":
+          description: Caregiver updated.
+        "404":
+          description: Caregiver not found.
+  /patients:
+    post:
+      tags:
+      - Patient Registry
+      summary: Register a new patient and link to a caregiver
+      description: |
+        Backed by `patients`, `caregivers`, `patient_vaccination_schedules`. Required role: HEALTH_WORKER.
+        A unique `uid` is generated at registration. Duplicate detection runs automatically.
+        The vaccination schedule is initialised in `patient_vaccination_schedules`.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientRegistrationRequest"
+        required: true
+      responses:
+        "201":
+          description: Patient registered. UID generated. Schedule initialised.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientRegistrationResponse"
+        "202":
+          description: Potential duplicate detected. Returns candidate matches for review.
+        "422":
+          description: Validation failed.
+  /patients/search:
+    get:
+      tags:
+      - Patient Registry
+      summary: Search patients
+      description: |
+        Backed by `patients`, `patient_immunization_status`, `caregivers`.
+        Required role: HEALTH_WORKER, PUBLIC_HEALTH_OFFICIAL.
+        At least one search parameter is required.
+        `vax_status` filters on `patient_immunization_status.current_status`.
+      parameters:
+      - name: name
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: phone
+        in: query
+        description: Caregiver phone number.
+        required: false
+        schema:
+          type: string
+      - name: unit_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - active
+          - inactive
+      - name: vax_status
+        in: query
+        description: Use `due_soon` (not `due`). Value `unknown` means status not yet evaluated.
+        required: false
+        schema:
+          $ref: "#/components/schemas/ImmunizationSummaryStatus"
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+      responses:
+        "200":
+          description: Paginated list of matching patients.
+        "400":
+          description: At least one search parameter required.
+  /patients/duplicates:
+    get:
+      tags:
+      - Patient Registry
+      summary: List unresolved duplicate patient cases
+      parameters:
+      - name: review_status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - pending
+          - confirmed_duplicate
+          - cleared
+          default: pending
+      - name: facility_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Paginated list of duplicate cases with candidate and matched patient details and `similarity_score`.
+  /patients/duplicates/{duplicate_case_id}:
+    put:
+      tags:
+      - Patient Registry
+      summary: Resolve a duplicate case
+      parameters:
+      - name: duplicate_case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/duplicates_duplicate_case_id_body"
+        required: true
+      responses:
+        "200":
+          description: Case resolved. `reviewed_by_user_id` and `reviewed_at` set.
+        "404":
+          description: Case not found.
+  /patients/{uid}:
+    get:
+      tags:
+      - Patient Registry
+      summary: Retrieve full patient record and vaccination history
+      description: |
+        Backed by `patients`, `patient_immunization_status` (MATERIALIZED VIEW), `immunization_events`.
+        Required role: HEALTH_WORKER, PUBLIC_HEALTH_OFFICIAL.
+        Note: The `uid` path parameter is the business identifier (e.g. `ETH-1001-A`), not the internal `patient_id`.
+      parameters:
+      - name: uid
+        in: path
+        description: "Patient business identifier (`patients.uid`), not `patient_id`."
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Full patient record. `immunization_status` is from `patient_immunization_status` (MATERIALIZED VIEW).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_2"
+        "404":
+          description: Patient not found.
+  /patients/{uid}/immunization-status:
+    get:
+      tags:
+      - Patient Registry
+      summary: Get summarised vaccination status for a patient
+      description: |
+        MATERIALIZED VIEW — backed by `patient_immunization_status`.
+        Required role: HEALTH_WORKER, PUBLIC_HEALTH_OFFICIAL.
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Current immunization summary from `patient_immunization_status`.
+        "404":
+          description: Patient not found.
+  /vaccines:
+    get:
+      tags:
+      - Vaccine Reference Data
+      summary: List all vaccine definitions
+      parameters:
+      - name: is_active
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: target_disease
+        in: query
+        required: false
+        schema:
+          type: string
+          example: Measles
+      responses:
+        "200":
+          description: "List of vaccine definitions with `vaccine_code`, `target_disease`, `dose_sequence`, `default_route`, and `default_site`."
+  /epi-schedules:
+    get:
+      tags:
+      - Vaccine Reference Data
+      summary: List EPI schedule versions
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - active
+          - draft
+          - archived
+      responses:
+        "200":
+          description: List of schedule versions with `effective_from` and `effective_to` dates.
+  /epi-schedules/{schedule_version_id}/rules:
+    get:
+      tags:
+      - Vaccine Reference Data
+      summary: List dose rules for a schedule version
+      parameters:
+      - name: schedule_version_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: All active rules for the specified schedule version.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_3"
+  /vaccine-batches:
+    get:
+      tags:
+      - Vaccine Reference Data
+      summary: List vaccine batches
+      parameters:
+      - name: vaccine_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: is_valid
+        in: query
+        description: Filter valid (non-expired) batches.
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: "List with `batch_number`, `manufacturer_name`, `expiry_date`, and `is_valid`."
+  /patients/{uid}/immunizations:
+    post:
+      tags:
+      - Immunization Workflow
+      summary: Record a vaccine dose administration
+      description: |
+        Backed by `immunization_events`, `patient_vaccination_schedules`, `schedule_status_events`.
+        Required role: HEALTH_WORKER.
+        Updates `patient_vaccination_schedules.status` to `administered`.
+        Creates a `schedule_status_events` entry.
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImmunizationEventRequest"
+        required: true
+      responses:
+        "201":
+          description: Dose recorded successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_201"
+        "400":
+          description: Batch expired or invalid (`vaccine_batches.is_valid = false`).
+        "404":
+          description: Patient or schedule slot not found.
+        "409":
+          description: This schedule slot is already in `administered` state.
+        "422":
+          description: Batch belongs to a different vaccine than the slot requires.
+  /patients/{uid}/schedule:
+    get:
+      tags:
+      - Immunization Workflow
+      summary: Get the full vaccination schedule for a patient
+      description: |
+        Backed by `patient_vaccination_schedules`, `immunization_events`.
+        Required role: HEALTH_WORKER, PUBLIC_HEALTH_OFFICIAL.
+        Status values are from the schedule-slot state machine (9 states).
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: All schedule slots from `patient_vaccination_schedules`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_4"
+        "404":
+          description: Patient not found.
+  /patients/{uid}/schedule/{patient_schedule_id}/history:
+    get:
+      tags:
+      - Immunization Workflow
+      summary: Get status change history for a schedule slot
+      description: |
+        Backed by `schedule_status_events`. Required role: HEALTH_WORKER, ADMIN.
+        Provides full audit trail of slot status transitions.
+        All `from_status` and `to_status` values are from the schedule-slot state machine.
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: patient_schedule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Chronological list of status transitions.
+  /patients/{uid}/schedule/regenerate:
+    post:
+      tags:
+      - Immunization Workflow
+      summary: Regenerate a patient's vaccination schedule
+      description: |
+        Backed by `patient_vaccination_schedules`, `epi_schedule_rules`.
+        Required role: HEALTH_WORKER, ADMIN.
+        Use when schedule needs recomputing after: EPI rule version change, corrected DOB,
+        medical exception review, or data repair. All non-administered slots are recalculated.
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/schedule_regenerate_body"
+        required: true
+      responses:
+        "200":
+          description: Schedule regenerated. Returns count of updated and new slots.
+        "404":
+          description: Patient not found.
+        "422":
+          description: Patient has no `date_of_birth` recorded.
+  /immunizations/defaulters:
+    get:
+      tags:
+      - Immunization Workflow
+      summary: List patients flagged as defaulters
+      description: |
+        Backed by `patient_vaccination_schedules`, `patient_immunization_status`, `patients`, `caregivers`.
+        Required role: HEALTH_WORKER, PUBLIC_HEALTH_OFFICIAL.
+        Returns patients where at least one `patient_vaccination_schedules` row has `status = defaulter`.
+        Caregiver phone is included for outreach.
+      parameters:
+      - name: unit_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: facility_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: days_overdue
+        in: query
+        description: Minimum days overdue. Defaults to `epi_schedule_rules.defaulter_threshold_days` per vaccine.
+        required: false
+        schema:
+          type: integer
+      - name: vaccine_code
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+      responses:
+        "200":
+          description: Paginated list of defaulter patients with caregiver phone and days overdue per slot.
+  /patients/{uid}/surveillance:
+    post:
+      tags:
+      - Surveillance & Follow-Up
+      summary: Submit a surveillance observation for a patient
+      description: |
+        Backed by `surveillance_reports`, `surveillance_symptoms`. Required role: HEALTH_WORKER.
+        FHIR Observation ID stored in `fhir_observation_id`.
+        District alert dispatched if condition is notifiable.
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SurveillanceReportRequest"
+        required: true
+      responses:
+        "201":
+          description: Report saved. Symptoms saved. FHIR Observation ID stored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_201_1"
+        "404":
+          description: Patient not found.
+        "422":
+          description: Missing required fields.
+  /surveillance:
+    get:
+      tags:
+      - Surveillance & Follow-Up
+      summary: List surveillance reports
+      parameters:
+      - name: condition_type
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: unit_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: facility_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: severity
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/SurveillanceSeverity"
+      - name: from_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/SurveillanceStatus"
+      responses:
+        "200":
+          description: Paginated list of surveillance reports with symptoms.
+  /surveillance/{surveillance_report_id}:
+    get:
+      tags:
+      - Surveillance & Follow-Up
+      summary: Retrieve a single surveillance report
+      parameters:
+      - name: surveillance_report_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Full report with all symptom rows.
+        "404":
+          description: Report not found.
+  /surveillance/follow-up-cases:
+    get:
+      tags:
+      - Surveillance & Follow-Up
+      summary: List open follow-up cases
+      description: |
+        DERIVED VIEW — composed from `surveillance_reports` where `follow_up_required = true`.
+        No dedicated `follow_up_cases` table; this is a workflow view derived from surveillance reports,
+        schedule states, and patient status summaries.
+        Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
+      parameters:
+      - name: unit_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - queued
+          - under_follow_up
+      - name: from_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: "Paginated follow-up cases with patient summary, caregiver phone, and surveillance report details."
+  /surveillance/follow-up-cases/{case_id}:
+    get:
+      tags:
+      - Surveillance & Follow-Up
+      summary: Get a single follow-up case
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Full follow-up case with linked surveillance report and patient immunization summary.
+    patch:
+      tags:
+      - Surveillance & Follow-Up
+      summary: Update follow-up case status
+      description: |
+        DERIVED VIEW — writes to `surveillance_reports`. Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/followupcases_case_id_body"
+        required: true
+      responses:
+        "200":
+          description: Follow-up status updated on the underlying `surveillance_reports` row.
+  /outbreak-alerts:
+    get:
+      tags:
+      - Outbreak Alerts
+      summary: List all outbreak alerts
+      description: |
+        Backed by `outbreak_alerts`. Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
+        Alerts are generated automatically by the prediction engine or escalated from surveillance reports.
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/OutbreakAlertStatus"
+      - name: disease_code
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - Measles
+          - Cholera
+          - Polio
+      - name: unit_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: alert_source
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - prediction
+          - surveillance
+      responses:
+        "200":
+          description: List of outbreak alerts from `outbreak_alerts`.
+  /outbreak-alerts/{outbreak_alert_id}:
+    put:
+      tags:
+      - Outbreak Alerts
+      summary: Update an outbreak alert status
+      description: |
+        Backed by `outbreak_alerts`. Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
+        Reviewer workflow: `potential` → `under_review` → `confirmed` or `dismissed` or `false_alarm`.
+      parameters:
+      - name: outbreak_alert_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/outbreakalerts_outbreak_alert_id_body"
+        required: true
+      responses:
+        "200":
+          description: Alert updated. `verified_by_user_id` and `verified_at` set.
+        "404":
+          description: Alert not found.
+        "422":
+          description: Status transition not allowed.
+  /message-templates:
+    get:
+      tags:
+      - Notifications
+      summary: List SMS message templates
+      parameters:
+      - name: channel
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - sms
+      - name: message_type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - reminder
+          - missed_appointment
+          - outbreak_alert
+      - name: language_code
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/LanguageCode"
+      - name: is_active
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+      responses:
+        "200":
+          description: "List of templates with `template_code`, `language_code`, and `template_body`."
+  /message-templates/{template_id}:
+    put:
+      tags:
+      - Notifications
+      summary: Update a message template
+      parameters:
+      - name: template_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/messagetemplates_template_id_body"
+        required: true
+      responses:
+        "200":
+          description: Template updated.
+        "404":
+          description: Template not found.
+  /notifications/trigger:
+    post:
+      tags:
+      - Notifications
+      summary: Manually trigger the daily SMS notification batch job
+      description: |
+        Backed by `sms_notifications`, `patient_vaccination_schedules`. Required role: ADMIN.
+        Runs automatically at 08:00 AM daily via Celery Beat. This endpoint triggers on demand.
+      responses:
+        "200":
+          description: Batch queued. Records written to `sms_notifications` with `status = queued`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_5"
+        "500":
+          description: Celery task failed.
+  /notifications:
+    get:
+      tags:
+      - Notifications
+      summary: List SMS notification records
+      parameters:
+      - name: patient_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: caregiver_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: notification_type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - reminder
+          - missed_appointment
+          - outbreak_alert
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/SmsNotificationStatus"
+      - name: from_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: Paginated list from `sms_notifications` with full status vocabulary.
+  /notifications/{sms_notification_id}/attempts:
+    get:
+      tags:
+      - Notifications
+      summary: List delivery attempt logs for a notification
+      description: |
+        Backed by `notification_attempts`. Required role: ADMIN.
+        Attempt status values: `sent`, `delivered`, `failed`, `retrying`.
+      parameters:
+      - name: sms_notification_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: All `notification_attempts` rows for this notification.
+        "404":
+          description: Notification not found.
+  /devices:
+    get:
+      tags:
+      - Offline Synchronization
+      summary: List registered devices for the current user
+      responses:
+        "200":
+          description: List of devices with `last_seen_at` and `status`.
+    post:
+      tags:
+      - Offline Synchronization
+      summary: Register a device for offline sync tracking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/devices_body"
+        required: true
+      responses:
+        "201":
+          description: Device registered. Returns `device_id` for use in sync submissions.
+  /sync/batch:
+    post:
+      tags:
+      - Offline Synchronization
+      summary: Upload a batch of offline-stored records
+      description: |
+        Backed by `sync_batches`, `sync_batch_items`. Required role: HEALTH_WORKER.
+        Batch status: `submitted`, `processed`, `conflict`, `rejected`.
+        Item status: `pending`, `applied`, `conflict`, `rejected`.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncBatchRequest"
+        required: true
+      responses:
+        "200":
+          description: Batch processed. `sync_batches` and `sync_batch_items` rows created.
+        "400":
+          description: Malformed batch payload.
+        "401":
+          description: Unauthorized.
+  /sync/batches:
+    get:
+      tags:
+      - Offline Synchronization
+      summary: List sync batch history
+      parameters:
+      - name: device_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/SyncBatchStatus"
+      responses:
+        "200":
+          description: Paginated list from `sync_batches` with `record_count` and `conflict_count`.
+  /sync/batches/{sync_batch_id}/items:
+    get:
+      tags:
+      - Offline Synchronization
+      summary: List item outcomes for a sync batch
+      parameters:
+      - name: sync_batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: item_status
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/SyncItemStatus"
+      responses:
+        "200":
+          description: All `sync_batch_items` with `item_status` and `conflict_reason` for conflicted items.
+  /sync/batches/{sync_batch_id}/items/{sync_batch_item_id}/resolve:
+    put:
+      tags:
+      - Offline Synchronization
+      summary: Resolve a sync conflict item
+      description: |
+        Backed by `sync_batch_items`, `sync_batches`. Required role: HEALTH_WORKER, ADMIN.
+        When all conflicts in a batch are resolved, `sync_batches.status` is updated to `processed`.
+      parameters:
+      - name: sync_batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: sync_batch_item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/sync_batch_item_id_resolve_body"
+        required: true
+      responses:
+        "200":
+          description: Conflict resolved. `item_status` updated to `applied` or `rejected`.
+        "404":
+          description: Batch or item not found.
+        "422":
+          description: Item is not in conflict state.
+  /analytics/coverage:
+    get:
+      tags:
+      - Analytics & Risk Map
+      summary: Get vaccination coverage rates by geographic level
+      description: |
+        DERIVED VIEW — composed from `patient_immunization_status`, `patients`, `administrative_units`.
+        Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
+        Level parameter uses exact SQL geography level values.
+      parameters:
+      - name: level
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/GeographyLevel"
+      - name: unit_id
+        in: query
+        description: Required when level is `woreda` or `zone`.
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: vaccine_code
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: from_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: Coverage statistics aggregated per unit.
+  /analytics/dashboard-trends:
+    get:
+      tags:
+      - Analytics & Risk Map
+      summary: Get time-series trend data for the main dashboard
+      description: |
+        DERIVED VIEW — composed from `patient_immunization_status`, `immunization_events`, `surveillance_reports`.
+        Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
+      parameters:
+      - name: unit_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: from_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: granularity
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - weekly
+          - monthly
+          default: weekly
+      responses:
+        "200":
+          description: Time-series trend data aggregated by the requested granularity.
+  /analytics/risk-map:
+    get:
+      tags:
+      - Analytics & Risk Map
+      summary: Get outbreak risk scores for all districts
+      description: |
+        COMPOSED MODEL — primary: `prediction_scores`; supporting: `administrative_units`, `environmental_observations`.
+        Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
+        `risk_level` SQL values: `low`, `medium`, `high`, `unknown`.
+        `silent_district_flag = true` means no recent surveillance data, NOT confirmed disease-free.
+        `boundary_geojson` comes from `administrative_units.boundary_geojson`.
+      parameters:
+      - name: disease_code
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - Measles
+          - Cholera
+          - Polio
+      - name: unit_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: prediction_run_id
+        in: query
+        description: Use a specific run. Defaults to latest.
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Risk scores from `prediction_scores`.
+  /analytics/defaulter-clusters:
+    get:
+      tags:
+      - Analytics & Risk Map
+      summary: Get spatial defaulter hotspot clusters
+      description: |
+        PERSISTED TABLE — backed by `defaulter_clusters`.
+        Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
+      responses:
+        "200":
+          description: "Cluster records with `algorithm_name`, `defaulter_rate`, and `affected_patient_count`."
+  /analytics/environmental:
+    get:
+      tags:
+      - Analytics & Risk Map
+      summary: Get latest meteorological observations
+      description: |
+        PERSISTED TABLE — backed by `environmental_observations`.
+        Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
+      parameters:
+      - name: unit_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: from_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: Time-series weather readings from `environmental_observations` per woreda.
+    post:
+      tags:
+      - Environmental Data
+      summary: Create a manual environmental observation
+      description: |
+        Backed by `environmental_observations`. Required role: ADMIN.
+        Use when automated ingestion fails and a manual reading needs to be entered.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/analytics_environmental_body"
+        required: true
+      responses:
+        "201":
+          description: Observation stored in `environmental_observations`.
+        "422":
+          description: Missing `unit_id` or `observed_at`.
+  /integrations/weather/ingest:
+    post:
+      tags:
+      - Environmental Data
+      summary: Trigger a weather data ingestion job
+      description: |
+        Backed by `integration_jobs`, `environmental_observations`. Required role: ADMIN.
+        Runs automatically every 6 hours via Celery Beat. This endpoint triggers on demand.
+        Creates an `integration_jobs` row with `job_type = weather_ingest`.
+        On failure, last known values are used for the prediction cycle.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/weather_ingest_body"
+      responses:
+        "200":
+          description: Ingestion completed. `environmental_observations` rows created or updated.
+        "503":
+          description: External weather API unreachable. Last known values used for prediction cycle.
+  /models:
+    get:
+      tags:
+      - Prediction & ML
+      summary: List all registered ML models
+      responses:
+        "200":
+          description: "All models with `model_name`, `model_version`, `disease_code`, `status`, and `trained_at`."
+  /prediction/run:
+    post:
+      tags:
+      - Prediction & ML
+      summary: Trigger a prediction model run
+      description: |
+        Backed by `prediction_runs`, `prediction_scores`. Required role: ADMIN, PUBLIC_HEALTH_OFFICIAL.
+        Creates a `prediction_runs` row with `run_type = on_demand`.
+        Note: The API returns `api_status = queued` as a contract-only indicator before the DB row transitions to `running`.
+        This `queued` value is **not** persisted in the database.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/prediction_run_body"
+      responses:
+        "202":
+          description: Run started. `prediction_runs` row created with `status = running`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_202"
+        "500":
+          description: Model service unavailable.
+  /prediction/runs:
+    get:
+      tags:
+      - Prediction & ML
+      summary: List prediction run history
+      parameters:
+      - name: model_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/PredictionRunStatus"
+      - name: run_type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - scheduled
+          - on_demand
+      responses:
+        "200":
+          description: "Paginated list from `prediction_runs` with `started_at`, `completed_at`, and `error_message` if failed."
+  /prediction/runs/{prediction_run_id}:
+    get:
+      tags:
+      - Prediction & ML
+      summary: Get details and scores for a prediction run
+      parameters:
+      - name: prediction_run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: '`prediction_runs` record plus all `prediction_scores` for this run.'
+        "404":
+          description: Run not found.
+  /report-definitions:
+    get:
+      tags:
+      - Reporting
+      summary: List available report templates
+      responses:
+        "200":
+          description: "All report templates with `report_code`, `report_name`, `report_scope`, and `description`."
+  /reports/generate:
+    post:
+      tags:
+      - Reporting
+      summary: Generate a report
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/reports_generate_body"
+        required: true
+      responses:
+        "200":
+          description: Report queued. `generated_reports` row created with `generation_status = processing`.
+        "202":
+          description: Large report queued. Download available after generation.
+        "400":
+          description: Invalid definition or parameters.
+  /reports:
+    get:
+      tags:
+      - Reporting
+      summary: List generated reports
+      responses:
+        "200":
+          description: Paginated list with `generation_status` and download URL.
+  /reports/download/{generated_report_id}:
+    get:
+      tags:
+      - Reporting
+      summary: Download a generated report
+      parameters:
+      - name: generated_report_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: File returned from `generated_reports.file_uri` as PDF or CSV.
+        "202":
+          description: Still processing. Retry shortly.
+        "404":
+          description: Report not found or expired.
+  /integrations/endpoints:
+    get:
+      tags:
+      - Interoperability & FHIR
+      summary: List configured integration endpoints
+      responses:
+        "200":
+          description: "List with `endpoint_type`, `endpoint_name`, `base_url`, `auth_type`, and `is_active`."
+  /integrations/endpoints/{endpoint_id}:
+    put:
+      tags:
+      - Interoperability & FHIR
+      summary: Update an integration endpoint configuration
+      parameters:
+      - name: endpoint_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/endpoints_endpoint_id_body"
+      responses:
+        "200":
+          description: Endpoint updated.
+        "404":
+          description: Endpoint not found.
+  /integrations/dhis2/sync:
+    post:
+      tags:
+      - Interoperability & FHIR
+      summary: Trigger a DHIS2 sync job
+      description: |
+        Backed by `integration_jobs`, `dhis2_sync_batches`, `dhis2_sync_items`. Required role: ADMIN.
+        Runs automatically weekly via Celery Beat.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/dhis2_sync_body"
+      responses:
+        "200":
+          description: Sync complete. `dhis2_sync_batches` and `dhis2_sync_items` created.
+        "503":
+          description: DHIS2 unreachable.
+  /integrations/dhis2/sync/batches:
+    get:
+      tags:
+      - Interoperability & FHIR
+      summary: List DHIS2 sync batch history
+      responses:
+        "200":
+          description: "Paginated list with `records_attempted`, `records_imported`, `records_failed`."
+  /integrations/dhis2/sync/batches/{dhis2_sync_batch_id}/items:
+    get:
+      tags:
+      - Interoperability & FHIR
+      summary: List item outcomes for a DHIS2 sync batch
+      parameters:
+      - name: dhis2_sync_batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: sync_status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - success
+          - failed
+          - skipped
+      responses:
+        "200":
+          description: All `dhis2_sync_items` with `sync_status` and `error_message`.
+  /fhir/Patient/{uid}:
+    get:
+      tags:
+      - Interoperability & FHIR
+      summary: Retrieve a patient as a FHIR R4 Patient resource
+      description: |
+        Backed by `patients`. FHIR direction: `export`. Required role: Authorised external system or ADMIN.
+        Transaction logged in `fhir_exchange_logs` with `exchange_status = success`.
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: FHIR R4 Patient resource.
+          content:
+            application/fhir+json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_6"
+        "404":
+          description: Patient not found.
+  /fhir/Immunization:
+    get:
+      tags:
+      - Interoperability & FHIR
+      summary: Retrieve immunization records as a FHIR Bundle
+      parameters:
+      - name: patient
+        in: query
+        description: Patient UID.
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: FHIR Bundle of Immunization resources.
+        "404":
+          description: No records found.
+  /fhir/Observation:
+    get:
+      tags:
+      - Interoperability & FHIR
+      summary: Retrieve surveillance reports as a FHIR Bundle
+      parameters:
+      - name: patient
+        in: query
+        description: Patient UID. Maps to `surveillance_reports.fhir_observation_id`.
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: FHIR Bundle of Observation resources.
+        "404":
+          description: No observations found.
+  /fhir/Patient/{uid}/bundle:
+    get:
+      tags:
+      - Interoperability & FHIR
+      summary: Retrieve all FHIR resources for a patient in a single bundle
+      description: |
+        Backed by `patients`, `immunization_events`, `surveillance_reports`.
+        Required role: Authorised external system or ADMIN.
+        Returns a FHIR Bundle containing Patient + all associated Immunization and Observation resources.
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Complete FHIR Bundle for the patient (Patient + Immunization + Observation entries).
+        "404":
+          description: Patient not found.
+  /integrations/fhir/logs:
+    get:
+      tags:
+      - Interoperability & FHIR
+      summary: List FHIR exchange transaction logs
+      description: |
+        Backed by `fhir_exchange_logs`. Required role: ADMIN.
+        `direction` values: `export` (sent from NVOMS) or `import` (received from external).
+        `exchange_status` values: `success`, `mapping_error`, `transmission_error`.
+      parameters:
+      - name: direction
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/FhirExchangeDirection"
+      - name: resource_type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - Patient
+          - Immunization
+          - Observation
+      - name: exchange_status
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/FhirExchangeStatus"
+      - name: from_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: Paginated FHIR exchange log entries.
+  /system/settings:
+    get:
+      tags:
+      - System & Audit
+      summary: Retrieve system configuration settings
+      description: |
+        Backed by `system_settings`. Required role: ADMIN.
+        `setting_scope` values: `global`, `facility`, `integration`.
+        Values with `is_encrypted = true` are redacted in the response.
+      parameters:
+      - name: setting_scope
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/SettingScope"
+      - name: facility_id
+        in: query
+        description: Required when `setting_scope = facility`.
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: List of settings. Encrypted values are redacted.
+  /system/settings/{setting_key}:
+    put:
+      tags:
+      - System & Audit
+      summary: Update a system configuration value
+      parameters:
+      - name: setting_key
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/settings_setting_key_body"
+        required: true
+      responses:
+        "200":
+          description: Setting updated. `updated_by_user_id` and `updated_at` set.
+        "404":
+          description: Setting key not found.
+        "422":
+          description: Validation failed (e.g. SMS gateway test ping failed for integration scope settings).
+  /audit-logs:
+    get:
+      tags:
+      - System & Audit
+      summary: Query the system audit log
+      description: |
+        Backed by `audit_logs`. Required role: ADMIN.
+        All write operations across the system create entries here with `before_state` and `after_state`.
+      parameters:
+      - name: actor_user_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: subsystem
+        in: query
+        required: false
+        schema:
+          type: string
+          example: immunization
+      - name: action_code
+        in: query
+        required: false
+        schema:
+          type: string
+          example: dose_recorded
+      - name: entity_type
+        in: query
+        required: false
+        schema:
+          type: string
+          example: immunization_event
+      - name: entity_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: from_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: Paginated audit log entries from `audit_logs`.
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorResponse_error"
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        page_size:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 340
+        total_pages:
+          type: integer
+          example: 17
+    UserStatus:
+      type: string
+      description: |
+        - `inactive`: Account created; first login pending
+        - `active`: Normal operating state
+        - `locked`: Failed login threshold exceeded; locked_until is set
+        - `suspended`: Administratively suspended
+        - `deleted`: Soft-deleted; login permanently refused
+      enum:
+      - inactive
+      - active
+      - locked
+      - suspended
+      - deleted
+    LanguageCode:
+      type: string
+      description: ISO 639-1 two-letter language code
+      enum:
+      - am
+      - om
+      - so
+      - en
+    GeographyLevel:
+      type: string
+      description: |
+        Exact SQL values stored in `administrative_units.level`:
+        - `country`: National level (Ethiopia) — UI label: National
+        - `region`: Regional state (e.g. Oromia) — UI label: Regional
+        - `zone`: Zonal administration — UI label: Zonal
+        - `woreda`: District-level unit
+        - `kebele`: Sub-district, community level (leaf node)
+      enum:
+      - country
+      - region
+      - zone
+      - woreda
+      - kebele
+    ScheduleSlotStatus:
+      type: string
+      description: |
+        Status values for `patient_vaccination_schedules.status`:
+        - `scheduled`: Slot created; dose date is in the future
+        - `pending`: Within window but not yet due today
+        - `due_soon`: Within grace_period_days of the due date
+        - `due_today`: Due date is today
+        - `overdue`: Past due date; within defaulter_threshold_days
+        - `defaulter`: Exceeded defaulter_threshold_days without administration
+        - `administered`: Dose has been given (terminal success)
+        - `exempt`: Medical exception applied (terminal)
+        - `cancelled`: Administratively cancelled (terminal)
+      enum:
+      - scheduled
+      - pending
+      - due_soon
+      - due_today
+      - overdue
+      - defaulter
+      - administered
+      - exempt
+      - cancelled
+    ImmunizationSummaryStatus:
+      type: string
+      description: |
+        Summary status values for `patient_immunization_status.current_status` (MATERIALIZED VIEW):
+        - `up_to_date`: All due doses administered on time
+        - `due_soon`: At least one dose due within grace period
+        - `overdue`: At least one dose is past due but within defaulter threshold
+        - `defaulter`: At least one dose exceeded defaulter_threshold_days
+        - `zero_dose`: No doses have ever been administered
+        - `unknown`: Not yet evaluated (newly registered patients)
+      enum:
+      - up_to_date
+      - due_soon
+      - overdue
+      - defaulter
+      - zero_dose
+      - unknown
+    SurveillanceStatus:
+      type: string
+      enum:
+      - submitted
+      - queued
+      - under_follow_up
+      - closed
+    SurveillanceSeverity:
+      type: string
+      enum:
+      - low
+      - moderate
+      - high
+      - critical
+    OutbreakAlertStatus:
+      type: string
+      enum:
+      - potential
+      - under_review
+      - confirmed
+      - dismissed
+      - false_alarm
+    SmsNotificationStatus:
+      type: string
+      enum:
+      - queued
+      - sent
+      - delivered
+      - pending_retry
+      - failed
+      - cancelled
+    SyncBatchStatus:
+      type: string
+      enum:
+      - submitted
+      - processed
+      - conflict
+      - rejected
+    SyncItemStatus:
+      type: string
+      enum:
+      - pending
+      - applied
+      - conflict
+      - rejected
+    FhirExchangeDirection:
+      type: string
+      enum:
+      - export
+      - import
+    FhirExchangeStatus:
+      type: string
+      enum:
+      - success
+      - mapping_error
+      - transmission_error
+    PredictionRunStatus:
+      type: string
+      enum:
+      - running
+      - completed
+      - failed
+    RiskLevel:
+      type: string
+      enum:
+      - low
+      - medium
+      - high
+      - unknown
+    SettingScope:
+      type: string
+      enum:
+      - global
+      - facility
+      - integration
+    LoginRequest:
+      required:
+      - email
+      - password
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          example: 86400
+        user:
+          $ref: "#/components/schemas/LoginResponse_user"
+    PatientRegistrationRequest:
+      required:
+      - date_of_birth
+      - first_name
+      - last_name
+      - registered_facility_id
+      - residence_unit_id
+      - sex
+      type: object
+      properties:
+        first_name:
+          type: string
+        middle_name:
+          type: string
+        last_name:
+          type: string
+        sex:
+          type: string
+          enum:
+          - M
+          - F
+        date_of_birth:
+          type: string
+          format: date
+        residence_unit_id:
+          type: string
+          description: Woreda or kebele of residence
+          format: uuid
+        registered_facility_id:
+          type: string
+          format: uuid
+        medical_exception_flag:
+          type: boolean
+        primary_caregiver_id:
+          type: string
+          description: Link to existing caregiver. Omit if providing caregiver fields.
+          format: uuid
+        caregiver:
+          $ref: "#/components/schemas/PatientRegistrationRequest_caregiver"
+    PatientRegistrationResponse:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          format: uuid
+        uid:
+          type: string
+          example: ETH-1001-A
+        qr_code_value:
+          type: string
+        status:
+          type: string
+        duplicate_review_status:
+          type: string
+        caregiver_id:
+          type: string
+          format: uuid
+        vaccination_schedule_initialized:
+          type: boolean
+        schedule_rule_count:
+          type: integer
+    ImmunizationEventRequest:
+      required:
+      - administered_at
+      - facility_id
+      - patient_schedule_id
+      - vaccine_batch_id
+      - vaccine_id
+      type: object
+      properties:
+        vaccine_id:
+          type: string
+          format: uuid
+        patient_schedule_id:
+          type: string
+          format: uuid
+        vaccine_batch_id:
+          type: string
+          format: uuid
+        administered_at:
+          type: string
+          format: date-time
+        facility_id:
+          type: string
+          format: uuid
+        administration_route:
+          type: string
+          enum:
+          - IM
+          - SC
+          - Oral
+          - ID
+        administration_site:
+          type: string
+        source_channel:
+          type: string
+          enum:
+          - web
+          - offline
+        local_client_record_id:
+          type: string
+        notes:
+          type: string
+    SurveillanceReportRequest:
+      required:
+      - condition_type
+      - facility_id
+      - onset_date
+      - surveillance_category
+      - symptoms
+      type: object
+      properties:
+        facility_id:
+          type: string
+          format: uuid
+        surveillance_category:
+          type: string
+          enum:
+          - IDSR
+          - AEFI
+        condition_type:
+          type: string
+          example: AFP
+        disease_suspected:
+          type: string
+        onset_date:
+          type: string
+          format: date
+        body_temperature_c:
+          type: number
+        severity:
+          $ref: "#/components/schemas/SurveillanceSeverity"
+        follow_up_required:
+          type: boolean
+          default: false
+        symptoms:
+          type: array
+          items:
+            $ref: "#/components/schemas/SurveillanceReportRequest_symptoms"
+        notes:
+          type: string
+    SyncBatchRequest:
+      required:
+      - device_id
+      - records
+      type: object
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncBatchRequest_records"
+    auth_refresh_body:
+      required:
+      - refresh_token
+      type: object
+      properties:
+        refresh_token:
+          type: string
+    inline_response_200:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+    passwordreset_request_body:
+      required:
+      - email
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        delivery_channel:
+          type: string
+          enum:
+          - email
+          - sms
+          default: email
+    passwordreset_confirm_body:
+      required:
+      - new_password
+      - token
+      type: object
+      properties:
+        token:
+          type: string
+        new_password:
+          type: string
+    auth_changepassword_body:
+      required:
+      - current_password
+      - new_password
+      type: object
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+    users_body:
+      required:
+      - email
+      - full_name
+      - phone_number
+      - role_id
+      type: object
+      properties:
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+        role_id:
+          type: string
+          format: uuid
+        assigned_facility_id:
+          type: string
+          format: uuid
+        assigned_unit_id:
+          type: string
+          format: uuid
+        preferred_language:
+          $ref: "#/components/schemas/LanguageCode"
+    users_user_id_body:
+      type: object
+      properties:
+        role_id:
+          type: string
+          format: uuid
+        assigned_facility_id:
+          type: string
+          format: uuid
+        assigned_unit_id:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/UserStatus"
+        preferred_language:
+          $ref: "#/components/schemas/LanguageCode"
+    role_id_permissions_body:
+      required:
+      - permission_id
+      type: object
+      properties:
+        permission_id:
+          type: string
+          format: uuid
+    inline_response_200_1:
+      type: object
+      properties:
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/inline_response_200_1_units"
+    caregivers_body:
+      required:
+      - full_name
+      - phone_number
+      - relationship_to_patient
+      type: object
+      properties:
+        full_name:
+          type: string
+        phone_number:
+          type: string
+        alternate_phone_number:
+          type: string
+        relationship_to_patient:
+          type: string
+          enum:
+          - Mother
+          - Father
+          - Guardian
+          - Other
+        preferred_language:
+          $ref: "#/components/schemas/LanguageCode"
+        residence_unit_id:
+          type: string
+          format: uuid
+        address_line:
+          type: string
+    caregivers_caregiver_id_body:
+      type: object
+      properties:
+        phone_number:
+          type: string
+        alternate_phone_number:
+          type: string
+        preferred_language:
+          $ref: "#/components/schemas/LanguageCode"
+        address_line:
+          type: string
+    duplicates_duplicate_case_id_body:
+      required:
+      - review_status
+      type: object
+      properties:
+        review_status:
+          type: string
+          description: '`confirmed_duplicate` merges records; `cleared` keeps both as distinct patients.'
+          enum:
+          - confirmed_duplicate
+          - cleared
+        notes:
+          type: string
+    inline_response_200_2:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          format: uuid
+        uid:
+          type: string
+          example: ETH-1001-A
+        full_name:
+          type: string
+        sex:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+        status:
+          type: string
+        duplicate_review_status:
+          type: string
+        caregiver:
+          type: object
+        immunization_status:
+          $ref: "#/components/schemas/inline_response_200_2_immunization_status"
+    inline_response_200_3:
+      type: object
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/inline_response_200_3_rules"
+    inline_response_201:
+      type: object
+      properties:
+        immunization_event_id:
+          type: string
+          format: uuid
+        event_status:
+          type: string
+        vaccine_code:
+          type: string
+        administered_at:
+          type: string
+          format: date-time
+        source_channel:
+          type: string
+        next_scheduled:
+          $ref: "#/components/schemas/inline_response_201_next_scheduled"
+    inline_response_200_4:
+      type: object
+      properties:
+        patient_uid:
+          type: string
+        schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/inline_response_200_4_schedule"
+    schedule_regenerate_body:
+      required:
+      - reason
+      type: object
+      properties:
+        reason:
+          type: string
+          enum:
+          - epi_rule_change
+          - dob_correction
+          - medical_exception_review
+          - data_repair
+        schedule_version_id:
+          type: string
+          description: Specific EPI version to apply. Defaults to current active version.
+          format: uuid
+    inline_response_201_1:
+      type: object
+      properties:
+        surveillance_report_id:
+          type: string
+          format: uuid
+        fhir_observation_id:
+          type: string
+        status:
+          $ref: "#/components/schemas/SurveillanceStatus"
+        symptoms_recorded:
+          type: integer
+        alert_dispatched_to:
+          type: string
+    followupcases_case_id_body:
+      required:
+      - status
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - under_follow_up
+          - closed
+        notes:
+          type: string
+    outbreakalerts_outbreak_alert_id_body:
+      required:
+      - status
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - under_review
+          - confirmed
+          - dismissed
+          - false_alarm
+        notes:
+          type: string
+    messagetemplates_template_id_body:
+      required:
+      - template_body
+      type: object
+      properties:
+        template_body:
+          type: string
+          description: "Supports: {patient_name}, {vaccine_name}, {due_date}"
+        is_active:
+          type: boolean
+    inline_response_200_5:
+      type: object
+      properties:
+        reminders_queued:
+          type: integer
+        missed_alerts_queued:
+          type: integer
+        skipped_no_phone:
+          type: integer
+        job_id:
+          type: string
+    devices_body:
+      required:
+      - app_version
+      - device_label
+      - platform
+      type: object
+      properties:
+        device_label:
+          type: string
+        platform:
+          type: string
+        app_version:
+          type: string
+    sync_batch_item_id_resolve_body:
+      required:
+      - resolution
+      type: object
+      properties:
+        resolution:
+          type: string
+          description: '`accept_server` keeps server state; `accept_client` applies client payload.'
+          enum:
+          - accept_server
+          - accept_client
+        notes:
+          type: string
+    analytics_environmental_body:
+      required:
+      - observed_at
+      - source_name
+      - unit_id
+      type: object
+      properties:
+        unit_id:
+          type: string
+          format: uuid
+        observed_at:
+          type: string
+          format: date-time
+        source_name:
+          type: string
+          example: Manual Entry
+        rainfall_mm:
+          type: number
+        max_temp_c:
+          type: number
+        min_temp_c:
+          type: number
+        humidity_pct:
+          type: number
+    weather_ingest_body:
+      type: object
+      properties:
+        unit_ids:
+          type: array
+          description: Defaults to all active woreda units.
+          items:
+            type: string
+            format: uuid
+        date:
+          type: string
+          description: Observation date. Defaults to today.
+          format: date
+    prediction_run_body:
+      type: object
+      properties:
+        model_id:
+          type: string
+          description: Defaults to all active models.
+          format: uuid
+        unit_id:
+          type: string
+          format: uuid
+        run_type:
+          type: string
+          description: Stored as `on_demand` in `prediction_runs.run_type`.
+    inline_response_202:
+      type: object
+      properties:
+        prediction_run_id:
+          type: string
+          format: uuid
+        api_status:
+          type: string
+          description: API contract-only state; not persisted in DB.
+          example: queued
+        db_status:
+          type: string
+          example: running
+        message:
+          type: string
+    reports_generate_body:
+      required:
+      - output_format
+      - report_definition_id
+      type: object
+      properties:
+        report_definition_id:
+          type: string
+          format: uuid
+        output_format:
+          type: string
+          enum:
+          - pdf
+          - csv
+        facility_id:
+          type: string
+          format: uuid
+        unit_id:
+          type: string
+          format: uuid
+        parameters:
+          type: object
+    endpoints_endpoint_id_body:
+      type: object
+      properties:
+        base_url:
+          type: string
+        configuration:
+          type: object
+        is_active:
+          type: boolean
+    dhis2_sync_body:
+      type: object
+      properties:
+        sync_scope:
+          type: string
+          enum:
+          - all
+          - immunization
+          - surveillance
+          default: all
+        unit_id:
+          type: string
+          format: uuid
+    inline_response_200_6:
+      type: object
+      properties:
+        resourceType:
+          type: string
+          example: Patient
+        id:
+          type: string
+        name:
+          type: array
+          items:
+            type: object
+        birthDate:
+          type: string
+          format: date
+        gender:
+          type: string
+    settings_setting_key_body:
+      required:
+      - setting_value
+      type: object
+      properties:
+        setting_value:
+          description: New value. Stored as JSON in `system_settings.setting_value`.
+        facility_id:
+          type: string
+          description: "If provided, updates a facility-level override."
+          format: uuid
+        is_encrypted:
+          type: boolean
+    ErrorResponse_error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: One or more fields failed validation.
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            date_of_birth: Must be a valid ISO 8601 date.
+    LoginResponse_user:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        email:
+          type: string
+        role_code:
+          type: string
+          example: HEALTH_WORKER
+        assigned_facility_id:
+          type: string
+        assigned_unit_id:
+          type: string
+        preferred_language:
+          $ref: "#/components/schemas/LanguageCode"
+        must_change_password:
+          type: boolean
+    PatientRegistrationRequest_caregiver:
+      type: object
+      properties:
+        full_name:
+          type: string
+        phone_number:
+          type: string
+        relationship:
+          type: string
+          enum:
+          - Mother
+          - Father
+          - Guardian
+          - Other
+    SurveillanceReportRequest_symptoms:
+      type: object
+      properties:
+        symptom_code:
+          type: string
+        symptom_label:
+          type: string
+        is_present:
+          type: boolean
+        observation_value:
+          type: string
+    SyncBatchRequest_records:
+      required:
+      - client_record_id
+      - entity_type
+      - operation_type
+      - payload
+      type: object
+      properties:
+        entity_type:
+          type: string
+          enum:
+          - patient_registration
+          - dose_administration
+          - surveillance
+        operation_type:
+          type: string
+          enum:
+          - create
+          - update
+        client_record_id:
+          type: string
+        payload:
+          type: object
+        payload_checksum:
+          type: string
+    inline_response_200_1_units:
+      type: object
+      properties:
+        unit_id:
+          type: string
+        parent_unit_id:
+          type: string
+          nullable: true
+        level:
+          $ref: "#/components/schemas/GeographyLevel"
+        code:
+          type: string
+          example: ET-OR-BL
+        name:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        boundary_geojson:
+          type: object
+        is_active:
+          type: boolean
+    inline_response_200_2_immunization_status:
+      type: object
+      properties:
+        current_status:
+          $ref: "#/components/schemas/ImmunizationSummaryStatus"
+        is_zero_dose:
+          type: boolean
+        due_count:
+          type: integer
+        overdue_count:
+          type: integer
+        administered_count:
+          type: integer
+        next_due_date:
+          type: string
+          format: date
+        last_evaluated_at:
+          type: string
+          format: date-time
+    inline_response_200_3_rules:
+      type: object
+      properties:
+        schedule_rule_id:
+          type: string
+        vaccine_code:
+          type: string
+        dose_label:
+          type: string
+        recommended_age_days:
+          type: integer
+        grace_period_days:
+          type: integer
+        defaulter_threshold_days:
+          type: integer
+        is_birth_dose:
+          type: boolean
+        is_active:
+          type: boolean
+    inline_response_201_next_scheduled:
+      type: object
+      properties:
+        vaccine_code:
+          type: string
+        due_date:
+          type: string
+          format: date
+    inline_response_200_4_schedule:
+      type: object
+      properties:
+        patient_schedule_id:
+          type: string
+          format: uuid
+        vaccine_code:
+          type: string
+        dose_label:
+          type: string
+        due_date:
+          type: string
+          format: date
+        status:
+          $ref: "#/components/schemas/ScheduleSlotStatus"
+        status_reason:
+          type: string
+          nullable: true
+        status_changed_at:
+          type: string
+          format: date-time
+          nullable: true
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

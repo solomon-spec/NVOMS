@@ -17,130 +17,177 @@ This structure supports independent work while preserving a common interface acr
 
 ## 5.2 Backend API Contract Development
 
-The backend API documentation is being written as a split OpenAPI specification under `technical-implementation/backend/api/openapi/`. The split structure separates the root specification, path definitions, reusable parameters, reusable responses, security definitions, and shared schemas. This makes the contract easier to maintain and review than a single large file.
+The backend API documentation is now consolidated as a single resolved OpenAPI specification under `technical-implementation/backend/api/openapi/openapi.yaml`. The synchronized contract uses OpenAPI `3.0.3`, is titled `NVOMS API`, and is versioned as `1.1.0`.
 
-For tool compatibility, the split specification can also be bundled into a single file named `openapi.bundle.yaml`. That bundled file is intended for import into Postman and Swagger-based tools, while the split files remain the source of truth during documentation and implementation.
+This final contract now serves as the current documentation baseline for the implementation workspace. It documents 18 tagged functional areas and 77 path entries, covering both the public-facing workflows and the supporting administrative, analytics, interoperability, and operational interfaces required by the wider system design.
 
-The contract workflow currently uses:
+The contract workflow now emphasizes:
 
-- split authoring files for clarity and maintainability
-- bundled output for Postman and Swagger import
-- OpenAPI linting to catch structural mistakes early
-- realistic Ethiopia-context sample payloads to improve usability and domain relevance
+- one resolved specification for the current final API documentation
+- OpenAPI linting support inside the backend workspace
+- Ethiopia-context examples and field names aligned to the project domain
 
 Supporting implementation note:
 
-- API contract status and workflow note: `documentation/assets/chapter-5-implementation/NVOMS_API_CONTRACT_STATUS.md`
+- API contract status note: `documentation/assets/chapter-5-implementation/api-contract-status.md`
 
-## 5.3 Implemented Contract Modules
+## 5.3 Finalized Contract Modules
 
-At the current stage, the detailed API documentation now covers the main public modules identified in the system design chapter.
+The finalized API documentation covers the major functional areas identified in the system requirements, subsystem decomposition, and implementation planning. Instead of documenting only the clinical and reporting surface, the contract now also includes user administration, geography and facility master data, schedule rules, environmental ingestion, interoperability endpoints, and operational audit functions.
 
-### 5.3.1 Authentication Module
+### 5.3.1 Authentication and Account Security
 
-The authentication contract defines the entry points required for secure access to the system. It currently includes login and refresh-token workflows. The documented responses include the authenticated user profile, token metadata, and standardized error structures for invalid credentials and unauthorized access.
+The authentication portion of the contract documents the complete account-access lifecycle. It includes user login, token refresh, session logout, password-reset request and confirmation, and authenticated password change. These endpoints define the security baseline for the entire platform and make account-state handling explicit through standardized success and error responses.
 
 Main endpoints:
 
 - `POST /auth/login`
 - `POST /auth/refresh`
+- `POST /auth/logout`
+- `POST /auth/password-reset/request`
+- `POST /auth/password-reset/confirm`
+- `POST /auth/change-password`
 
-### 5.3.2 Registry Module
+### 5.3.2 User Administration, Roles, Geography, and Caregiver Foundations
 
-The registry contract defines the patient and caregiver registration workflow. It includes list or search behavior, patient creation, and patient retrieval by identifier. The documented request and response structures reflect the Ethiopian public health context and include caregiver linkage, region code, facility code, and current immunization status.
+The finalized documentation now includes the administrative foundation needed to operate the system across different levels of the health structure. It covers user-account management, role and permission assignment, administrative units, facility records, and caregiver profiles. This creates a clearer contract for access control, deployment hierarchy, and patient-contact linkage than the earlier draft.
+
+Main endpoints:
+
+- `GET /users`
+- `POST /users`
+- `GET /users/{user_id}`
+- `PATCH /users/{user_id}`
+- `POST /users/{user_id}/unlock`
+- `GET /roles`
+- `GET /roles/{role_id}/permissions`
+- `PUT /roles/{role_id}/permissions/{permission_id}`
+- `GET /admin-units`
+- `GET /facilities`
+- `GET /caregivers`
+- `POST /caregivers`
+
+### 5.3.3 Patient Registry and Vaccine Reference Data
+
+The patient-registry contract has been broadened beyond basic registration. It now documents patient search, duplicate review, immunization-status retrieval, and supporting vaccine and EPI schedule reference data. This better reflects the practical workflows required in a vaccination information system where clean identity matching and schedule-rule traceability are essential.
 
 Main endpoints:
 
 - `GET /patients`
 - `POST /patients`
-- `GET /patients/{patientId}`
+- `GET /patients/search`
+- `GET /patients/duplicates`
+- `PATCH /patients/duplicates/{duplicate_case_id}`
+- `GET /patients/{uid}`
+- `GET /patients/{uid}/immunization-status`
+- `GET /vaccines`
+- `GET /epi-schedules`
+- `GET /epi-schedules/{schedule_version_id}/rules`
+- `GET /vaccine-batches`
 
-### 5.3.3 Immunization Module
+### 5.3.4 Immunization Workflow
 
-The immunization contract defines how the system exposes patient schedules and how completed vaccine doses are recorded. The schedule response is aligned to the Ethiopian EPI context and includes schedule versioning, antigen grouping, dose numbering, recommended age in weeks, and current schedule state. The dose-recording endpoint documents administration metadata such as route, site, source, facility, and responsible user.
-
-Main endpoints:
-
-- `GET /patients/{patientId}/schedule`
-- `POST /patients/{patientId}/immunizations`
-
-### 5.3.4 Analytics Module
-
-The analytics contract currently includes a dashboard-oriented coverage summary endpoint. This endpoint provides aggregate values such as total registered children, fully immunized children, due cases, overdue cases, zero-dose counts, and dropout rates, together with antigen-level coverage breakdowns. This supports the design goal of giving health managers a concise decision-support view.
-
-Main endpoint:
-
-- `GET /analytics/coverage-summary`
-
-### 5.3.5 Surveillance and Defaulter Monitoring Module
-
-The surveillance contract documents how clinical observations and follow-up cases are captured and reviewed. Its structure aligns with the Chapter Four subsystem description by covering symptom observations such as fever, rash, and AEFI-related findings, while also supporting follow-up workflows for zero-dose, overdue, and defaulter cases. The follow-up listing endpoint is designed for outreach and public health action.
+The immunization contract now documents the full schedule and dose-management lifecycle. In addition to recording administered doses, it includes schedule retrieval, schedule-history review, schedule regeneration when rules or patient details change, and defaulter-oriented views that support follow-up activity. This aligns the API more closely with the operational behavior expected from the proposed system.
 
 Main endpoints:
 
-- `POST /patients/{patientId}/surveillance-reports`
+- `POST /patients/{uid}/immunizations`
+- `GET /patients/{uid}/schedule`
+- `GET /patients/{uid}/schedule/{patient_schedule_id}/history`
+- `POST /patients/{uid}/schedule/regenerate`
+- `GET /immunizations/defaulters`
+
+### 5.3.5 Surveillance, Follow-Up, and Outbreak Alerts
+
+The surveillance area now covers both event capture and response management. The contract documents patient-linked surveillance submissions, general surveillance reporting, follow-up case review and update, and outbreak-alert lifecycle management. This provides a clearer bridge between individual clinical observations and public-health escalation workflows.
+
+Main endpoints:
+
+- `POST /patients/{uid}/surveillance`
+- `GET /surveillance`
+- `POST /surveillance`
+- `GET /surveillance/{surveillance_report_id}`
 - `GET /surveillance/follow-up-cases`
-- `GET /surveillance/reports/{reportId}`
+- `GET /surveillance/follow-up-cases/{case_id}`
+- `PATCH /surveillance/follow-up-cases/{case_id}`
+- `GET /outbreak-alerts`
+- `PATCH /outbreak-alerts/{outbreak_alert_id}`
 
-### 5.3.6 Notifications Module
+### 5.3.6 Notifications and Offline Synchronization
 
-The notifications contract supports reminder and alert delivery workflows for caregivers. The current specification covers notification creation, dispatch queueing, delivery status review, and notification history retrieval. This reflects the design requirement for localized SMS reminders, missed-appointment alerts, and operational tracking of retries and delivery outcomes.
+The finalized contract also strengthens the operational workflows needed for field use. Notification endpoints cover message templates, trigger operations, delivery history, and attempt tracking. Offline synchronization endpoints cover device registration, batch upload, batch inspection, and record-level conflict resolution for low-connectivity environments.
 
 Main endpoints:
 
+- `GET /message-templates`
+- `PATCH /message-templates/{template_id}`
+- `POST /notifications/trigger`
 - `GET /notifications`
-- `POST /notifications`
+- `GET /notifications/{sms_notification_id}/attempts`
+- `POST /devices`
+- `POST /sync/batch`
+- `GET /sync/batches`
+- `GET /sync/batches/{sync_batch_id}/items`
+- `POST /sync/batches/{sync_batch_id}/items/{sync_batch_item_id}/resolve`
 
-### 5.3.7 Prediction and Outbreak Alert Module
+### 5.3.7 Analytics, Environmental Data, and Prediction
 
-The prediction contract provides the public API layer for model-driven decision support. It documents batch prediction run requests, area-level risk score retrieval, and outbreak alert listing. The documented payloads align with the design chapter by exposing disease-specific risk levels, confidence scores, silent-district flags, and model metadata rather than raw machine learning internals.
-
-Main endpoints:
-
-- `POST /predictions/runs`
-- `GET /predictions/scores`
-- `GET /predictions/alerts`
-
-### 5.3.8 Reporting and Interoperability Module
-
-The reporting and interoperability contract reflects the combined subsystem described in Chapter Four. It includes report generation and retrieval together with FHIR export and DHIS2 synchronization workflows. The documented job structures expose status tracking, record counts, and error summaries so that reporting and external exchange can be audited consistently.
+The analytics and prediction sections now reflect the decision-support emphasis of the project more clearly than the earlier draft. The contract includes coverage analytics, dashboard trends, risk-map outputs, defaulter clusters, environmental observations, weather ingestion, model listing, and prediction-run creation and review. This makes the relationship between surveillance, environmental context, and outbreak prediction explicit in the API documentation.
 
 Main endpoints:
 
+- `GET /analytics/coverage`
+- `GET /analytics/dashboard-trends`
+- `GET /analytics/risk-map`
+- `GET /analytics/defaulter-clusters`
+- `POST /analytics/environmental`
+- `GET /analytics/environmental`
+- `POST /integrations/weather/ingest`
+- `GET /models`
+- `POST /prediction/run`
+- `GET /prediction/runs`
+- `GET /prediction/runs/{prediction_run_id}`
+
+### 5.3.8 Reporting, Interoperability, and System Administration
+
+The final contract completes the broader enterprise-facing surface of the platform. It documents report definitions, report generation and download, integration-endpoint configuration, DHIS2 synchronization, HL7 FHIR exchange, system-setting access, and audit-log review. These interfaces are important because they connect the core vaccination workflows to external platforms, operational reporting, and accountability controls.
+
+Main endpoints:
+
+- `GET /report-definitions`
+- `POST /reports/generate`
 - `GET /reports`
-- `POST /reports`
-- `GET /reports/{reportId}`
-- `POST /interop/fhir/exports`
-- `POST /interop/dhis2/sync-jobs`
-- `GET /interop/jobs/{jobId}`
+- `GET /reports/download/{generated_report_id}`
+- `GET /integrations/endpoints`
+- `PATCH /integrations/endpoints/{endpoint_id}`
+- `POST /integrations/dhis2/sync`
+- `GET /integrations/dhis2/sync/batches`
+- `GET /fhir/Patient/{uid}`
+- `POST /fhir/Immunization`
+- `POST /fhir/Observation`
+- `GET /fhir/Patient/{uid}/bundle`
+- `GET /integrations/fhir/logs`
+- `GET /system/settings`
+- `PATCH /system/settings/{setting_key}`
+- `GET /audit-logs`
 
-### 5.3.9 Offline Sync Module
+## 5.4 Importance of the Finalized Contract
 
-The offline sync contract supports low-connectivity field operations by documenting device registration, offline batch submission, synchronization status review, and conflict-aware processing outcomes. This matches the system design requirement for eventual synchronization from field devices to the central platform.
+The finalized API contract provides several practical advantages for the project.
 
-Main endpoints:
-
-- `POST /sync/devices`
-- `POST /sync/batches`
-- `GET /sync/batches/{batchId}`
-
-## 5.4 Importance of the Contract-First Workflow
-
-The API-first implementation approach provides several practical advantages for this project.
-
-- It allows the web team to design forms, tables, and dashboards before the backend logic is fully implemented.
-- It gives the backend team a stable implementation target with clear validation and error-handling expectations.
-- It prepares the ground for a clean contract between the backend and the machine learning module, especially for outbreak prediction and risk-scoring outputs.
-- It makes the surveillance, reporting, interoperability, and offline workflows explicit before implementation begins, which reduces ambiguity for parallel teams.
-- It improves documentation quality for the final report by making implementation artifacts explicit, reviewable, and reproducible.
+- It gives the backend team a stable implementation target across the full user, clinical, analytics, and interoperability surface.
+- It allows the frontend team to design registration, reporting, dashboard, and administration workflows against a consistent interface.
+- It creates a clearer contract between the transactional backend and the prediction or analytics services.
+- It improves documentation quality for the final report by turning functional requirements into concrete, reviewable request and response definitions.
+- It reduces ambiguity for later implementation, testing, and demonstration work because the main operational workflows are now explicitly named and structured.
 
 ## 5.5 Current Implementation Status
 
 The current implementation status can be summarized as follows:
 
 - the backend and frontend folder structures have been prepared
-- the OpenAPI authoring and bundling workflow has been set up
-- detailed contracts now cover Auth, Registry, Immunization, Surveillance, Notifications, Analytics, Prediction, Reporting and Interoperability, and Offline Sync
-- the next major contract activity is the definition of the internal backend-to-ML prediction interface
+- the repository now includes the finalized resolved OpenAPI contract as `technical-implementation/backend/api/openapi/openapi.yaml`
+- the documented API surface now spans 18 tagged areas and 77 path entries
+- the contract now covers authentication, administration, roles, geography, caregivers, patients, vaccine references, immunization, surveillance, outbreak alerts, notifications, offline synchronization, analytics, environmental data, prediction, reporting, interoperability, and system or audit workflows
 
-This staged implementation approach ensures that the system remains coherent as development proceeds in parallel across multiple teams.
+This updated documentation baseline gives the project a more complete and consistent implementation reference for the remaining development work.

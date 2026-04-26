@@ -265,7 +265,7 @@ def clean_chapter_three(draft_path: Path) -> str:
 
 
 def extract_er_diagram() -> str:
-    db_design = read_markdown(f"{CHAPTER_FOUR_ARTIFACTS}/NVOMS_DATABASE_DESIGN.md")
+    db_design = read_markdown(f"{CHAPTER_FOUR_ARTIFACTS}/report-database-design.md")
     match = re.search(r"```mermaid\n(.*?)```", db_design, re.DOTALL)
     if not match:
         return ""
@@ -280,7 +280,7 @@ This chapter presents the detailed system design of the National Vaccination and
     chapter_report = read_for_draft("05-chapter-4-system-design/report-source.md", draft_path)
     goals = sectionize_source(extract_section(chapter_report, "4.1 Overview"))
     architecture = sectionize_source(extract_section(chapter_report, "4.3.1"))
-    subsystem = nest_standalone_doc(read_for_draft(f"{CHAPTER_FOUR_ARTIFACTS}/NVOMS_SUBSYSTEM_DECOMPOSITION.md", draft_path))
+    subsystem = nest_standalone_doc(read_for_draft(f"{CHAPTER_FOUR_ARTIFACTS}/subsystem-decomposition.md", draft_path))
 
     architecture = architecture.replace(
         "*Figure 4.0. System Architecture*",
@@ -318,10 +318,10 @@ The database design of NVOMS is derived directly from the system requirements, t
 
 ### Database Design Artifacts
 
-- Narrative database design: [NVOMS_DATABASE_DESIGN.md]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/NVOMS_DATABASE_DESIGN.md')})
-- Implementation-ready PostgreSQL schema: [NVOMS_POSTGRESQL_SCHEMA.sql]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/NVOMS_POSTGRESQL_SCHEMA.sql')})
-- Diagram-oriented DBML schema: [NVOMS_SCHEMA_DBML.dbml]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/NVOMS_SCHEMA_DBML.dbml')})
-- Functional-requirements traceability: [NVOMS_REQUIREMENTS_VERIFICATION.md]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/NVOMS_REQUIREMENTS_VERIFICATION.md')})
+- Narrative database design: [report-database-design.md]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/report-database-design.md')})
+- Implementation-ready PostgreSQL schema: [postgresql-schema.sql]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/postgresql-schema.sql')})
+- Diagram-oriented DBML schema: [schema.dbml]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/schema.dbml')})
+- Functional-requirements traceability: [requirements-verification.md]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/requirements-verification.md')})
 """
 
     design_verification = """## 4.4 Design Verification
@@ -371,7 +371,7 @@ def generate_build_document(draft_paths: list[Path]) -> None:
         chunks.append(rewrite_links_for_build(text, path))
         chunks.append("")
 
-    write_text(BUILD_DIR / "NVOMS_Submission_Draft.md", "\n".join(chunks))
+    write_text(BUILD_DIR / "submission-draft.md", "\n".join(chunks))
 
 
 def main() -> None:
