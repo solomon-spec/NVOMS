@@ -34,6 +34,14 @@ class Caregiver(models.Model):
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.ACTIVE
     )
+    user_account = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='caregiver_profile',
+        db_column='user_account_id',
+    )
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -113,6 +121,14 @@ class Patient(models.Model):
         max_length=16, choices=Status.choices, default=Status.REGISTERED
     )
     qr_code_value = models.CharField(max_length=120, null=True, blank=True)
+    user_account = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='patient_profile',
+        db_column='user_account_id',
+    )
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

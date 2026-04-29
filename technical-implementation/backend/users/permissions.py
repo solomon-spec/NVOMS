@@ -3,6 +3,8 @@ from rest_framework.permissions import BasePermission
 ADMIN = 'ADMIN'
 HEALTH_WORKER = 'HEALTH_WORKER'
 PUBLIC_HEALTH_OFFICIAL = 'PUBLIC_HEALTH_OFFICIAL'
+PATIENT = 'PATIENT'
+CAREGIVER = 'CAREGIVER'
 
 
 def _role_code(user):
@@ -43,3 +45,19 @@ class IsAdminOrSelf(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return _role_code(request.user) == ADMIN or obj == request.user
+
+
+class IsPatientUser(BasePermission):
+    """Grants access to users with the PATIENT role (or ADMIN)."""
+    message = 'Patient account required.'
+
+    def has_permission(self, request, view):
+        return _role_code(request.user) in (ADMIN, PATIENT)
+
+
+class IsCaregiverUser(BasePermission):
+    """Grants access to users with the CAREGIVER role (or ADMIN)."""
+    message = 'Caregiver account required.'
+
+    def has_permission(self, request, view):
+        return _role_code(request.user) in (ADMIN, CAREGIVER)
