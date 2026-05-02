@@ -1,0 +1,304 @@
+import type {
+  AdministrativeUnitBrief,
+  Caregiver,
+  CreateCaregiverPayload,
+  CreateDosePayload,
+  CreateEpiScheduleRulePayload,
+  CreateEpiScheduleVersionPayload,
+  CreatePatientPayload,
+  CreateVaccineBatchPayload,
+  CreateVaccinePayload,
+  EpiScheduleRule,
+  EpiScheduleVersion,
+  HealthFacility,
+  ImmunizationEvent,
+  PatchPatientPayload,
+  Patient,
+  PatientScheduleSlot,
+  PatientSummary,
+  PatientStatus,
+  RegenerateScheduleResponse,
+  UpdatePatientPayload,
+  UpdateScheduleSlotPayload,
+  Vaccine,
+  VaccineBatch,
+} from "@/features/registry/types";
+import { apiRequest } from "@/services/api";
+
+type PatientFilters = {
+  search?: string;
+  status?: PatientStatus | "all";
+};
+
+function withQuery(path: string, params: Record<string, string | undefined>) {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value && value !== "all") {
+      searchParams.set(key, value);
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+export function listPatients(token: string, filters: PatientFilters = {}) {
+  return apiRequest<Patient[]>(
+    withQuery("/patients/", {
+      search: filters.search,
+      status: filters.status,
+    }),
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export function createPatient(token: string, payload: CreatePatientPayload) {
+  return apiRequest<Patient>("/patients/", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getPatient(token: string, patientId: string) {
+  return apiRequest<Patient>(`/patients/${patientId}`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function updatePatient(
+  token: string,
+  patientId: string,
+  payload: UpdatePatientPayload,
+) {
+  return apiRequest<Patient>(`/patients/${patientId}`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function patchPatient(
+  token: string,
+  patientId: string,
+  payload: PatchPatientPayload,
+) {
+  return apiRequest<Patient>(`/patients/${patientId}`, {
+    method: "PATCH",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deletePatient(token: string, patientId: string) {
+  return apiRequest<void>(`/patients/${patientId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export function getPatientSummary(token: string, patientId: string) {
+  return apiRequest<PatientSummary>(`/patients/${patientId}/summary`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function listPatientDoses(token: string, patientId: string) {
+  return apiRequest<ImmunizationEvent[]>(`/patients/${patientId}/doses`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function createPatientDose(
+  token: string,
+  patientId: string,
+  payload: CreateDosePayload,
+) {
+  return apiRequest<ImmunizationEvent>(`/patients/${patientId}/doses`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listPatientSchedule(token: string, patientId: string) {
+  return apiRequest<PatientScheduleSlot[]>(`/patients/${patientId}/schedule`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function getPatientScheduleSlot(
+  token: string,
+  patientId: string,
+  slotId: string,
+) {
+  return apiRequest<PatientScheduleSlot>(
+    `/patients/${patientId}/schedule/${slotId}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export function updatePatientScheduleSlot(
+  token: string,
+  patientId: string,
+  slotId: string,
+  payload: UpdateScheduleSlotPayload,
+) {
+  return apiRequest<PatientScheduleSlot>(
+    `/patients/${patientId}/schedule/${slotId}`,
+    {
+      method: "PUT",
+      token,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function regeneratePatientSchedule(token: string, patientId: string) {
+  return apiRequest<RegenerateScheduleResponse>(
+    `/patients/${patientId}/schedule/regenerate`,
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
+export function getMyPatient(token: string) {
+  return apiRequest<PatientSummary>("/patients/me/", {
+    method: "GET",
+    token,
+  });
+}
+
+export function listMyPatientDoses(token: string) {
+  return apiRequest<ImmunizationEvent[]>("/patients/me/doses", {
+    method: "GET",
+    token,
+  });
+}
+
+export function listMyPatientSchedule(token: string) {
+  return apiRequest<PatientScheduleSlot[]>("/patients/me/schedule", {
+    method: "GET",
+    token,
+  });
+}
+
+export function listCaregivers(token: string, search?: string) {
+  return apiRequest<Caregiver[]>(
+    withQuery("/caregivers/", {
+      search,
+    }),
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export function createCaregiver(token: string, payload: CreateCaregiverPayload) {
+  return apiRequest<Caregiver>("/caregivers/", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listFacilities(token: string) {
+  return apiRequest<HealthFacility[]>("/facilities/", {
+    method: "GET",
+    token,
+  });
+}
+
+export function listAdministrativeUnits(token: string) {
+  return apiRequest<AdministrativeUnitBrief[]>("/geography/?active=true", {
+    method: "GET",
+    token,
+  });
+}
+
+export function listVaccines(token: string) {
+  return apiRequest<Vaccine[]>("/vaccines/?active=true", {
+    method: "GET",
+    token,
+  });
+}
+
+export function createVaccine(token: string, payload: CreateVaccinePayload) {
+  return apiRequest<Vaccine>("/vaccines/", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listVaccineBatches(token: string, vaccineId?: string) {
+  return apiRequest<VaccineBatch[]>(
+    withQuery("/vaccines/batches/", {
+      vaccine: vaccineId,
+      valid: "true",
+    }),
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export function createVaccineBatch(
+  token: string,
+  payload: CreateVaccineBatchPayload,
+) {
+  return apiRequest<VaccineBatch>("/vaccines/batches/", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listEpiScheduleVersions(token: string, status?: string) {
+  return apiRequest<EpiScheduleVersion[]>(
+    withQuery("/vaccines/schedules/", {
+      status,
+    }),
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export function createEpiScheduleVersion(
+  token: string,
+  payload: CreateEpiScheduleVersionPayload,
+) {
+  return apiRequest<EpiScheduleVersion>("/vaccines/schedules/", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createEpiScheduleRule(
+  token: string,
+  versionId: string,
+  payload: CreateEpiScheduleRulePayload,
+) {
+  return apiRequest<EpiScheduleRule>(`/vaccines/schedules/${versionId}/rules/`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}

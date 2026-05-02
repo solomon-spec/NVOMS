@@ -22,12 +22,9 @@ export default function AuthLayout({
             />
           </Link>
 
-          <Link
-            href="/all-components"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50"
-          >
-            Component Library
-          </Link>
+          <span className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-gray-500">
+            Secure workspace
+          </span>
         </div>
 
         <div className="flex flex-1 items-center justify-center py-12">

@@ -133,10 +133,10 @@ export default function SignInWorkspace() {
         <div className="space-y-3">
           <Button className="w-full">Sign In</Button>
           <Link
-            href="/all-components"
+            href="/login"
             className="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 hover:text-gray-900"
           >
-            Open Component Library
+            Use NVOMS login
           </Link>
         </div>
       </form>

@@ -1,5 +1,5 @@
-import SignInWorkspace from "@/features/auth/SignInWorkspace";
+import { redirect } from "next/navigation";
 
 export default function SignInPage() {
-  return <SignInWorkspace />;
+  redirect("/login");
 }

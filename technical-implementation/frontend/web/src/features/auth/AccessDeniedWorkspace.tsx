@@ -10,8 +10,8 @@ export default function AccessDeniedWorkspace() {
       description="Your account is signed in, but it does not currently have permission to open this workspace. Request the correct role assignment from an administrator."
       icon={<LockIcon className="h-6 w-6 fill-current" />}
       actions={[
-        { href: "/auth/sign-in", label: "Return to Sign In" },
-        { href: "/all-components", label: "Open Component Library", variant: "outline" },
+        { href: "/login", label: "Return to sign in" },
+        { href: "/dashboard", label: "Go to dashboard", variant: "outline" },
       ]}
     />
   );

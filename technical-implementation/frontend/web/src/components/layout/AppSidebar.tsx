@@ -4,27 +4,90 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
-import { BoxCubeIcon } from "@/icons";
+import { useAuthSession } from "@/features/auth/useAuthSession";
+import {
+  BellIcon,
+  BoxCubeIcon,
+  CalenderIcon,
+  DocsIcon,
+  GroupIcon,
+  ListIcon,
+  PieChartIcon,
+  TaskIcon,
+} from "@/icons";
 import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
+  roles?: string[];
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
 const navItems: NavItem[] = [
   {
     icon: <BoxCubeIcon />,
-    name: "All Components",
-    path: "/all-components",
+    name: "Dashboard",
+    path: "/dashboard",
+  },
+  {
+    icon: <GroupIcon />,
+    name: "Patient Registry",
+    path: "/patients",
+    roles: ["ADMIN", "HEALTH_WORKER"],
+  },
+  {
+    icon: <GroupIcon />,
+    name: "My Record",
+    path: "/my-patient",
+    roles: ["PATIENT"],
+  },
+  {
+    icon: <CalenderIcon />,
+    name: "Immunization",
+    path: "/immunizations",
+    roles: ["ADMIN", "HEALTH_WORKER"],
+  },
+  {
+    icon: <TaskIcon />,
+    name: "Surveillance",
+    path: "/surveillance",
+    roles: ["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"],
+  },
+  {
+    icon: <PieChartIcon />,
+    name: "Analytics",
+    path: "/analytics",
+    roles: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
+  },
+  {
+    icon: <DocsIcon />,
+    name: "Reports",
+    path: "/reports",
+    roles: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
+  },
+  {
+    icon: <BellIcon />,
+    name: "Notifications",
+    path: "/notifications",
+    roles: ["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"],
+  },
+  {
+    icon: <ListIcon />,
+    name: "Offline Sync",
+    path: "/offline",
+    roles: ["ADMIN", "HEALTH_WORKER"],
   },
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const session = useAuthSession();
+  const visibleNavItems = navItems.filter(
+    (item) => !item.roles || item.roles.includes(session?.user.role ?? ""),
+  );
 
   const renderMenuItems = (items: NavItem[]) => (
     <ul className="flex flex-col gap-4">
@@ -56,7 +119,8 @@ const AppSidebar: React.FC = () => {
     </ul>
   );
 
-  const isActive = (path: string) => path === pathname;
+  const isActive = (path: string) =>
+    path === pathname || pathname.startsWith(`${path}/`);
 
   return (
     <aside
@@ -78,10 +142,10 @@ const AppSidebar: React.FC = () => {
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link href="/all-components">
+        <Link href="/dashboard">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
-                <Image
+              <Image
                 className="dark:hidden"
                 src="/images/logo/logo.svg"
                 alt="NVOMS"
@@ -115,11 +179,26 @@ const AppSidebar: React.FC = () => {
                 : "justify-start"
             }`}
           >
-            {isExpanded || isHovered || isMobileOpen ? "Library" : "..."}
+            {isExpanded || isHovered || isMobileOpen ? "Workspace" : "..."}
           </h2>
-          {renderMenuItems(navItems)}
+          {renderMenuItems(visibleNavItems)}
         </nav>
-        {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
+        {isExpanded || isHovered || isMobileOpen ? (
+          <div className="mt-auto space-y-4">
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
+                Signed in
+              </p>
+              <p className="mt-2 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {session?.user.displayName}
+              </p>
+              <p className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
+                {session?.user.facilityCode ?? session?.user.role}
+              </p>
+            </div>
+            <SidebarWidget />
+          </div>
+        ) : null}
       </div>
     </aside>
   );
