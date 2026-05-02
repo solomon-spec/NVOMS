@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -7,6 +7,16 @@ from immunizations.serializers import ImmunizationEventSerializer, ScheduleSlotS
 from patients.models import Patient, PatientImmunizationStatus
 from patients.serializers import PatientImmunizationStatusSerializer, PatientSerializer
 from users.permissions import IsPatientUser
+
+
+def _get_authenticated_patient(user):
+    try:
+        return Patient.objects.select_related(
+            'primary_caregiver', 'residence_unit', 'registered_facility',
+            'immunization_status',
+        ).get(user_account=user)
+    except Patient.DoesNotExist as exc:
+        raise NotFound('No patient record is linked to this user.') from exc
 
 
 class PatientMeView(APIView):
@@ -19,13 +29,7 @@ class PatientMeView(APIView):
     permission_classes = [IsPatientUser]
 
     def get(self, request):
-        patient = get_object_or_404(
-            Patient.objects.select_related(
-                'primary_caregiver', 'residence_unit', 'registered_facility',
-                'immunization_status',
-            ),
-            user_account=request.user,
-        )
+        patient = _get_authenticated_patient(request.user)
         immunization = getattr(patient, 'immunization_status', None)
         return Response({
             'patient': PatientSerializer(patient).data,
@@ -47,7 +51,7 @@ class PatientMeScheduleView(APIView):
     permission_classes = [IsPatientUser]
 
     def get(self, request):
-        patient = get_object_or_404(Patient, user_account=request.user)
+        patient = _get_authenticated_patient(request.user)
         slots = (
             PatientVaccinationSchedule.objects
             .filter(patient=patient)
@@ -67,7 +71,7 @@ class PatientMeDosesView(APIView):
     permission_classes = [IsPatientUser]
 
     def get(self, request):
-        patient = get_object_or_404(Patient, user_account=request.user)
+        patient = _get_authenticated_patient(request.user)
         events = (
             ImmunizationEvent.objects
             .filter(patient=patient)

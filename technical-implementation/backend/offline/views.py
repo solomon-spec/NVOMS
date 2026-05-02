@@ -13,7 +13,21 @@ from offline.serializers import (
     SyncBatchSerializer,
     SyncBatchSubmitSerializer,
 )
-from users.permissions import IsHealthWorker
+from users.permissions import ADMIN, IsHealthWorker, _role_code
+
+
+def _is_admin(user):
+    return _role_code(user) == ADMIN
+
+
+def _sync_batches_visible_to(request):
+    qs = SyncBatch.objects.select_related('device', 'user').order_by('-submitted_at')
+    if _is_admin(request.user):
+        user_id = request.query_params.get('user_id')
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        return qs
+    return qs.filter(device__user=request.user)
 
 
 # ── Device Registration ────────────────────────────────────────────────────────
@@ -87,6 +101,10 @@ class SyncBatchSubmitView(APIView):
     records were saved and which need attention.
     """
     permission_classes = [IsHealthWorker]
+
+    def get(self, request):
+        batches = _sync_batches_visible_to(request)
+        return Response(SyncBatchSerializer(batches, many=True).data)
 
     def post(self, request):
         serializer = SyncBatchSubmitSerializer(data=request.data)
@@ -283,7 +301,7 @@ class SyncBatchDetailView(APIView):
     permission_classes = [IsHealthWorker]
 
     def get(self, request, pk):
-        batch = get_object_or_404(SyncBatch, pk=pk, user=request.user)
+        batch = get_object_or_404(_sync_batches_visible_to(request), pk=pk)
         return Response(SyncBatchSerializer(batch).data)
 
 
@@ -297,7 +315,7 @@ class SyncBatchItemListView(APIView):
     permission_classes = [IsHealthWorker]
 
     def get(self, request, pk):
-        batch = get_object_or_404(SyncBatch, pk=pk, user=request.user)
+        batch = get_object_or_404(_sync_batches_visible_to(request), pk=pk)
         qs = batch.items.all()
         item_status = request.query_params.get('item_status')
         if item_status:
@@ -316,7 +334,7 @@ class SyncBatchItemResolveView(APIView):
     permission_classes = [IsHealthWorker]
 
     def post(self, request, pk, item_id):
-        batch = get_object_or_404(SyncBatch, pk=pk, user=request.user)
+        batch = get_object_or_404(_sync_batches_visible_to(request), pk=pk)
         item = get_object_or_404(
             SyncBatchItem,
             pk=item_id,

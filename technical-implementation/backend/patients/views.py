@@ -4,6 +4,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.audit import write_audit_log
+from core.models import AuditLog
 from patients.models import Caregiver, Patient, PatientImmunizationStatus
 from patients.serializers import (
     CaregiverSerializer,
@@ -51,6 +53,14 @@ class PatientListView(APIView):
 
         patient = serializer.save(registered_by=request.user)
         PatientImmunizationStatus.objects.get_or_create(patient=patient)
+        write_audit_log(
+            actor_user=request.user,
+            action=AuditLog.Action.PATIENT_CREATE,
+            entity_type='patient',
+            entity_id=patient.id,
+            detail={'uid': patient.uid},
+            request=request,
+        )
 
         return Response(PatientSerializer(patient).data, status=status.HTTP_201_CREATED)
 
@@ -90,6 +100,14 @@ class PatientDetailView(APIView):
         patient = self._get_patient(pk)
         patient.status = Patient.Status.INACTIVE
         patient.save(update_fields=['status', 'updated_at'])
+        write_audit_log(
+            actor_user=request.user,
+            action=AuditLog.Action.PATIENT_DELETE,
+            entity_type='patient',
+            entity_id=patient.id,
+            detail={'status': Patient.Status.INACTIVE},
+            request=request,
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

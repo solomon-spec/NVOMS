@@ -5,6 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.audit import write_audit_log
+from core.models import AuditLog
 from surveillance.models import FollowUpAction, OutbreakAlert, SurveillanceReport
 from surveillance.serializers import (
     AlertStatusUpdateSerializer,
@@ -152,4 +154,13 @@ class OutbreakAlertStatusView(APIView):
             )
         except ValueError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        if updated.status == OutbreakAlert.Status.CONFIRMED:
+            write_audit_log(
+                actor_user=request.user,
+                action=AuditLog.Action.OUTBREAK_ALERT_CONFIRM,
+                entity_type='outbreak_alert',
+                entity_id=updated.id,
+                detail={'disease_code': updated.disease_code, 'unit_id': str(updated.unit_id)},
+                request=request,
+            )
         return Response(OutbreakAlertSerializer(updated).data)
