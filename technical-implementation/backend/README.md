@@ -212,3 +212,13 @@ python manage.py runserver
 | `DEBUG` | `True` | Debug mode |
 | `CORS_ALLOWED_ORIGINS` | localhost:3000, :5173 | Allowed CORS origins |
 | `CELERY_BROKER_URL` | `redis://localhost:6379/0` | Redis broker URL |
+| `EMAIL_BACKEND` | console backend | Django email backend for password reset and welcome messages |
+| `DEFAULT_FROM_EMAIL` | `noreply@nvoms.local` | Sender address for system email |
+| `PASSWORD_RESET_URL` | `http://localhost:3000/auth/reset-password` | Frontend password reset URL |
+| `SMS_GATEWAY` | `console` | SMS gateway: `console`, `twilio`, or `africas_talking` |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` | empty | Twilio SMS credentials |
+| `AFRICASTALKING_USERNAME` / `AFRICASTALKING_API_KEY` / `AFRICASTALKING_SENDER_ID` | empty | Africa's Talking SMS credentials |
+
+Schedule `notifications.tasks.send_vaccination_reminders_task` with Celery Beat
+to send daily vaccination reminders. SMS delivery is audited in `SmsLog`; gateway
+credentials belong in `.env` and must never be committed.

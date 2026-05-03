@@ -17,6 +17,7 @@ logger = logging.getLogger("nvoms.middleware")
 OPEN_PATHS = [
     "/api/v1/auth/login",
     "/api/v1/auth/refresh",
+    "/api/v1/auth/password-reset",
     "/admin/",  # Django admin handles its own auth
     "/api/schema/",  # OpenAPI schema endpoint
     "/api/docs/",  # Swagger UI
@@ -32,7 +33,8 @@ ROLE_ACCESS_MAP = {
     "/api/v1/analytics/": {"ADMIN", "PUBLIC_HEALTH_OFFICIAL"},
     "/api/v1/reports/": {"ADMIN", "PUBLIC_HEALTH_OFFICIAL"},
     "/api/v1/audit-logs/": {"ADMIN"},
-    "/api/v1/notifications/": {"ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"},
+    "/api/v1/notifications/": {"ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL", "PATIENT", "CAREGIVER"},
+    "/api/v1/sms-logs/": {"ADMIN"},
     # Patient self-service paths (longer prefix wins over /api/v1/patients/)
     "/api/v1/patients/me": {"PATIENT"},
     "/api/v1/patients/": {"ADMIN", "HEALTH_WORKER"},
