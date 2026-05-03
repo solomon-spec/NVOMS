@@ -1,20 +1,30 @@
 from django.db.models import Q
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.permissions import IsHealthWorker, IsPublicHealthOfficial
-from vaccines.models import Antigen, EpiScheduleRule, EpiScheduleVersion, VaccineBatch, VaccineDefinition
+from users.permissions import IsAdmin, IsHealthWorker, IsPublicHealthOfficial
+from vaccines.models import (
+    Antigen,
+    EpiScheduleRule,
+    EpiScheduleVersion,
+    ScheduleRegenerationJob,
+    VaccineBatch,
+    VaccineDefinition,
+)
 from vaccines.serializers import (
     AntigenSerializer,
     EpiScheduleRuleSerializer,
     EpiScheduleVersionDetailSerializer,
     EpiScheduleVersionSerializer,
+    ScheduleRegenerationJobSerializer,
     VaccineBatchSerializer,
     VaccineSerializer,
 )
+from vaccines.tasks import regenerate_schedules_for_version_task
 
 
 class AntigenListView(APIView):
@@ -248,6 +258,54 @@ class EpiScheduleVersionDetailView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
         return Response(serializer.data)
+
+
+class EpiScheduleRegenerateAllView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, version_pk):
+        version = get_object_or_404(EpiScheduleVersion, pk=version_pk)
+        job = ScheduleRegenerationJob.objects.create(
+            schedule_version=version,
+            requested_by=request.user,
+        )
+
+        if settings.CELERY_TASK_ALWAYS_EAGER:
+            regenerate_schedules_for_version_task(str(job.id))
+        else:
+            try:
+                async_result = regenerate_schedules_for_version_task.delay(str(job.id))
+                job.celery_task_id = async_result.id
+                job.save(update_fields=['celery_task_id'])
+            except Exception as exc:
+                job.error_message = str(exc)
+                job.save(update_fields=['error_message'])
+                regenerate_schedules_for_version_task(str(job.id))
+
+        job.refresh_from_db()
+        return Response(
+            ScheduleRegenerationJobSerializer(job).data,
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class EpiScheduleRegenerationStatusView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request, version_pk):
+        version = get_object_or_404(EpiScheduleVersion, pk=version_pk)
+        job = (
+            ScheduleRegenerationJob.objects
+            .filter(schedule_version=version)
+            .order_by('-created_at')
+            .first()
+        )
+        if not job:
+            return Response(
+                {'detail': 'No regeneration job has been started for this schedule version.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(ScheduleRegenerationJobSerializer(job).data)
 
 
 # ── EPI Schedule Rules ────────────────────────────────────────────────────────

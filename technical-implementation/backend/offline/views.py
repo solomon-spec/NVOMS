@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
@@ -176,26 +177,178 @@ def _process_sync_item(item, submitted_by):
     if not payload and operation_type == SyncBatchItem.OperationType.UPDATE:
         return {'status': SyncBatchItem.ItemStatus.REJECTED, 'conflict_reason': 'Empty payload for update'}
 
-    if entity_type == SyncBatchItem.EntityType.IMMUNIZATION:
-        if operation_type == SyncBatchItem.OperationType.INSERT:
-            return _apply_immunization_insert(payload, submitted_by, item['client_record_id'])
-        return {'status': SyncBatchItem.ItemStatus.REJECTED, 'conflict_reason': 'Only insert is supported for immunization'}
+    if entity_type == SyncBatchItem.EntityType.PATIENT:
+        return _apply_patient_upsert(payload, submitted_by, item['client_record_id'])
 
-    # caregiver, patient, surveillance_report — stub: accepted for future processing
-    return {'status': SyncBatchItem.ItemStatus.APPLIED}
+    if entity_type == SyncBatchItem.EntityType.CAREGIVER:
+        return _apply_caregiver_upsert(payload, item['client_record_id'])
+
+    if entity_type == SyncBatchItem.EntityType.SURVEILLANCE_REPORT:
+        return _apply_surveillance_report_upsert(payload, submitted_by, item['client_record_id'])
+
+    immunization_types = [
+        SyncBatchItem.EntityType.IMMUNIZATION,
+        SyncBatchItem.EntityType.IMMUNIZATION_EVENT,
+    ]
+    if entity_type in immunization_types:
+        return _apply_immunization_upsert(payload, submitted_by, item['client_record_id'])
+
+    return {
+        'status': SyncBatchItem.ItemStatus.REJECTED,
+        'conflict_reason': f'Unsupported entity_type: {entity_type}',
+    }
 
 
-def _apply_immunization_insert(payload, submitted_by, client_record_id):
+def _serializer_rejected(serializer):
+    return {
+        'status': SyncBatchItem.ItemStatus.REJECTED,
+        'conflict_reason': str(serializer.errors),
+    }
+
+
+def _strip_sync_metadata(payload):
+    cleaned = dict(payload)
+    for key in ('server_updated_at', 'last_known_updated_at', 'last_synced_at', 'local_client_record_id'):
+        cleaned.pop(key, None)
+    return cleaned
+
+
+def _server_snapshot_conflict(instance, payload):
+    snapshot_raw = (
+        payload.get('server_updated_at')
+        or payload.get('last_known_updated_at')
+        or payload.get('last_synced_at')
+    )
+    if not snapshot_raw:
+        return False
+    snapshot = parse_datetime(str(snapshot_raw))
+    if snapshot is None:
+        return False
+    if timezone.is_naive(snapshot):
+        snapshot = timezone.make_aware(snapshot)
+
+    current = getattr(instance, 'updated_at', None) or getattr(instance, 'created_at', None)
+    return bool(current and current > snapshot)
+
+
+def _apply_patient_upsert(payload, submitted_by, client_record_id):
+    from patients.models import Caregiver, Patient
+    from patients.serializers import PatientCreateSerializer, PatientUpdateSerializer
+
+    payload = dict(payload)
+    if 'primary_caregiver_client_record_id' in payload and 'primary_caregiver_id' not in payload:
+        caregiver = Caregiver.objects.filter(
+            local_client_record_id=payload.pop('primary_caregiver_client_record_id')
+        ).first()
+        if not caregiver:
+            return {
+                'status': SyncBatchItem.ItemStatus.REJECTED,
+                'conflict_reason': 'Primary caregiver client record was not found',
+            }
+        payload['primary_caregiver_id'] = caregiver.id
+
+    patient = Patient.objects.filter(local_client_record_id=client_record_id).first()
+    if patient:
+        if _server_snapshot_conflict(patient, payload):
+            return {
+                'status': SyncBatchItem.ItemStatus.CONFLICT,
+                'conflict_reason': 'Patient changed on the server after the offline snapshot',
+            }
+        serializer = PatientUpdateSerializer(patient, data=_strip_sync_metadata(payload), partial=True)
+        if not serializer.is_valid():
+            return _serializer_rejected(serializer)
+        patient = serializer.save()
+        if not patient.local_client_record_id:
+            patient.local_client_record_id = client_record_id
+            patient.save(update_fields=['local_client_record_id'])
+        return {'status': SyncBatchItem.ItemStatus.APPLIED, 'server_record_id': patient.id}
+
+    serializer = PatientCreateSerializer(data=_strip_sync_metadata(payload))
+    if not serializer.is_valid():
+        return _serializer_rejected(serializer)
+    patient = serializer.save(registered_by=submitted_by)
+    patient.local_client_record_id = client_record_id
+    patient.save(update_fields=['local_client_record_id'])
+    return {'status': SyncBatchItem.ItemStatus.APPLIED, 'server_record_id': patient.id}
+
+
+def _apply_caregiver_upsert(payload, client_record_id):
+    from patients.models import Caregiver
+    from patients.serializers import CaregiverSerializer
+
+    payload = dict(payload)
+    caregiver = Caregiver.objects.filter(local_client_record_id=client_record_id).first()
+    if caregiver:
+        if _server_snapshot_conflict(caregiver, payload):
+            return {
+                'status': SyncBatchItem.ItemStatus.CONFLICT,
+                'conflict_reason': 'Caregiver changed on the server after the offline snapshot',
+            }
+        serializer = CaregiverSerializer(caregiver, data=_strip_sync_metadata(payload), partial=True)
+    else:
+        create_payload = _strip_sync_metadata(payload)
+        create_payload['local_client_record_id'] = client_record_id
+        serializer = CaregiverSerializer(data=create_payload)
+
+    if not serializer.is_valid():
+        return _serializer_rejected(serializer)
+    caregiver = serializer.save()
+    return {'status': SyncBatchItem.ItemStatus.APPLIED, 'server_record_id': caregiver.id}
+
+
+def _apply_surveillance_report_upsert(payload, submitted_by, client_record_id):
+    from patients.models import Patient
+    from surveillance.models import SurveillanceReport
+    from surveillance.serializers import (
+        SurveillanceReportCreateSerializer,
+        SurveillanceReportUpdateSerializer,
+    )
+
+    payload = dict(payload)
+    if 'patient_id' in payload and 'patient' not in payload:
+        payload['patient'] = payload.pop('patient_id')
+    if 'facility_id' in payload and 'facility' not in payload:
+        payload['facility'] = payload.pop('facility_id')
+    if 'patient_client_record_id' in payload and 'patient' not in payload:
+        patient = Patient.objects.filter(
+            local_client_record_id=payload.pop('patient_client_record_id')
+        ).first()
+        if not patient:
+            return {
+                'status': SyncBatchItem.ItemStatus.REJECTED,
+                'conflict_reason': 'Patient client record was not found',
+            }
+        payload['patient'] = patient.id
+
+    report = SurveillanceReport.objects.filter(local_client_record_id=client_record_id).first()
+    if report:
+        if _server_snapshot_conflict(report, payload):
+            return {
+                'status': SyncBatchItem.ItemStatus.CONFLICT,
+                'conflict_reason': 'Surveillance report changed on the server after the offline snapshot',
+            }
+        serializer = SurveillanceReportUpdateSerializer(report, data=_strip_sync_metadata(payload), partial=True)
+        if not serializer.is_valid():
+            return _serializer_rejected(serializer)
+        report = serializer.save()
+        return {'status': SyncBatchItem.ItemStatus.APPLIED, 'server_record_id': report.id}
+
+    serializer = SurveillanceReportCreateSerializer(data=_strip_sync_metadata(payload))
+    if not serializer.is_valid():
+        return _serializer_rejected(serializer)
+    report = serializer.save(reported_by=submitted_by, local_client_record_id=client_record_id)
+    return {'status': SyncBatchItem.ItemStatus.APPLIED, 'server_record_id': report.id}
+
+
+def _apply_immunization_upsert(payload, submitted_by, client_record_id):
     """
     Creates a real ImmunizationEvent from a synced offline payload.
 
-    Duplicate prevention: if an ImmunizationEvent with the same local_client_record_id
-    already exists, the item is marked CONFLICT rather than creating a double record.
+    If an ImmunizationEvent with the same local_client_record_id already exists,
+    the server row is updated instead of creating a duplicate.
     On success, the linked schedule slot (if provided) is transitioned to 'administered'
     and a ScheduleStatusEvent audit record is written.
     """
-    from django.utils.dateparse import parse_datetime
-
     from immunizations.models import ImmunizationEvent, PatientVaccinationSchedule, ScheduleStatusEvent
     from patients.models import Patient
     from users.models import HealthFacility
@@ -203,15 +356,13 @@ def _apply_immunization_insert(payload, submitted_by, client_record_id):
 
     local_id = payload.get('local_client_record_id') or client_record_id
 
-    # ── Duplicate check ────────────────────────────────────────────────────────
-    if local_id and ImmunizationEvent.objects.filter(local_client_record_id=local_id).exists():
-        return {
-            'status': SyncBatchItem.ItemStatus.CONFLICT,
-            'conflict_reason': f'Duplicate local_client_record_id: {local_id}',
-        }
-
     # ── Required field validation ──────────────────────────────────────────────
     patient_id = payload.get('patient_id')
+    if not patient_id and payload.get('patient_client_record_id'):
+        patient = Patient.objects.filter(
+            local_client_record_id=payload['patient_client_record_id']
+        ).first()
+        patient_id = patient.id if patient else None
     vaccine_id = payload.get('vaccine_id')
     administered_at_raw = payload.get('administered_at')
 
@@ -227,6 +378,8 @@ def _apply_immunization_insert(payload, submitted_by, client_record_id):
             'status': SyncBatchItem.ItemStatus.REJECTED,
             'conflict_reason': f'Invalid administered_at value: {administered_at_raw}',
         }
+    if timezone.is_naive(administered_at):
+        administered_at = timezone.make_aware(administered_at)
 
     # ── Resolve FK lookups ─────────────────────────────────────────────────────
     try:
@@ -253,22 +406,42 @@ def _apply_immunization_insert(payload, submitted_by, client_record_id):
     if payload.get('facility_id'):
         facility = HealthFacility.objects.filter(pk=payload['facility_id']).first()
 
-    # ── Create the immunization event ──────────────────────────────────────────
-    event = ImmunizationEvent.objects.create(
-        patient=patient,
-        vaccine=vaccine,
-        vaccine_batch=vaccine_batch,
-        schedule_slot=schedule_slot,
-        administered_by=submitted_by,
-        facility=facility,
-        administered_at=administered_at,
-        administration_route=payload.get('administration_route'),
-        administration_site=payload.get('administration_site'),
-        event_status=payload.get('event_status', ImmunizationEvent.EventStatus.ADMINISTERED),
-        source_channel=ImmunizationEvent.SourceChannel.SYNCED,
-        local_client_record_id=local_id,
-        notes=payload.get('notes'),
-    )
+    event = ImmunizationEvent.objects.filter(local_client_record_id=local_id).first()
+    if event:
+        if _server_snapshot_conflict(event, payload):
+            return {
+                'status': SyncBatchItem.ItemStatus.CONFLICT,
+                'conflict_reason': 'Immunization event changed on the server after the offline snapshot',
+            }
+        event.patient = patient
+        event.vaccine = vaccine
+        event.vaccine_batch = vaccine_batch
+        event.schedule_slot = schedule_slot
+        event.administered_by = submitted_by
+        event.facility = facility
+        event.administered_at = administered_at
+        event.administration_route = payload.get('administration_route')
+        event.administration_site = payload.get('administration_site')
+        event.event_status = payload.get('event_status', ImmunizationEvent.EventStatus.ADMINISTERED)
+        event.source_channel = ImmunizationEvent.SourceChannel.SYNCED
+        event.notes = payload.get('notes')
+        event.save()
+    else:
+        event = ImmunizationEvent.objects.create(
+            patient=patient,
+            vaccine=vaccine,
+            vaccine_batch=vaccine_batch,
+            schedule_slot=schedule_slot,
+            administered_by=submitted_by,
+            facility=facility,
+            administered_at=administered_at,
+            administration_route=payload.get('administration_route'),
+            administration_site=payload.get('administration_site'),
+            event_status=payload.get('event_status', ImmunizationEvent.EventStatus.ADMINISTERED),
+            source_channel=ImmunizationEvent.SourceChannel.SYNCED,
+            local_client_record_id=local_id,
+            notes=payload.get('notes'),
+        )
 
     # ── Transition schedule slot to administered ───────────────────────────────
     if schedule_slot and schedule_slot.status != PatientVaccinationSchedule.SlotStatus.ADMINISTERED:
@@ -351,8 +524,16 @@ class SyncBatchItemResolveView(APIView):
         if resolution == 'keep_client':
             override = serializer.validated_data.get('override_payload')
             if override:
-                # Re-attempt the immunization insert with the corrected payload
-                result = _apply_immunization_insert(override, request.user, item.client_record_id)
+                # Re-attempt the sync item with the corrected payload.
+                result = _process_sync_item(
+                    {
+                        'entity_type': item.entity_type,
+                        'operation_type': item.operation_type,
+                        'client_record_id': item.client_record_id,
+                        'payload': override,
+                    },
+                    submitted_by=request.user,
+                )
                 if result['status'] == SyncBatchItem.ItemStatus.APPLIED:
                     item.server_record_id = result.get('server_record_id')
                     item.payload = override
