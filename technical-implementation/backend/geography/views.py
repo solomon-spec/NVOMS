@@ -7,14 +7,14 @@ from rest_framework.views import APIView
 
 from geography.models import AdministrativeUnit
 from geography.serializers import AdministrativeUnitSerializer
-from users.permissions import IsPublicHealthOfficial
+from users.permissions import IsAdmin
 
 
 class AdministrativeUnitListView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
-        return [IsPublicHealthOfficial()]
+        return [IsAdmin()]
 
     def get(self, request):
         qs = AdministrativeUnit.objects.select_related('parent')
@@ -50,7 +50,7 @@ class AdministrativeUnitDetailView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
-        return [IsPublicHealthOfficial()]
+        return [IsAdmin()]
 
     def _get_unit(self, pk):
         return get_object_or_404(AdministrativeUnit.objects.select_related('parent'), pk=pk)
@@ -76,6 +76,14 @@ class AdministrativeUnitDetailView(APIView):
 
     def delete(self, request, pk):
         unit = self._get_unit(pk)
+        if unit.children.exists():
+            return Response(
+                {
+                    'errorCode': 'STATE_CONFLICT',
+                    'message': 'Cannot delete an administrative unit with child units.',
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
         unit.is_active = False
         unit.save(update_fields=['is_active'])
         return Response(status=status.HTTP_204_NO_CONTENT)

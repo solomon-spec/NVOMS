@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from vaccines.models import Antigen, EpiScheduleRule, EpiScheduleVersion, VaccineBatch, VaccineDefinition
+from vaccines.models import (
+    Antigen,
+    EpiScheduleRule,
+    EpiScheduleVersion,
+    ScheduleRegenerationJob,
+    VaccineBatch,
+    VaccineDefinition,
+)
 
 
 class AntigenSerializer(serializers.ModelSerializer):
@@ -111,3 +118,24 @@ class EpiScheduleVersionDetailSerializer(serializers.ModelSerializer):
             'status', 'notes', 'created_at', 'rules',
         ]
         read_only_fields = ['id', 'created_at']
+
+
+class ScheduleRegenerationJobSerializer(serializers.ModelSerializer):
+    version_id = serializers.UUIDField(source='schedule_version.id', read_only=True)
+
+    class Meta:
+        model = ScheduleRegenerationJob
+        fields = [
+            'id',
+            'version_id',
+            'status',
+            'total',
+            'processed',
+            'failed',
+            'celery_task_id',
+            'error_message',
+            'created_at',
+            'started_at',
+            'completed_at',
+        ]
+        read_only_fields = fields

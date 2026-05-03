@@ -133,3 +133,48 @@ class VaccineBatch(models.Model):
 
     def __str__(self):
         return self.batch_number
+
+
+class ScheduleRegenerationJob(models.Model):
+    class Status(models.TextChoices):
+        QUEUED = 'queued', 'Queued'
+        RUNNING = 'running', 'Running'
+        COMPLETED = 'completed', 'Completed'
+        FAILED = 'failed', 'Failed'
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        db_column='schedule_regeneration_job_id',
+    )
+    schedule_version = models.ForeignKey(
+        EpiScheduleVersion,
+        on_delete=models.CASCADE,
+        related_name='regeneration_jobs',
+        db_column='schedule_version_id',
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='schedule_regeneration_jobs',
+        db_column='requested_by_user_id',
+    )
+    celery_task_id = models.CharField(max_length=160, null=True, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.QUEUED)
+    total = models.PositiveIntegerField(default=0)
+    processed = models.PositiveIntegerField(default=0)
+    failed = models.PositiveIntegerField(default=0)
+    error_message = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'schedule_regeneration_jobs'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.schedule_version_id} {self.status} {self.processed}/{self.total}'

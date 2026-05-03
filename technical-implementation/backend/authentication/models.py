@@ -1,4 +1,5 @@
 import uuid
+import hashlib
 
 from django.conf import settings
 from django.db import models
@@ -28,3 +29,29 @@ class UserSession(models.Model):
     @property
     def is_revoked(self):
         return self.revoked_at is not None
+
+
+class PasswordResetToken(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='password_reset_tokens',
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    contact = models.CharField(max_length=160)
+    created_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'password_reset_tokens'
+        ordering = ['-created_at']
+
+    @staticmethod
+    def hash_token(token):
+        return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+    @property
+    def is_usable(self):
+        return self.used_at is None and self.expires_at >= timezone.now()

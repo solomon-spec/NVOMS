@@ -1,9 +1,14 @@
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+
+from django.conf import settings
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.pagination import StandardPagination
 from reports.models import GeneratedReport, ReportDefinition
 from reports.serializers import GeneratedReportSerializer, ReportQueueSerializer
 from users.permissions import IsPublicHealthOfficial
@@ -29,6 +34,13 @@ REPORT_DEFINITIONS = {
         'report_scope': 'facility',
         'description': 'Summarises adverse events following immunization.',
     },
+}
+
+REPORT_STATUS_ALIASES = {
+    'pending': GeneratedReport.GenerationStatus.PROCESSING,
+    'processing': GeneratedReport.GenerationStatus.PROCESSING,
+    'completed': GeneratedReport.GenerationStatus.COMPLETED,
+    'failed': GeneratedReport.GenerationStatus.FAILED,
 }
 
 
@@ -81,7 +93,69 @@ def _queue_report(request, report_code):
         output_format=data.get('output_format', GeneratedReport.OutputFormat.PDF),
         parameter_payload=parameter_payload or None,
     )
-    return Response(GeneratedReportSerializer(job).data, status=status.HTTP_202_ACCEPTED)
+    return Response(
+        GeneratedReportSerializer(job, context={'request': request}).data,
+        status=status.HTTP_202_ACCEPTED,
+    )
+
+
+def _report_file_path(file_uri):
+    parsed = urlparse(file_uri)
+    if parsed.scheme == 'file':
+        return Path(unquote(parsed.path))
+    candidate = Path(file_uri)
+    if candidate.is_absolute():
+        return candidate
+    base_dir = Path(getattr(settings, 'MEDIA_ROOT', settings.BASE_DIR))
+    return base_dir / candidate
+
+
+def _report_content_type(job):
+    if job.output_format == GeneratedReport.OutputFormat.CSV:
+        return 'text/csv'
+    return 'application/pdf'
+
+
+class ReportListView(APIView):
+    """
+    GET /api/v1/reports/
+
+    Returns the authenticated user's generated report history, newest first.
+    Supports ?status=pending|processing|completed|failed.
+    """
+    permission_classes = [IsPublicHealthOfficial]
+
+    def get(self, request):
+        qs = (
+            GeneratedReport.objects
+            .filter(requested_by=request.user)
+            .select_related('report_definition')
+            .order_by('-requested_at')
+        )
+
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            mapped_status = REPORT_STATUS_ALIASES.get(status_filter)
+            if mapped_status is None:
+                return Response(
+                    {
+                        'status': (
+                            'Unsupported status. Use pending, processing, '
+                            'completed, or failed.'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            qs = qs.filter(generation_status=mapped_status)
+
+        paginator = StandardPagination()
+        page = paginator.paginate_queryset(qs, request, view=self)
+        serializer = GeneratedReportSerializer(
+            page,
+            many=True,
+            context={'request': request},
+        )
+        return paginator.get_paginated_response(serializer.data)
 
 
 class DefaulterReportView(APIView):
@@ -139,19 +213,17 @@ class ReportDownloadView(APIView):
     def get(self, request, job_id):
         job = get_object_or_404(GeneratedReport, pk=job_id, requested_by=request.user)
 
-        if job.generation_status == GeneratedReport.GenerationStatus.PROCESSING:
-            return Response(
-                {'status': 'processing', 'job_id': str(job.id)},
-                status=status.HTTP_202_ACCEPTED,
-            )
-
-        if job.generation_status == GeneratedReport.GenerationStatus.FAILED:
-            return Response(
-                {'status': 'failed', 'job_id': str(job.id)},
-                status=status.HTTP_410_GONE,
-            )
-
-        if not job.file_uri:
+        if job.generation_status != GeneratedReport.GenerationStatus.COMPLETED or not job.file_uri:
             raise Http404
 
-        return Response(GeneratedReportSerializer(job).data)
+        file_path = _report_file_path(job.file_uri)
+        if not file_path.exists() or not file_path.is_file():
+            raise Http404
+
+        filename = f'{job.report_definition.report_name}.{job.output_format}'
+        return FileResponse(
+            file_path.open('rb'),
+            as_attachment=True,
+            filename=filename,
+            content_type=_report_content_type(job),
+        )

@@ -75,6 +75,7 @@ class SyncBatchItem(models.Model):
     class EntityType(models.TextChoices):
         PATIENT = 'patient', 'Patient'
         IMMUNIZATION = 'immunization', 'Immunization'
+        IMMUNIZATION_EVENT = 'immunization_event', 'Immunization Event'
         SURVEILLANCE_REPORT = 'surveillance_report', 'Surveillance Report'
         CAREGIVER = 'caregiver', 'Caregiver'
 

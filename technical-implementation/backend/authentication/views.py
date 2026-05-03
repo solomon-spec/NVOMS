@@ -12,9 +12,14 @@ from authentication.serializers import (
     ChangePasswordRequestSerializer,
     LoginRequestSerializer,
     NVOMSTokenObtainPairSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     RefreshTokenRequestSerializer,
+    create_password_reset_token,
     issue_tokens_for_user,
+    password_reset_rate_limited,
     revoke_user_sessions,
+    send_password_reset_token,
     session_user_payload,
     token_pair_payload,
 )
@@ -189,3 +194,60 @@ class ChangePasswordAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class PasswordResetAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        contact = serializer.validated_data.get('email') or serializer.validated_data.get('phone_number')
+        if password_reset_rate_limited(contact):
+            return Response(
+                {'detail': 'Too many password reset requests. Try again later.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        user = None
+        if serializer.validated_data.get('email'):
+            user = UserModel.objects.filter(email=serializer.validated_data['email']).first()
+        else:
+            user = UserModel.objects.filter(phone_number=serializer.validated_data['phone_number']).first()
+
+        if user is not None:
+            token, _ = create_password_reset_token(user, contact)
+            send_password_reset_token(user, token, contact)
+
+        return Response(
+            {'detail': 'If the account exists, a password reset token has been sent.'},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class PasswordResetConfirmAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @transaction.atomic
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reset = serializer.validated_data['reset']
+        user = reset.user
+        user.set_password(serializer.validated_data['new_password'])
+        user.must_change_password = False
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        if user.status == UserModel.Status.LOCKED:
+            user.status = UserModel.Status.ACTIVE
+        user.save(
+            update_fields=[
+                'password', 'must_change_password', 'failed_login_attempts',
+                'locked_until', 'status',
+            ]
+        )
+        reset.used_at = timezone.now()
+        reset.save(update_fields=['used_at'])
+        revoke_user_sessions(user)
+        return Response({'detail': 'Password reset successfully.'})

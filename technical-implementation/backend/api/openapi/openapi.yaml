@@ -1505,27 +1505,20 @@ paths:
       responses:
         "200":
           description: Time-series trend data aggregated by the requested granularity.
-  /analytics/risk-map:
+  /prediction/risk-scores:
     get:
       tags:
       - Analytics & Risk Map
-      summary: Get outbreak risk scores for all districts
+      summary: Get outbreak risk scores for administrative units
       description: |
-        COMPOSED MODEL — primary: `prediction_scores`; supporting: `administrative_units`, `environmental_observations`.
+        Backed by `outbreak_risk_scores`.
         Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
-        `risk_level` SQL values: `low`, `medium`, `high`, `unknown`.
-        `silent_district_flag = true` means no recent surveillance data, NOT confirmed disease-free.
-        `boundary_geojson` comes from `administrative_units.boundary_geojson`.
       parameters:
-      - name: disease_code
+      - name: disease
         in: query
         required: false
         schema:
           type: string
-          enum:
-          - Measles
-          - Cholera
-          - Polio
       - name: unit_id
         in: query
         required: false
@@ -1541,7 +1534,7 @@ paths:
           format: uuid
       responses:
         "200":
-          description: Risk scores from `prediction_scores`.
+          description: Risk scores with `unit_id`, `unit_name`, `risk_score`, `disease`, and `computed_at`.
   /analytics/defaulter-clusters:
     get:
       tags:
@@ -1553,13 +1546,13 @@ paths:
       responses:
         "200":
           description: "Cluster records with `algorithm_name`, `defaulter_rate`, and `affected_patient_count`."
-  /analytics/environmental:
+  /environmental/observations:
     get:
       tags:
       - Analytics & Risk Map
       summary: Get latest meteorological observations
       description: |
-        PERSISTED TABLE — backed by `environmental_observations`.
+        Backed by `meteorological_observations`.
         Required role: PUBLIC_HEALTH_OFFICIAL, ADMIN.
       parameters:
       - name: unit_id
@@ -1568,13 +1561,13 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: from_date
+      - name: date_from
         in: query
         required: false
         schema:
           type: string
           format: date
-      - name: to_date
+      - name: date_to
         in: query
         required: false
         schema:
@@ -1582,13 +1575,13 @@ paths:
           format: date
       responses:
         "200":
-          description: Time-series weather readings from `environmental_observations` per woreda.
+          description: Time-series weather readings per administrative unit.
     post:
       tags:
       - Environmental Data
       summary: Create a manual environmental observation
       description: |
-        Backed by `environmental_observations`. Required role: ADMIN.
+        Backed by `meteorological_observations`. Required role: ADMIN.
         Use when automated ingestion fails and a manual reading needs to be entered.
       requestBody:
         content:
@@ -1635,10 +1628,8 @@ paths:
       - Prediction & ML
       summary: Trigger a prediction model run
       description: |
-        Backed by `prediction_runs`, `prediction_scores`. Required role: ADMIN, PUBLIC_HEALTH_OFFICIAL.
-        Creates a `prediction_runs` row with `run_type = on_demand`.
-        Note: The API returns `api_status = queued` as a contract-only indicator before the DB row transitions to `running`.
-        This `queued` value is **not** persisted in the database.
+        Backed by `outbreak_risk_scores`. Required role: ADMIN, PUBLIC_HEALTH_OFFICIAL.
+        Dispatches the Celery scoring task and returns queued/completed task metadata.
       requestBody:
         content:
           application/json:
@@ -1646,7 +1637,7 @@ paths:
               $ref: "#/components/schemas/prediction_run_body"
       responses:
         "202":
-          description: Run started. `prediction_runs` row created with `status = running`.
+          description: Run accepted; risk scores are computed or queued.
           content:
             application/json:
               schema:
@@ -1781,22 +1772,22 @@ paths:
           description: Endpoint updated.
         "404":
           description: Endpoint not found.
-  /integrations/dhis2/sync:
+  /dhis2/sync:
     post:
       tags:
       - Interoperability & FHIR
       summary: Trigger a DHIS2 sync job
       description: |
-        Backed by `integration_jobs`, `dhis2_sync_batches`, `dhis2_sync_items`. Required role: ADMIN.
-        Runs automatically weekly via Celery Beat.
+        Backed by `immunization_events`, `integration_sync_logs`. Required role: ADMIN.
+        Exports unsynced immunization events and tags them with `dhis2_synced_at`.
       requestBody:
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/dhis2_sync_body"
       responses:
-        "200":
-          description: Sync complete. `dhis2_sync_batches` and `dhis2_sync_items` created.
+        "202":
+          description: Sync accepted. `integration_sync_logs` row created with counts and errors.
         "503":
           description: DHIS2 unreachable.
   /integrations/dhis2/sync/batches:
@@ -1831,20 +1822,20 @@ paths:
       responses:
         "200":
           description: All `dhis2_sync_items` with `sync_status` and `error_message`.
-  /fhir/Patient/{uid}:
+  /fhir/Patient/{id}:
     get:
       tags:
       - Interoperability & FHIR
       summary: Retrieve a patient as a FHIR R4 Patient resource
       description: |
-        Backed by `patients`. FHIR direction: `export`. Required role: Authorised external system or ADMIN.
-        Transaction logged in `fhir_exchange_logs` with `exchange_status = success`.
+        Backed by `patients`. Required role: ADMIN or PUBLIC_HEALTH_OFFICIAL.
       parameters:
-      - name: uid
+      - name: id
         in: path
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         "200":
           description: FHIR R4 Patient resource.
@@ -1854,40 +1845,40 @@ paths:
                 $ref: "#/components/schemas/inline_response_200_6"
         "404":
           description: Patient not found.
-  /fhir/Immunization:
+  /fhir/Immunization/{id}:
     get:
       tags:
       - Interoperability & FHIR
-      summary: Retrieve immunization records as a FHIR Bundle
+      summary: Retrieve one immunization event as a FHIR R4 Immunization resource
       parameters:
-      - name: patient
-        in: query
-        description: Patient UID.
+      - name: id
+        in: path
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         "200":
-          description: FHIR Bundle of Immunization resources.
+          description: FHIR R4 Immunization resource. `immunization_events.fhir_resource_id` is populated if empty.
         "404":
-          description: No records found.
-  /fhir/Observation:
+          description: Immunization event not found.
+  /fhir/Observation/{id}:
     get:
       tags:
       - Interoperability & FHIR
-      summary: Retrieve surveillance reports as a FHIR Bundle
+      summary: Retrieve one surveillance report as a FHIR R4 Observation resource
       parameters:
-      - name: patient
-        in: query
-        description: Patient UID. Maps to `surveillance_reports.fhir_observation_id`.
+      - name: id
+        in: path
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         "200":
-          description: FHIR Bundle of Observation resources.
+          description: FHIR R4 Observation resource. `surveillance_reports.fhir_resource_id` is populated if empty.
         "404":
-          description: No observations found.
+          description: Surveillance report not found.
   /fhir/Patient/{uid}/bundle:
     get:
       tags:
