@@ -1,4 +1,5 @@
 ﻿from datetime import timedelta
+import secrets
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
@@ -9,11 +10,15 @@ from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from authentication.models import UserSession
+from authentication.models import PasswordResetToken, UserSession
+from notifications.models import Notification
+from notifications.services import create_notification, send_password_reset_email, send_sms
 from users.models import User
 
 MAX_FAILED_LOGIN_ATTEMPTS = 5
 LOCK_DURATION = timedelta(minutes=30)
+PASSWORD_RESET_TOKEN_TTL = timedelta(minutes=30)
+PASSWORD_RESET_RATE_LIMIT = 3
 
 
 def token_pair_payload(refresh):
@@ -74,6 +79,39 @@ class ChangePasswordRequestSerializer(serializers.Serializer):
                 )
             )
         validate_password(attrs["newPassword"], user=user)
+        return attrs
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False, allow_blank=True)
+    phone_number = serializers.CharField(max_length=24, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        email = attrs.get('email') or None
+        phone_number = attrs.get('phone_number') or None
+        if not email and not phone_number:
+            raise serializers.ValidationError('email or phone_number is required.')
+        attrs['email'] = email
+        attrs['phone_number'] = phone_number
+        return attrs
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField(trim_whitespace=False)
+    new_password = serializers.CharField(write_only=True, min_length=8, trim_whitespace=False)
+
+    def validate(self, attrs):
+        token_hash = PasswordResetToken.hash_token(attrs['token'])
+        reset = (
+            PasswordResetToken.objects
+            .select_related('user')
+            .filter(token_hash=token_hash, used_at__isnull=True, expires_at__gte=timezone.now())
+            .first()
+        )
+        if reset is None:
+            raise serializers.ValidationError({'token': 'Invalid or expired token.'})
+        validate_password(attrs['new_password'], user=reset.user)
+        attrs['reset'] = reset
         return attrs
 
 
@@ -165,4 +203,32 @@ def issue_tokens_for_user(user):
 def revoke_user_sessions(user):
     UserSession.objects.filter(user=user, revoked_at__isnull=True).update(revoked_at=timezone.now())
 
+
+def create_password_reset_token(user, contact):
+    token = secrets.token_urlsafe(32)
+    return token, PasswordResetToken.objects.create(
+        user=user,
+        token_hash=PasswordResetToken.hash_token(token),
+        contact=contact,
+        expires_at=timezone.now() + PASSWORD_RESET_TOKEN_TTL,
+    )
+
+
+def password_reset_rate_limited(contact):
+    since = timezone.now() - timedelta(hours=1)
+    return PasswordResetToken.objects.filter(contact=contact, created_at__gte=since).count() >= PASSWORD_RESET_RATE_LIMIT
+
+
+def send_password_reset_token(user, token, contact):
+    create_notification(
+        recipient_user=user,
+        type=Notification.Type.PASSWORD_RESET,
+        title='Password reset requested',
+        body='A password reset token was issued for your NVOMS account.',
+        linked_object_id=user.id,
+    )
+    if '@' in contact:
+        send_password_reset_email(user, token)
+    else:
+        send_sms(contact, f'Your NVOMS password reset token is {token}. It expires in 30 minutes.')
 

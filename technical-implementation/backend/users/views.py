@@ -1,3 +1,6 @@
+import logging
+
+from django.conf import settings
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -7,6 +10,7 @@ from rest_framework.views import APIView
 
 from core.audit import write_audit_log
 from core.models import AuditLog
+from notifications.tasks import send_welcome_notification_task
 from users.models import HealthFacility, Role, User
 from users.permissions import ADMIN, IsAdmin, IsAdminOrSelf, _role_code
 from users.serializers import (
@@ -19,6 +23,8 @@ from users.serializers import (
     UserUpdateSerializer,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class UserListView(APIView):
     permission_classes = [IsAdmin]
@@ -30,6 +36,7 @@ class UserListView(APIView):
     def post(self, request):
         serializer = UserCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        temporary_password = serializer.validated_data.get('password')
         user = serializer.save()
         write_audit_log(
             actor_user=request.user,
@@ -39,6 +46,13 @@ class UserListView(APIView):
             detail={'email': user.email, 'role': user.role.role_code},
             request=request,
         )
+        try:
+            if settings.CELERY_TASK_ALWAYS_EAGER:
+                send_welcome_notification_task(str(user.id), temporary_password)
+            else:
+                send_welcome_notification_task.delay(str(user.id), temporary_password)
+        except Exception as exc:
+            logger.warning('Welcome notification dispatch failed for user %s: %s', user.id, exc)
         user = User.objects.select_related('role', 'assigned_facility').get(pk=user.pk)
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 

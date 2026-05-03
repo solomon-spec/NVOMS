@@ -196,6 +196,27 @@ CELERY_CACHE_BACKEND = "django-cache"
 CELERY_TIMEZONE = "UTC"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "False") == "True"
+
+# ── Email / SMS delivery ──────────────────────────────────────────────────────
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@nvoms.local")
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+PASSWORD_RESET_URL = os.environ.get(
+    "PASSWORD_RESET_URL",
+    "http://localhost:3000/auth/reset-password",
+)
+
+SMS_GATEWAY = os.environ.get("SMS_GATEWAY", "console").lower()
+SMS_FROM = os.environ.get("SMS_FROM", "NVOMS")
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER", "")
+AFRICASTALKING_USERNAME = os.environ.get("AFRICASTALKING_USERNAME", "")
+AFRICASTALKING_API_KEY = os.environ.get("AFRICASTALKING_API_KEY", "")
+AFRICASTALKING_SENDER_ID = os.environ.get("AFRICASTALKING_SENDER_ID", "")
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 LOGGING = {
