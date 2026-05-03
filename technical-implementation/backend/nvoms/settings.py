@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     "notifications",
     "analytics",
     "reports",
+    "prediction",
+    "environmental",
     # 5. Integration & Offline
     "integrations",
     "offline",
@@ -217,6 +219,15 @@ TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER", "")
 AFRICASTALKING_USERNAME = os.environ.get("AFRICASTALKING_USERNAME", "")
 AFRICASTALKING_API_KEY = os.environ.get("AFRICASTALKING_API_KEY", "")
 AFRICASTALKING_SENDER_ID = os.environ.get("AFRICASTALKING_SENDER_ID", "")
+
+# ── Prediction / External integrations ───────────────────────────────────────
+PREDICTION_DISEASES = os.environ.get("PREDICTION_DISEASES", "measles")
+OPEN_METEO_ENABLED = os.environ.get("OPEN_METEO_ENABLED", "False") == "True"
+DHIS2_BASE_URL = os.environ.get("DHIS2_BASE_URL", "")
+DHIS2_USERNAME = os.environ.get("DHIS2_USERNAME", "")
+DHIS2_PASSWORD = os.environ.get("DHIS2_PASSWORD", "")
+DHIS2_PROGRAM_ID = os.environ.get("DHIS2_PROGRAM_ID", "")
+DHIS2_DRY_RUN = os.environ.get("DHIS2_DRY_RUN", "True") == "True"
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 LOGGING = {
