@@ -154,6 +154,8 @@ class ImmunizationEvent(models.Model):
         max_length=10, choices=SourceChannel.choices, default=SourceChannel.ONLINE
     )
     local_client_record_id = models.CharField(max_length=120, null=True, blank=True)
+    dhis2_synced_at = models.DateTimeField(null=True, blank=True)
+    fhir_resource_id = models.CharField(max_length=120, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 

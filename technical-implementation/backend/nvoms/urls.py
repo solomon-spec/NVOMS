@@ -36,9 +36,13 @@ urlpatterns = [
     path("api/v1/notifications/", include("notifications.urls")),
     path("api/v1/sms-logs/", include("notifications.sms_urls")),
     path("api/v1/analytics/", include("analytics.urls")),
+    path("api/v1/prediction/", include("prediction.urls")),
+    path("api/v1/environmental/", include("environmental.urls")),
     path("api/v1/reports/", include("reports.urls")),
     path("api/v1/audit-logs/", include("core.urls")),
     path("api/v1/integrations/", include("integrations.urls")),
+    path("api/v1/dhis2/", include("integrations.dhis2_urls")),
+    path("api/v1/fhir/", include("integrations.fhir_urls")),
     path("api/v1/offline/", include("offline.urls")),
     path("api/v1/geography/", include("geography.urls")),
 ]

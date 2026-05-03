@@ -20,7 +20,7 @@ class SurveillanceReportSerializer(serializers.ModelSerializer):
             'surveillance_category', 'condition_type', 'disease_suspected',
             'onset_date', 'body_temperature_c', 'severity',
             'follow_up_required', 'status',
-            'fhir_observation_id', 'notes',
+            'fhir_observation_id', 'fhir_resource_id', 'notes',
             'symptoms', 'created_at',
         ]
         read_only_fields = ['id', 'reported_by', 'created_at']
