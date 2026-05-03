@@ -62,8 +62,10 @@ class SurveillanceReport(models.Model):
     )
     fhir_observation_id = models.CharField(max_length=120, null=True, blank=True)
     fhir_resource_id = models.CharField(max_length=120, null=True, blank=True)
+    local_client_record_id = models.CharField(max_length=120, unique=True, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     class Meta:
         db_table = 'surveillance_reports'
