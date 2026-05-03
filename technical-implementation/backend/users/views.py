@@ -5,6 +5,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.audit import write_audit_log
+from core.models import AuditLog
 from users.models import HealthFacility, Role, User
 from users.permissions import ADMIN, IsAdmin, IsAdminOrSelf, _role_code
 from users.serializers import (
@@ -29,6 +31,14 @@ class UserListView(APIView):
         serializer = UserCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        write_audit_log(
+            actor_user=request.user,
+            action=AuditLog.Action.USER_CREATE,
+            entity_type='user',
+            entity_id=user.id,
+            detail={'email': user.email, 'role': user.role.role_code},
+            request=request,
+        )
         user = User.objects.select_related('role', 'assigned_facility').get(pk=user.pk)
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
@@ -52,6 +62,14 @@ class UserDetailView(APIView):
         serializer = UserUpdateSerializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        write_audit_log(
+            actor_user=request.user,
+            action=AuditLog.Action.USER_UPDATE,
+            entity_type='user',
+            entity_id=user.id,
+            detail={'fields': sorted(serializer.validated_data.keys())},
+            request=request,
+        )
         user = User.objects.select_related('role', 'assigned_facility').get(pk=pk)
         return Response(UserSerializer(user).data)
 
@@ -61,6 +79,14 @@ class UserDetailView(APIView):
         serializer = UserUpdateSerializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        write_audit_log(
+            actor_user=request.user,
+            action=AuditLog.Action.USER_UPDATE,
+            entity_type='user',
+            entity_id=user.id,
+            detail={'fields': sorted(serializer.validated_data.keys())},
+            request=request,
+        )
         user = User.objects.select_related('role', 'assigned_facility').get(pk=pk)
         return Response(UserSerializer(user).data)
 
@@ -71,6 +97,14 @@ class UserDetailView(APIView):
         user.status = User.Status.DELETED
         user.is_active = False
         user.save(update_fields=['status', 'is_active'])
+        write_audit_log(
+            actor_user=request.user,
+            action=AuditLog.Action.USER_DEACTIVATE,
+            entity_type='user',
+            entity_id=user.id,
+            detail={'status': User.Status.DELETED},
+            request=request,
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -82,9 +116,18 @@ class UserStatusView(APIView):
         serializer = UserStatusSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_status = serializer.validated_data['status']
+        old_status = user.status
         user.status = new_status
         user.is_active = new_status == User.Status.ACTIVE
         user.save(update_fields=['status', 'is_active'])
+        write_audit_log(
+            actor_user=request.user,
+            action=AuditLog.Action.USER_STATUS_UPDATE,
+            entity_type='user',
+            entity_id=user.id,
+            detail={'from_status': old_status, 'to_status': new_status},
+            request=request,
+        )
         user = User.objects.select_related('role', 'assigned_facility').get(pk=pk)
         return Response(UserSerializer(user).data)
 
@@ -98,9 +141,49 @@ class UserRoleAssignView(APIView):
         )
         serializer = UserRoleAssignSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        old_role = user.role.role_code
         user.role = serializer.validated_data['role_id']
         user.save(update_fields=['role'])
+        write_audit_log(
+            actor_user=request.user,
+            action=AuditLog.Action.ROLE_ASSIGN,
+            entity_type='user',
+            entity_id=user.id,
+            detail={'from_role': old_role, 'to_role': user.role.role_code},
+            request=request,
+        )
         user = User.objects.select_related('role', 'assigned_facility').get(pk=pk)
+        return Response(UserSerializer(user).data)
+
+
+class UserUnlockView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        user = get_object_or_404(
+            User.objects.select_related('role', 'assigned_facility'), pk=pk
+        )
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        user.status = User.Status.ACTIVE
+        user.is_active = True
+        user.save(
+            update_fields=[
+                'failed_login_attempts',
+                'locked_until',
+                'status',
+                'is_active',
+                'updated_at',
+            ]
+        )
+        write_audit_log(
+            actor_user=request.user,
+            action=AuditLog.Action.ACCOUNT_UNLOCK,
+            entity_type='user',
+            entity_id=user.id,
+            detail={'status': User.Status.ACTIVE},
+            request=request,
+        )
         return Response(UserSerializer(user).data)
 
 

@@ -48,11 +48,11 @@ class IsAdminOrSelf(BasePermission):
 
 
 class IsPatientUser(BasePermission):
-    """Grants access to users with the PATIENT role (or ADMIN)."""
+    """Grants access to users with the PATIENT role."""
     message = 'Patient account required.'
 
     def has_permission(self, request, view):
-        return _role_code(request.user) in (ADMIN, PATIENT)
+        return _role_code(request.user) == PATIENT
 
 
 class IsCaregiverUser(BasePermission):

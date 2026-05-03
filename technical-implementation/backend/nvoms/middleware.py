@@ -31,9 +31,10 @@ ROLE_ACCESS_MAP = {
     "/api/v1/prediction/": {"ADMIN", "PUBLIC_HEALTH_OFFICIAL"},
     "/api/v1/analytics/": {"ADMIN", "PUBLIC_HEALTH_OFFICIAL"},
     "/api/v1/reports/": {"ADMIN", "PUBLIC_HEALTH_OFFICIAL"},
+    "/api/v1/audit-logs/": {"ADMIN"},
     "/api/v1/notifications/": {"ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"},
     # Patient self-service paths (longer prefix wins over /api/v1/patients/)
-    "/api/v1/patients/me": {"ADMIN", "HEALTH_WORKER", "PATIENT"},
+    "/api/v1/patients/me": {"PATIENT"},
     "/api/v1/patients/": {"ADMIN", "HEALTH_WORKER"},
     # Caregiver self-service paths (longer prefix wins over /api/v1/caregivers/)
     "/api/v1/caregivers/me": {"ADMIN", "HEALTH_WORKER", "CAREGIVER"},
