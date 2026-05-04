@@ -34,6 +34,7 @@ import {
 } from "@/services/surveillance";
 import { formatRole } from "@/shared/format";
 import {
+  AlertBanner,
   EmptyState,
   InlineError,
   MetricCard,
@@ -219,7 +220,7 @@ export function SurveillanceWorkspace() {
           listFacilities(token),
           listAdministrativeUnits(token),
           canManageReports
-            ? listPatients(token, { status: "registered" })
+            ? listPatients(token)
             : Promise.resolve([]),
         ]);
 
@@ -528,6 +529,20 @@ export function SurveillanceWorkspace() {
         ))}
       </section>
 
+      {/* Confirmed outbreak alert banner */}
+      {alerts.filter((a) => a.status === "confirmed").length > 0 && (
+        <AlertBanner
+          tone="error"
+          count={alerts.filter((a) => a.status === "confirmed").length}
+        >
+          <strong>
+            {alerts.filter((a) => a.status === "confirmed").length} confirmed outbreak alert
+            {alerts.filter((a) => a.status === "confirmed").length > 1 ? "s" : ""}
+          </strong>{" "}
+          — immediate public health action is required. Scroll to the Outbreak Alerts section below to review and update status.
+        </AlertBanner>
+      )}
+
       {notice ? <Notice>{notice}</Notice> : null}
 
       {isCreateOpen && canManageReports ? (
@@ -741,7 +756,7 @@ export function SurveillanceWorkspace() {
               <div className="space-y-2">
                 {reports.map((report) => (
                   <button
-                    className={`w-full rounded-xl border p-4 text-left transition hover:border-brand-200 hover:bg-brand-25 dark:hover:bg-brand-500/10 ${
+                    className={`w-full rounded-xl border border-l-4 p-4 text-left transition hover:border-brand-200 hover:bg-brand-25 dark:hover:bg-brand-500/10 ${severityBorderClass(report.severity)} ${
                       selectedReportId === report.id
                         ? "border-brand-300 bg-brand-25 dark:border-brand-500/40 dark:bg-brand-500/10"
                         : "border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.02]"
@@ -1368,6 +1383,13 @@ function severityTone(severity: SurveillanceSeverity) {
   }
 
   return "success";
+}
+
+function severityBorderClass(severity: SurveillanceSeverity | null | undefined): string {
+  if (severity === "critical") return "border-l-error-600";
+  if (severity === "high") return "border-l-orange-500";
+  if (severity === "moderate") return "border-l-warning-400";
+  return "border-l-transparent";
 }
 
 function alertStatusTone(status: AlertStatus) {

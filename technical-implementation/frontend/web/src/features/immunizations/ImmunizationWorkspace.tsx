@@ -29,6 +29,7 @@ import {
   updatePatientScheduleSlot,
 } from "@/services/patients";
 import { formatRole } from "@/shared/format";
+import { AlertBanner, ConfirmModal } from "@/shared/workspace-ui";
 
 const patientStatuses: Array<{ label: string; value: PatientStatus | "all" }> = [
   { label: "All active records", value: "all" },
@@ -119,6 +120,17 @@ export function ImmunizationWorkspace() {
   const [doseError, setDoseError] = useState("");
   const [slotError, setSlotError] = useState("");
   const [notice, setNotice] = useState("");
+  const [showDoseConfirm, setShowDoseConfirm] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const on = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
 
   const token = session?.tokens.accessToken ?? "";
   const selectedSlot = schedule.find((slot) => slot.id === selectedSlotId) ?? null;
@@ -348,17 +360,19 @@ export function ImmunizationWorkspace() {
 
   async function handleRecordDose(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedPatientId) {
-      return;
-    }
-
+    if (!selectedPatientId) return;
     setDoseError("");
     setNotice("");
     if (!doseForm.vaccine_id) {
       setDoseError("Select a vaccine before recording the dose.");
       return;
     }
+    // Show confirm modal instead of submitting directly
+    setShowDoseConfirm(true);
+  }
 
+  async function confirmAndRecordDose() {
+    if (!selectedPatientId) return;
     setIsRecordingDose(true);
     try {
       const dose = await createPatientDose(
@@ -396,14 +410,21 @@ export function ImmunizationWorkspace() {
               and record immunization events through the patient dose API.
             </p>
           </div>
-          <button
-            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-            disabled={!selectedPatientId || isPatientLoading}
-            type="button"
-            onClick={() => reloadPatientWork()}
-          >
-            Refresh selected patient
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {/* Offline indicator */}
+            <div className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${isOnline ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-300" : "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-300"}`}>
+              <span className={`h-2 w-2 rounded-full ${isOnline ? "bg-success-500" : "bg-warning-500 animate-pulse"}`} />
+              {isOnline ? "Online" : "Offline — doses will be queued"}
+            </div>
+            <button
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+              disabled={!selectedPatientId || isPatientLoading}
+              type="button"
+              onClick={() => reloadPatientWork()}
+            >
+              Refresh selected patient
+            </button>
+          </div>
         </div>
       </section>
 
@@ -413,11 +434,28 @@ export function ImmunizationWorkspace() {
         ))}
       </section>
 
+      {!isOnline && (
+        <AlertBanner tone="warning">
+          <strong>You are offline.</strong> Doses recorded now will be submitted to the server when your connection is restored via the Offline Sync module.
+        </AlertBanner>
+      )}
+
       {notice ? (
         <div className="rounded-lg border border-success-200 bg-success-25 px-4 py-3 text-sm font-semibold text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-300">
           {notice}
         </div>
       ) : null}
+
+      {/* Confirm dose modal */}
+      <ConfirmModal
+        isOpen={showDoseConfirm}
+        title="Confirm Dose Recording"
+        message={`Record a dose of ${vaccines.find((v) => v.id === doseForm.vaccine_id)?.vaccine_name ?? "selected vaccine"} for ${selectedPatient?.full_name ?? "this patient"}? This action cannot be undone.`}
+        confirmLabel="Record Dose"
+        isLoading={isRecordingDose}
+        onConfirm={() => { setShowDoseConfirm(false); confirmAndRecordDose(); }}
+        onCancel={() => setShowDoseConfirm(false)}
+      />
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,0.82fr)_minmax(560px,1.18fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
@@ -658,6 +696,18 @@ export function ImmunizationWorkspace() {
                     })),
                   ]}
                 />
+                {/* Batch expiry warning */}
+                {(() => {
+                  const selectedBatch = filteredBatches.find((b) => b.id === doseForm.vaccine_batch_id);
+                  if (selectedBatch?.expiry_date && new Date(selectedBatch.expiry_date) < new Date()) {
+                    return (
+                      <AlertBanner tone="warning" count={1}>
+                        <strong>Batch {selectedBatch.batch_number} expired on {selectedBatch.expiry_date}.</strong> Do not administer expired vaccines. Select a valid batch or contact your supervisor.
+                      </AlertBanner>
+                    );
+                  }
+                  return null;
+                })()}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <TextInput
                     label="Administered at"

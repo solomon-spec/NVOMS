@@ -5,3 +5,7 @@ node_modules/
 *.tsbuildinfo
 .env
 nvoms_env/
+.sqlite3
+technical-implementation/frontend/web/test-results/
+technical-implementation/frontend/web/playwright-report/
+technical-implementation/frontend/web/playwright/

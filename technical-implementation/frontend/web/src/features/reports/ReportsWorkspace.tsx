@@ -49,7 +49,17 @@ export function ReportsWorkspace() {
   const [selectedEndpoint, setSelectedEndpoint] =
     useState<(typeof reportTemplates)[number]["endpoint"]>("defaulters");
   const [form, setForm] = useState(emptyReportForm);
-  const [jobs, setJobs] = useState<GeneratedReport[]>([]);
+  const [jobs, setJobs] = useState<GeneratedReport[]>(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem(`nvoms_jobs_${session?.user?.id || "guest"}`);
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {}
+      }
+    }
+    return [];
+  });
   const [selectedJobId, setSelectedJobId] = useState("");
   const [isLoadingReference, setIsLoadingReference] = useState(true);
   const [isQueueing, setIsQueueing] = useState(false);
@@ -98,6 +108,40 @@ export function ReportsWorkspace() {
       isActive = false;
     };
   }, [token]);
+
+  // Persist jobs to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        `nvoms_jobs_${session?.user?.id || "guest"}`,
+        JSON.stringify(jobs),
+      );
+    }
+  }, [jobs, session?.user?.id]);
+
+  // Auto-poll processing jobs every 10 seconds
+  useEffect(() => {
+    const processingJobs = jobs.filter(
+      (j) => j.generation_status === "processing",
+    );
+    if (processingJobs.length === 0 || !token) return;
+
+    const interval = setInterval(() => {
+      processingJobs.forEach((job) => {
+        getReportDownload(token, job.id)
+          .then((res) => {
+            if ("generation_status" in res && res.generation_status !== job.generation_status) {
+              setJobs((current) =>
+                current.map((c) => (c.id === res.id ? res : c)),
+              );
+            }
+          })
+          .catch(() => {});
+      });
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [jobs, token]);
 
   const metrics = useMemo(() => {
     const processing = jobs.filter(
@@ -383,10 +427,13 @@ export function ReportsWorkspace() {
                     </button>
                   ))
                 ) : (
-                  <EmptyState>
-                    No report jobs queued yet. Queue a template to start the
-                    backend generation workflow.
-                  </EmptyState>
+                  <div className="flex flex-col items-center rounded-xl border border-dashed border-gray-200 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-white/[0.02]">
+                    <span className="text-4xl">📥</span>
+                    <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-white">No jobs queued</h3>
+                    <p className="mt-2 max-w-[200px] text-xs text-gray-500 dark:text-gray-400">
+                      Queue a template to start the backend generation workflow. Jobs will persist on this device.
+                    </p>
+                  </div>
                 )}
               </div>
 

@@ -29,7 +29,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     }
 
     if (!isAllowed) {
-      router.replace("/dashboard");
+      router.replace("/");
     }
   }, [isAllowed, router, session]);
 

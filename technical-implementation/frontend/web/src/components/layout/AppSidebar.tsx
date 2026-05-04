@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuthSession } from "@/features/auth/useAuthSession";
+import { clearStoredSession } from "@/shared/auth-storage";
 import {
   BellIcon,
   BoxCubeIcon,
@@ -15,7 +16,6 @@ import {
   PieChartIcon,
   TaskIcon,
 } from "@/icons";
-import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
   name: string;
@@ -26,28 +26,66 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  // Shared / Role-specific home
   {
     icon: <BoxCubeIcon />,
     name: "Dashboard",
-    path: "/dashboard",
+    path: "/",
+    roles: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
   },
   {
-    icon: <GroupIcon />,
-    name: "Patient Registry",
-    path: "/patients",
-    roles: ["ADMIN", "HEALTH_WORKER"],
+    icon: <BoxCubeIcon />,
+    name: "Today",
+    path: "/",
+    roles: ["HEALTH_WORKER"],
   },
   {
+    icon: <DocsIcon />,
+    name: "My Vaccination Card",
+    path: "/self-service",
+    roles: ["PATIENT"],
+  },
+
+  // Patient Self Service (PATIENT)
+  {
     icon: <GroupIcon />,
-    name: "My Record",
-    path: "/my-patient",
+    name: "QR ID",
+    path: "/self-service/qr",
     roles: ["PATIENT"],
   },
   {
     icon: <CalenderIcon />,
-    name: "Immunization",
+    name: "Upcoming Doses",
+    path: "/self-service/timeline",
+    roles: ["PATIENT"],
+  },
+  {
+    icon: <BellIcon />,
+    name: "Alerts",
+    path: "/self-service/alerts",
+    roles: ["PATIENT"],
+  },
+
+  // Clinical Operations (HEALTH WORKER / ADMIN)
+  {
+    icon: <GroupIcon />,
+    name: "Patients",
+    path: "/patients",
+    roles: ["ADMIN", "HEALTH_WORKER"],
+  },
+  {
+    icon: <CalenderIcon />,
+    name: "Immunizations",
     path: "/immunizations",
     roles: ["ADMIN", "HEALTH_WORKER"],
+  },
+  
+  // Public Health Monitoring (PHO / ADMIN / HW)
+  {
+    icon: <PieChartIcon />,
+    name: "Risk Map",
+    path: "/risk-map",
+    roles: ["PUBLIC_HEALTH_OFFICIAL"],
   },
   {
     icon: <TaskIcon />,
@@ -56,10 +94,10 @@ const navItems: NavItem[] = [
     roles: ["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"],
   },
   {
-    icon: <PieChartIcon />,
-    name: "Analytics",
-    path: "/analytics",
-    roles: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
+    icon: <GroupIcon />,
+    name: "Defaulter Clusters",
+    path: "/defaulters",
+    roles: ["PUBLIC_HEALTH_OFFICIAL"],
   },
   {
     icon: <DocsIcon />,
@@ -67,17 +105,41 @@ const navItems: NavItem[] = [
     path: "/reports",
     roles: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
   },
+
+  // Notifications (Shared)
   {
     icon: <BellIcon />,
     name: "Notifications",
     path: "/notifications",
     roles: ["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"],
   },
+
+  // HW specific
   {
     icon: <ListIcon />,
-    name: "Offline Sync",
-    path: "/offline",
-    roles: ["ADMIN", "HEALTH_WORKER"],
+    name: "Offline Queue",
+    path: "/offline-queue",
+    roles: ["HEALTH_WORKER"],
+  },
+
+  // Administration (ADMIN)
+  {
+    icon: <GroupIcon />,
+    name: "Admin Console",
+    path: "/admin",
+    roles: ["ADMIN"],
+  },
+  {
+    icon: <BoxCubeIcon />,
+    name: "System Settings",
+    path: "/settings",
+    roles: ["ADMIN"],
+  },
+  {
+    icon: <TaskIcon />,
+    name: "Interoperability",
+    path: "/settings/interoperability",
+    roles: ["ADMIN"],
   },
 ];
 
@@ -120,7 +182,9 @@ const AppSidebar: React.FC = () => {
   );
 
   const isActive = (path: string) =>
-    path === pathname || pathname.startsWith(`${path}/`);
+    path === "/"
+      ? pathname === "/"
+      : path === pathname || pathname.startsWith(`${path}/`);
 
   return (
     <aside
@@ -142,7 +206,7 @@ const AppSidebar: React.FC = () => {
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link href="/dashboard">
+        <Link href="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <Image
@@ -184,19 +248,13 @@ const AppSidebar: React.FC = () => {
           {renderMenuItems(visibleNavItems)}
         </nav>
         {isExpanded || isHovered || isMobileOpen ? (
-          <div className="mt-auto space-y-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
-                Signed in
-              </p>
-              <p className="mt-2 truncate text-sm font-semibold text-gray-900 dark:text-white">
-                {session?.user.displayName}
-              </p>
-              <p className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
-                {session?.user.facilityCode ?? session?.user.role}
-              </p>
-            </div>
-            <SidebarWidget />
+          <div className="mt-auto p-4">
+            <button
+              onClick={() => clearStoredSession()}
+              className="flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-red-700 dark:border-gray-800 dark:bg-gray-900 dark:text-red-500 dark:hover:bg-gray-800/50 dark:hover:text-red-400"
+            >
+              Log out
+            </button>
           </div>
         ) : null}
       </div>

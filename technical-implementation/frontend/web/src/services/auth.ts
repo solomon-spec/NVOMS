@@ -42,3 +42,17 @@ export function logout(session: AuthSession) {
     body: JSON.stringify({ refreshToken: session.tokens.refreshToken }),
   });
 }
+
+export function requestPasswordReset(email: string) {
+  return apiRequest<{ detail: string }>("/auth/password-reset/", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function confirmPasswordReset(token: string, new_password: string) {
+  return apiRequest<{ detail: string }>("/auth/password-reset/confirm/", {
+    method: "POST",
+    body: JSON.stringify({ token, new_password }),
+  });
+}

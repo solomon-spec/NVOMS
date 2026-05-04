@@ -6,6 +6,7 @@ import AppHeader from "@/components/layout/AppHeader";
 import AppSidebar from "@/components/layout/AppSidebar";
 import Backdrop from "@/components/layout/Backdrop";
 import { useSidebar } from "@/context/SidebarContext";
+import { ToastProvider } from "@/shared/workspace-ui";
 
 export default function DashboardLayout({
   children,
@@ -22,18 +23,20 @@ export default function DashboardLayout({
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen xl:flex">
-        <AppSidebar />
-        <Backdrop />
-        <div
-          className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
-        >
-          <AppHeader />
-          <main className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
-            {children}
-          </main>
+      <ToastProvider>
+        <div className="min-h-screen xl:flex">
+          <AppSidebar />
+          <Backdrop />
+          <div
+            className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
+          >
+            <AppHeader />
+            <main className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
+      </ToastProvider>
     </ProtectedRoute>
   );
 }

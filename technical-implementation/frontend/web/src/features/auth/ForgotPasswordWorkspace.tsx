@@ -6,24 +6,31 @@ import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
 import { MailIcon } from "@/icons";
+import { requestPasswordReset } from "@/services/auth";
 import AuthPageFrame from "./components/AuthPageFrame";
 
 export default function ForgotPasswordWorkspace() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (!email.trim()) {
       setError("Enter the email address linked to your NVOMS account.");
-      setSubmitted(false);
       return;
     }
-
+    setIsLoading(true);
     setError("");
-    setSubmitted(true);
+    try {
+      await requestPasswordReset(email);
+      setSubmitted(true);
+    } catch {
+      setError("No account found for that email, or the request failed. Try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -65,13 +72,14 @@ export default function ForgotPasswordWorkspace() {
 
         {submitted ? (
           <div className="rounded-lg border border-success-200 bg-success-25 px-4 py-3 text-sm leading-6 text-success-700">
-            A reset link has been prepared for <strong>{email}</strong>. In the
-            live backend flow, this is where the email dispatch will connect.
+            ✅ A reset link has been sent to <strong>{email}</strong>. Check your email or SMS inbox.
           </div>
         ) : null}
 
         <div className="space-y-3">
-          <Button className="w-full">Send Reset Link</Button>
+          <Button className="w-full" disabled={isLoading}>
+            {isLoading ? "Sending…" : "Send Reset Link"}
+          </Button>
           <Link
             href="/auth/sign-in"
             className="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 hover:text-gray-900"

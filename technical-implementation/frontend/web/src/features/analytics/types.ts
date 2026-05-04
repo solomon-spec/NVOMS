@@ -56,3 +56,45 @@ export type AnalyticsFilters = {
   date_from?: string;
   date_to?: string;
 };
+
+// ── New endpoint types ────────────────────────────────────────────────────────
+
+export type CoverageTrendPoint = {
+  date: string;
+  overall_coverage_pct: number;
+  administered: number;
+  scheduled: number;
+};
+
+export type CoverageTrendResponse = CoverageTrendPoint[];
+
+export type DefaulterClusterRow = {
+  unit_id: string;
+  unit_name: string;
+  level: string;
+  defaulter_count: number;
+  coverage_pct: number;
+  vaccines_missing: string[];
+};
+
+export type DefaulterClusterResponse = DefaulterClusterRow[];
+
+export type ReportingGapRow = {
+  unit_id: string;
+  unit_name: string;
+  days_since_last_report: number;
+  level: string;
+};
+
+export type ReportingGapResponse = ReportingGapRow[];
+
+export type RiskScoreRow = {
+  id: string;
+  unit_id: string;
+  unit_name: string;
+  risk_score: number;
+  disease: string;
+  computed_at: string;
+};
+
+export type RiskScoreResponse = RiskScoreRow[];

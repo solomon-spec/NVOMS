@@ -212,6 +212,8 @@ export function PatientRegistry() {
   const [schedule, setSchedule] = useState<PatientScheduleSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<PatientScheduleSlot | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCaregiverSetupOpen, setIsCaregiverSetupOpen] = useState(false);
+  const [isVaccineSetupOpen, setIsVaccineSetupOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -770,13 +772,29 @@ export function PatientRegistry() {
             immunization summaries from the API-backed registry workspace.
           </p>
         </div>
-        <button
-          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white shadow-theme-xs transition hover:bg-brand-700"
-          type="button"
-          onClick={() => setIsFormOpen((current) => !current)}
-        >
-          {isFormOpen ? "Close registration" : "Register patient"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+            type="button"
+            onClick={() => setIsCaregiverSetupOpen(!isCaregiverSetupOpen)}
+          >
+            {isCaregiverSetupOpen ? "Close caregiver setup" : "Caregiver setup"}
+          </button>
+          <button
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+            type="button"
+            onClick={() => setIsVaccineSetupOpen(!isVaccineSetupOpen)}
+          >
+            {isVaccineSetupOpen ? "Close vaccine setup" : "Vaccine setup"}
+          </button>
+          <button
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white shadow-theme-xs transition hover:bg-brand-700"
+            type="button"
+            onClick={() => setIsFormOpen((current) => !current)}
+          >
+            {isFormOpen ? "Close registration" : "Register patient"}
+          </button>
+        </div>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -796,21 +814,22 @@ export function PatientRegistry() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
-        <form
-          className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
-          onSubmit={handleCreateCaregiver}
-        >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                Caregiver setup
-              </h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Patient registration requires a caregiver record.
-              </p>
+        {isCaregiverSetupOpen && (
+          <form
+            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
+            onSubmit={handleCreateCaregiver}
+          >
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                  Caregiver setup
+                </h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Patient registration requires a caregiver record.
+                </p>
+              </div>
+              <StatusPill label={`${caregivers.length} active`} />
             </div>
-            <StatusPill label={`${caregivers.length} active`} />
-          </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <TextInput
               label="Caregiver name"
@@ -864,7 +883,9 @@ export function PatientRegistry() {
             {isCreatingCaregiver ? "Creating caregiver" : "Create caregiver"}
           </button>
         </form>
+        )}
 
+        {isVaccineSetupOpen && (
         <form
           className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
           onSubmit={handleSetupVaccineSchedule}
@@ -974,6 +995,7 @@ export function PatientRegistry() {
             {isSettingUpVaccine ? "Setting up vaccine" : "Create vaccine setup"}
           </button>
         </form>
+        )}
       </section>
 
       {setupError ? <InlineError message={setupError} /> : null}
@@ -1087,12 +1109,19 @@ export function PatientRegistry() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(520px,1.1fr)]">
         <div className="rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
           <div className="flex flex-col gap-3 border-b border-gray-200 p-5 dark:border-gray-800 md:flex-row md:items-center md:justify-between">
-            <input
-              className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-800 shadow-theme-xs outline-none transition placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 md:max-w-md"
-              placeholder="Search patient UID, name, caregiver phone"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+            <div className="relative w-full md:max-w-md">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </span>
+              <input
+                className="min-h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-800 shadow-theme-xs outline-none transition placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                placeholder="Search patient UID, name, caregiver phone"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
             <select
               className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-800 shadow-theme-xs outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
               value={status}
@@ -1131,12 +1160,13 @@ export function PatientRegistry() {
                 ) : patients.length ? (
                   patients.map((patient) => (
                     <tr
-                      className={
+                      className={`group transition cursor-pointer ${
                         selectedPatientId === patient.id
-                          ? "bg-brand-25 dark:bg-brand-500/10"
-                          : ""
-                      }
+                          ? "bg-brand-50 border-l-4 border-brand-500 dark:bg-brand-500/10 dark:border-brand-400"
+                          : "border-l-4 border-transparent hover:bg-gray-50 dark:hover:bg-white/[0.02]"
+                      }`}
                       key={patient.id}
+                      onClick={() => setSelectedPatientId(patient.id)}
                     >
                       <td className="px-5 py-4">
                         <p className="font-medium text-gray-900 dark:text-white">
@@ -1158,13 +1188,11 @@ export function PatientRegistry() {
                         <StatusPill label={formatRole(patient.status)} />
                       </td>
                       <td className="px-5 py-4">
-                        <button
-                          className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                          type="button"
-                          onClick={() => setSelectedPatientId(patient.id)}
-                        >
-                          Open
-                        </button>
+                        <span className="text-gray-400 group-hover:text-brand-500">
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                          </svg>
+                        </span>
                       </td>
                     </tr>
                   ))
@@ -1306,11 +1334,13 @@ function PatientWorkspacePanel({
 }: PatientWorkspacePanelProps) {
   if (!patient) {
     return (
-      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          Select a patient to open detail, doses, schedule, and summary tools.
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-20 text-center dark:border-gray-800 dark:bg-white/[0.02]">
+        <span className="text-4xl">🧑🏽‍⚕️</span>
+        <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-white">No patient selected</h3>
+        <p className="mt-2 max-w-[250px] text-xs text-gray-500 dark:text-gray-400">
+          Select a patient from the registry to open their details, doses, schedule, and summary tools.
         </p>
-      </section>
+      </div>
     );
   }
 
