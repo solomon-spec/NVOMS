@@ -34,7 +34,8 @@ class ImmunizationEventSerializer(serializers.ModelSerializer):
             'schedule_slot', 'facility',
             'administered_at', 'administration_route', 'administration_site',
             'event_status', 'source_channel',
-            'local_client_record_id', 'notes', 'created_at',
+            'local_client_record_id', 'dhis2_synced_at', 'fhir_resource_id',
+            'notes', 'created_at',
         ]
         read_only_fields = ['id', 'created_at']
 

@@ -54,6 +54,8 @@ backend/
 ├── notifications/             # Alerts and notification delivery
 ├── analytics/                 # Dashboards and aggregated metrics
 ├── reports/                   # Report generation
+├── prediction/                # Outbreak risk scoring
+├── environmental/             # Meteorological observations
 ├── integrations/              # External system connectors
 └── offline/                   # Offline sync support
 ```
@@ -144,7 +146,11 @@ Account lockout: **5 failed login attempts** triggers a **30-minute lock**.
 | `/api/v1/users/` | `ADMIN` |
 | `/api/v1/roles/` | `ADMIN` |
 | `/api/v1/integrations/` | `ADMIN` |
+| `/api/v1/dhis2/` | `ADMIN` |
+| `/api/v1/fhir/` | `ADMIN`, `PUBLIC_HEALTH_OFFICIAL` |
 | `/api/v1/analytics/` | `ADMIN`, `PUBLIC_HEALTH_OFFICIAL` |
+| `/api/v1/prediction/` | `ADMIN`, `PUBLIC_HEALTH_OFFICIAL` |
+| `/api/v1/environmental/` | `ADMIN`, `PUBLIC_HEALTH_OFFICIAL` |
 | `/api/v1/reports/` | `ADMIN`, `PUBLIC_HEALTH_OFFICIAL` |
 | `/api/v1/patients/` | `ADMIN`, `HEALTH_WORKER` |
 | `/api/v1/vaccines/` | `ADMIN`, `HEALTH_WORKER`, `PUBLIC_HEALTH_OFFICIAL` |
@@ -212,3 +218,23 @@ python manage.py runserver
 | `DEBUG` | `True` | Debug mode |
 | `CORS_ALLOWED_ORIGINS` | localhost:3000, :5173 | Allowed CORS origins |
 | `CELERY_BROKER_URL` | `redis://localhost:6379/0` | Redis broker URL |
+| `EMAIL_BACKEND` | console backend | Django email backend for password reset and welcome messages |
+| `DEFAULT_FROM_EMAIL` | `noreply@nvoms.local` | Sender address for system email |
+| `PASSWORD_RESET_URL` | `http://localhost:3000/auth/reset-password` | Frontend password reset URL |
+| `SMS_GATEWAY` | `console` | SMS gateway: `console`, `twilio`, or `africas_talking` |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` | empty | Twilio SMS credentials |
+| `AFRICASTALKING_USERNAME` / `AFRICASTALKING_API_KEY` / `AFRICASTALKING_SENDER_ID` | empty | Africa's Talking SMS credentials |
+| `PREDICTION_DISEASES` | `measles` | Comma-separated diseases scored by `/api/v1/prediction/run/` |
+| `OPEN_METEO_ENABLED` | `False` | Enables the Open-Meteo ingestion Celery task |
+| `DHIS2_BASE_URL` | empty | DHIS2 API base URL |
+| `DHIS2_USERNAME` / `DHIS2_PASSWORD` | empty | DHIS2 credentials; keep them in `.env` |
+| `DHIS2_PROGRAM_ID` | empty | DHIS2 program id for immunization exports |
+| `DHIS2_DRY_RUN` | `True` | Marks records as synced without sending to DHIS2 |
+
+Schedule `notifications.tasks.send_vaccination_reminders_task` with Celery Beat
+to send daily vaccination reminders. SMS delivery is audited in `SmsLog`; gateway
+credentials belong in `.env` and must never be committed.
+
+Schedule `environmental.tasks.fetch_open_meteo_observations_task` with Celery Beat
+when `OPEN_METEO_ENABLED=True`; it fetches rainfall and mean temperature from
+Open-Meteo for administrative units that have latitude and longitude values.

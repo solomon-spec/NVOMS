@@ -16,6 +16,7 @@ urlpatterns = [
     path('devices', DeviceListView.as_view(), name='device-list'),
     path('devices/<uuid:pk>', DeviceDetailView.as_view(), name='device-detail'),
     # Sync batch submission and status
+    path('sync/batches/', SyncBatchSubmitView.as_view(), name='sync-batch-submit-slash'),
     path('sync/batches', SyncBatchSubmitView.as_view(), name='sync-batch-submit'),
     path('sync/batches/<uuid:pk>/', SyncBatchDetailView.as_view(), name='sync-batch-detail'),
     path('sync/batches/<uuid:pk>/items', SyncBatchItemListView.as_view(), name='sync-batch-items'),

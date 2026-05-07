@@ -6,6 +6,8 @@ from authentication.views import (
     LogoutAllAPIView,
     LogoutAPIView,
     MeAPIView,
+    PasswordResetAPIView,
+    PasswordResetConfirmAPIView,
     RefreshAPIView,
 )
 
@@ -16,4 +18,6 @@ urlpatterns = [
     path("logout-all", LogoutAllAPIView.as_view(), name="auth-logout-all"),
     path("me", MeAPIView.as_view(), name="auth-me"),
     path("change-password", ChangePasswordAPIView.as_view(), name="auth-change-password"),
+    path("password-reset/", PasswordResetAPIView.as_view(), name="auth-password-reset"),
+    path("password-reset/confirm/", PasswordResetConfirmAPIView.as_view(), name="auth-password-reset-confirm"),
 ]
