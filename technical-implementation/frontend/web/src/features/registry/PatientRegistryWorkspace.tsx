@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import Badge from "@/components/ui/badge/Badge";
-import Button from "@/components/ui/button/Button";
 import {
   Table,
   TableBody,
@@ -176,13 +176,13 @@ export function PatientRegistryWorkspace() {
           </p>
         </div>
 
-        <Button
-          disabled
-          startIcon={<PlusIcon className="h-4 w-4 fill-current" />}
-          className="w-full lg:w-auto"
+        <Link
+          href="/patients/new"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-brand-600 bg-brand-500 px-4 text-sm font-medium text-white shadow-theme-xs transition hover:border-brand-700 hover:bg-brand-600 focus:outline-hidden focus:ring-3 focus:ring-brand-100 lg:w-auto"
         >
+          <PlusIcon className="h-4 w-4 fill-current" />
           Register Patient
-        </Button>
+        </Link>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
