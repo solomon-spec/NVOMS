@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "demo": "playwright test",
     "demo:auth": "playwright test tests/demo/auth-flow.demo.ts",
+    "demo:patients": "playwright test tests/demo/patient-registry.demo.ts",
     "demo:report": "playwright show-report"
   },
   "dependencies": {

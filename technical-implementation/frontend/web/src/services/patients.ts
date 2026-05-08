@@ -30,6 +30,31 @@ type PatientFilters = {
   status?: PatientStatus | "all";
 };
 
+export type PatientRegistryFilters = PatientFilters & {
+  facility?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type PatientRegistryResult = {
+  rows: Patient[];
+  count: number;
+  page: number;
+  pageSize: number;
+  next: string | null;
+  previous: string | null;
+  isServerPaginated: boolean;
+};
+
+type PaginatedResponse<T> = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  page?: number;
+  pageSize?: number;
+  results: T[];
+};
+
 function withQuery(path: string, params: Record<string, string | undefined>) {
   const searchParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -53,6 +78,49 @@ export function listPatients(token: string, filters: PatientFilters = {}) {
       token,
     },
   );
+}
+
+export async function listPatientRegistry(
+  token: string,
+  filters: PatientRegistryFilters = {},
+) {
+  const requestedPage = filters.page ?? 1;
+  const requestedPageSize = filters.pageSize ?? 25;
+  const response = await apiRequest<Patient[] | PaginatedResponse<Patient>>(
+    withQuery("/patients/", {
+      search: filters.search,
+      status: filters.status,
+      facility: filters.facility,
+      page: String(requestedPage),
+      pageSize: String(requestedPageSize),
+    }),
+    {
+      method: "GET",
+      token,
+    },
+  );
+
+  if (Array.isArray(response)) {
+    return {
+      rows: response,
+      count: response.length,
+      page: requestedPage,
+      pageSize: requestedPageSize,
+      next: null,
+      previous: null,
+      isServerPaginated: false,
+    } satisfies PatientRegistryResult;
+  }
+
+  return {
+    rows: response.results,
+    count: response.count,
+    page: response.page ?? requestedPage,
+    pageSize: response.pageSize ?? requestedPageSize,
+    next: response.next,
+    previous: response.previous,
+    isServerPaginated: true,
+  } satisfies PatientRegistryResult;
 }
 
 export function createPatient(token: string, payload: CreatePatientPayload) {

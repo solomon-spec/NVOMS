@@ -1,10 +1,10 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { ProtectedRoute } from "@/components/app-shell/ProtectedRoute";
+import { PatientRegistryWorkspace } from "@/features/registry/PatientRegistryWorkspace";
 
 export default function PatientsPage() {
   return (
-    <RoutePlaceholder
-      title="Patients"
-      allowedRoles={["ADMIN", "HEALTH_WORKER"]}
-    />
+    <ProtectedRoute allowedRoles={["ADMIN", "HEALTH_WORKER"]}>
+      <PatientRegistryWorkspace />
+    </ProtectedRoute>
   );
 }
