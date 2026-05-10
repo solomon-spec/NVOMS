@@ -49,9 +49,9 @@ export default function UserDropdown() {
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className="dropdown-toggle flex items-center rounded-lg border border-transparent px-2 py-1.5 text-gray-700 transition-colors hover:border-gray-200 hover:bg-gray-50 dark:text-gray-400 dark:hover:border-gray-800 dark:hover:bg-white/5"
+        className="dropdown-toggle flex items-center rounded-lg border border-transparent px-2 py-1.5 text-gray-300 transition-colors hover:border-white/10 hover:bg-white/5 hover:text-white"
       >
-        <span className="mr-3 grid h-11 w-11 place-items-center overflow-hidden rounded-full bg-brand-50 text-sm font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+        <span className="mr-3 grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-brand-500/15 text-sm font-semibold text-blue-light-300">
           {initials}
         </span>
 
@@ -82,23 +82,23 @@ export default function UserDropdown() {
       <Dropdown
         isOpen={isOpen}
         onClose={closeDropdown}
-        className="absolute right-0 mt-4 flex w-[260px] flex-col rounded-xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark"
+        className="enterprise-surface absolute right-0 mt-4 flex w-[260px] flex-col rounded-xl p-3 shadow-theme-lg"
       >
         <div>
-          <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
+          <span className="block font-medium text-gray-100 text-theme-sm">
             {displayName}
           </span>
-          <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
+          <span className="enterprise-muted mt-0.5 block text-theme-xs">
             {displayEmail}
           </span>
-          <span className="mt-1 block text-theme-xs text-gray-500 dark:text-gray-400">
+          <span className="enterprise-muted mt-1 block text-theme-xs">
             {session ? formatRole(session.user.role) : "Authenticated user"}
           </span>
         </div>
 
         <DropdownItem
           onClick={handleSignOut}
-          className="mt-4 flex items-center gap-3 border-t border-gray-200 px-3 py-3 font-medium text-error-700 rounded-lg group text-theme-sm hover:bg-error-50 dark:border-gray-800"
+          className="mt-4 flex items-center gap-3 border-t border-white/10 px-3 py-3 font-medium text-error-400 rounded-lg group text-theme-sm hover:bg-error-500/10"
         >
           Sign out
         </DropdownItem>

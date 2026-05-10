@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuthSession } from "@/features/auth/useAuthSession";
@@ -152,7 +151,7 @@ const AppSidebar: React.FC = () => {
   );
 
   const renderMenuItems = (items: NavItem[]) => (
-    <ul className="flex flex-col gap-4">
+    <ul className="flex flex-col gap-2">
       {items.map((nav) => (
         <li key={nav.name}>
           {nav.path && (
@@ -188,13 +187,13 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-gray-200 bg-gray-50 px-5 text-gray-900 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 lg:mt-0
+      className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-gray-200 bg-white/95 px-5 text-gray-800 shadow-[18px_0_55px_rgba(16,24,40,0.08)] backdrop-blur transition-all duration-300 ease-in-out dark:border-white/10 dark:bg-[#08111f]/95 dark:text-gray-100 dark:shadow-[18px_0_55px_rgba(0,0,0,0.22)] lg:mt-0
         ${
           isExpanded || isMobileOpen
-            ? "w-[290px]"
+            ? "w-[220px]"
             : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
+            ? "w-[220px]"
+            : "w-[76px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
@@ -206,31 +205,18 @@ const AppSidebar: React.FC = () => {
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link href="/">
+        <Link href="/" className="flex items-center gap-3">
           {isExpanded || isHovered || isMobileOpen ? (
-            <>
-              <Image
-                className="dark:hidden"
-                src="/images/logo/logo.svg"
-                alt="NVOMS"
-                width={150}
-                height={40}
-              />
-              <Image
-                className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
-                alt="NVOMS"
-                width={150}
-                height={40}
-              />
-            </>
+            <span className="flex items-center gap-3">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-[#6a82ff] to-[#2d8fea] text-sm font-bold text-white shadow-[0_8px_20px_rgba(45,143,234,0.35)]">
+                N
+              </span>
+              <span className="text-xl font-semibold text-gray-900 dark:text-white">NVOMS</span>
+            </span>
           ) : (
-            <Image
-              src="/images/logo/logo-icon.svg"
-              alt="NVOMS"
-              width={32}
-              height={32}
-            />
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-[#6a82ff] to-[#2d8fea] text-sm font-bold text-white">
+              N
+            </span>
           )}
         </Link>
       </div>
@@ -251,7 +237,7 @@ const AppSidebar: React.FC = () => {
           <div className="mt-auto p-4">
             <button
               onClick={() => clearStoredSession()}
-              className="flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-red-700 dark:border-gray-800 dark:bg-gray-900 dark:text-red-500 dark:hover:bg-gray-800/50 dark:hover:text-red-400"
+            className="enterprise-button-secondary flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-error-400 transition-colors hover:text-error-300"
             >
               Log out
             </button>

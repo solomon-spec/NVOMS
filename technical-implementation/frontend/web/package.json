@@ -11,6 +11,7 @@
     "demo": "playwright test",
     "demo:auth": "playwright test tests/demo/auth-flow.demo.ts",
     "demo:patients": "playwright test tests/demo/patient-registry.demo.ts",
+    "demo:patient-detail": "playwright test tests/demo/patient-detail.demo.ts",
     "demo:registration": "playwright test tests/demo/patient-registration.demo.ts",
     "demo:report": "playwright show-report"
   },

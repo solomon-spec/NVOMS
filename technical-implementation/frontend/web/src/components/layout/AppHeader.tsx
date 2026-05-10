@@ -41,11 +41,11 @@ const AppHeader: React.FC = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-99999 flex w-full border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+    <header className="sticky top-0 z-99999 flex w-full border-b border-gray-200 bg-white/90 text-gray-700 backdrop-blur dark:border-white/10 dark:bg-[#08111f]/88 dark:text-gray-100">
       <div className="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
-        <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 dark:border-gray-800 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
+        <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 dark:border-white/10 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
           <button
-            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-500 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white lg:h-10 lg:w-10"
+            className="enterprise-button-secondary z-99999 flex h-9 w-9 items-center justify-center rounded-lg transition-colors lg:h-9 lg:w-9"
             onClick={handleToggle}
             aria-label="Toggle Sidebar"
           >
@@ -102,7 +102,7 @@ const AppHeader: React.FC = () => {
 
           <button
             onClick={toggleApplicationMenu}
-            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg border border-transparent text-gray-700 transition-colors hover:border-gray-200 hover:bg-gray-50 dark:text-gray-400 dark:hover:border-gray-800 dark:hover:bg-gray-800 lg:hidden"
+            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg border border-transparent text-gray-500 transition-colors hover:border-gray-200 hover:bg-gray-50 hover:text-gray-800 dark:text-gray-300 dark:hover:border-white/10 dark:hover:bg-white/5 dark:hover:text-white lg:hidden"
           >
             <svg
               width="24"
@@ -144,10 +144,10 @@ const AppHeader: React.FC = () => {
                   ref={inputRef}
                   type="text"
                   placeholder="Search patients, alerts, reports..."
-                  className="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
+                  className="enterprise-input h-9 w-full py-2 pl-12 pr-14 text-sm xl:w-[430px]"
                 />
 
-                <button className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-gray-300 bg-white px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-gray-500 shadow-theme-xs dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-400">
+                <button className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs text-gray-500 shadow-theme-xs dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-400">
                   <span> ⌘ </span>
                   <span> K </span>
                 </button>

@@ -33,16 +33,16 @@ const Input: FC<InputProps> = ({
   error = false,
   hint,
 }) => {
-  let inputClasses = `h-11 w-full appearance-none rounded-lg border px-3.5 py-2.5 text-sm shadow-none placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 ${className}`;
+  let inputClasses = `enterprise-input h-11 w-full appearance-none px-3.5 py-2.5 text-sm ${className}`;
 
   if (disabled) {
-    inputClasses += ` cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400`;
+    inputClasses += ` cursor-not-allowed opacity-60`;
   } else if (error) {
-    inputClasses += ` border-error-300 bg-white text-error-800 focus:border-error-400 focus:ring-error-100 dark:border-error-500 dark:bg-gray-900 dark:text-error-300`;
+    inputClasses += ` border-error-500 text-error-300`;
   } else if (success) {
-    inputClasses += ` border-success-300 bg-white text-success-700 focus:border-success-400 focus:ring-success-100 dark:border-success-500 dark:bg-gray-900 dark:text-success-300`;
+    inputClasses += ` enterprise-input-success text-success-100`;
   } else {
-    inputClasses += ` border-gray-300 bg-white text-gray-900 focus:border-brand-300 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800`;
+    inputClasses += ` text-white/90`;
   }
 
   return (

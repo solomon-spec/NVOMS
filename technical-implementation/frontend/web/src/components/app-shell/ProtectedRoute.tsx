@@ -14,10 +14,18 @@ type ProtectedRouteProps = {
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const router = useRouter();
   const session = useAuthSession();
+  const hasStoredSession =
+    typeof window !== "undefined" &&
+    Boolean(window.localStorage.getItem("nvoms.auth.session"));
+  const isHydratingStoredSession = !session && hasStoredSession;
   const isAllowed =
     session && (!allowedRoles || allowedRoles.includes(session.user.role));
 
   useEffect(() => {
+    if (isHydratingStoredSession) {
+      return;
+    }
+
     if (!session) {
       router.replace("/login");
       return;
@@ -31,9 +39,9 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (!isAllowed) {
       router.replace("/");
     }
-  }, [isAllowed, router, session]);
+  }, [isAllowed, isHydratingStoredSession, router, session]);
 
-  if (!session || session.user.mustChangePassword) {
+  if (isHydratingStoredSession || !session || session.user.mustChangePassword) {
     return <LoadingState label="Loading workspace" />;
   }
 
@@ -46,8 +54,8 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
 function LoadingState({ label }: { label: string }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-gray-50 text-sm font-semibold text-gray-500 dark:bg-gray-950 dark:text-gray-400">
-      <span className="inline-flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+    <main className="enterprise-shell grid min-h-screen place-items-center text-sm font-semibold text-gray-300">
+      <span className="enterprise-card inline-flex items-center gap-3 rounded-xl px-4 py-3 shadow-theme-xs">
         <span
           className="h-4 w-4 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600"
           aria-hidden="true"

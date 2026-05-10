@@ -227,99 +227,78 @@ export function PatientRegistrationWorkspace() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 border-b border-gray-200 pb-5 dark:border-gray-800 lg:flex-row lg:items-center lg:justify-between">
+      <header className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <Link
             href="/patients"
-            className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+            className="enterprise-muted mb-3 inline-flex items-center gap-2 text-sm font-semibold transition hover:text-white"
           >
             <ChevronLeftIcon className="h-4 w-4 fill-current" />
             Back to registry
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="enterprise-title text-2xl">
             Register Patient
           </h1>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+          <p className="enterprise-muted mt-1 max-w-2xl text-sm">
             Create a patient record with caregiver, facility, and location details.
           </p>
         </div>
       </header>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <ol className="grid gap-3 md:grid-cols-5">
-          {steps.map((item, index) => {
-            const isActive = item.id === step;
-            const isComplete = activeStepIndex > index;
-            return (
-              <li
-                key={item.id}
-                className={`rounded-lg border px-3 py-3 text-sm font-semibold ${
-                  isActive
-                    ? "border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300"
-                    : isComplete
-                      ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-300"
-                      : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400"
-                }`}
-              >
-                <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs shadow-theme-xs dark:bg-gray-900">
-                  {isComplete ? "✓" : index + 1}
-                </span>
-                {item.label}
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-
       {error ? (
-        <div className="rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm font-medium text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-300">
+        <div className="rounded-lg border border-error-500/30 bg-error-500/10 px-4 py-3 text-sm font-medium text-error-300">
           {error}
         </div>
       ) : null}
 
       {validationError ? (
-        <div className="rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm font-medium text-warning-800 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-300">
+        <div className="rounded-lg border border-warning-500/30 bg-warning-500/10 px-4 py-3 text-sm font-medium text-warning-300">
           {validationError}
         </div>
       ) : null}
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        {step === "patient" ? (
-          <PatientDetailsStep form={patientForm} setForm={setPatientForm} />
-        ) : null}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="enterprise-card-strong rounded-xl p-5">
+          <WizardStepper activeStepIndex={activeStepIndex} />
 
-        {step === "caregiver" ? (
-          <CaregiverDetailsStep
-            form={caregiverForm}
-            facilities={facilities}
-            isLoadingReference={isLoadingReference}
-            setForm={setCaregiverForm}
-            units={units}
-          />
-        ) : null}
+          <div className="mt-5 border-t border-white/10 pt-5">
+            {step === "patient" ? (
+              <PatientDetailsStep form={patientForm} setForm={setPatientForm} />
+            ) : null}
 
-        {step === "duplicate" ? (
-          <DuplicateCheckStep patientForm={patientForm} caregiverForm={caregiverForm} />
-        ) : null}
+            {step === "caregiver" ? (
+              <CaregiverDetailsStep
+                form={caregiverForm}
+                facilities={facilities}
+                isLoadingReference={isLoadingReference}
+                setForm={setCaregiverForm}
+                units={units}
+              />
+            ) : null}
 
-        {step === "review" ? (
-          <ReviewStep
-            caregiverForm={caregiverForm}
-            patientForm={patientForm}
-            selectedFacility={selectedFacility}
-            selectedUnit={selectedUnit}
-          />
-        ) : null}
+            {step === "duplicate" ? (
+              <DuplicateCheckStep patientForm={patientForm} caregiverForm={caregiverForm} />
+            ) : null}
 
-        {step === "success" ? <SuccessStep patient={createdPatient} /> : null}
+            {step === "review" ? (
+              <ReviewStep
+                caregiverForm={caregiverForm}
+                patientForm={patientForm}
+                selectedFacility={selectedFacility}
+                selectedUnit={selectedUnit}
+              />
+            ) : null}
 
-        {step !== "success" ? (
-          <div className="mt-8 flex flex-col gap-3 border-t border-gray-200 pt-5 dark:border-gray-800 sm:flex-row sm:justify-between">
+            {step === "success" ? <SuccessStep patient={createdPatient} /> : null}
+          </div>
+
+          {step !== "success" ? (
+          <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-between">
             <button
               type="button"
               onClick={goBack}
               disabled={step === "patient" || isSubmitting}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+              className="enterprise-button-secondary inline-flex h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold shadow-theme-xs transition disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ChevronLeftIcon className="h-4 w-4 fill-current" />
               Back
@@ -343,9 +322,90 @@ export function PatientRegistrationWorkspace() {
               </Button>
             )}
           </div>
-        ) : null}
-      </section>
+          ) : null}
+        </section>
+
+        <aside className="space-y-5">
+          <RegistrationProgress activeStepIndex={activeStepIndex} />
+          <section className="enterprise-card rounded-xl p-5">
+            <h2 className="text-lg font-semibold text-white">Quick Search</h2>
+            <div className="relative mt-4">
+              <input
+                className="enterprise-input h-10 px-4 text-sm"
+                placeholder="Check for existing patient..."
+                readOnly
+              />
+            </div>
+            <p className="enterprise-muted mt-7 text-center text-sm">No matches found</p>
+          </section>
+        </aside>
+      </div>
     </div>
+  );
+}
+
+function WizardStepper({
+  activeStepIndex,
+}: {
+  activeStepIndex: number;
+}) {
+  return (
+    <ol className="grid gap-3 md:grid-cols-5">
+      {steps.map((item, index) => {
+        const isActive = activeStepIndex === index;
+        const isComplete = activeStepIndex > index;
+
+        return (
+          <li key={item.id} className="relative flex flex-col items-center gap-2 text-center">
+            <div
+              className={`z-1 inline-flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold ${
+                isActive
+                  ? "border-blue-light-400 bg-blue-light-500 text-white shadow-[0_0_22px_rgba(47,143,217,0.46)]"
+                  : isComplete
+                    ? "border-success-400/70 bg-success-500/20 text-success-300"
+                    : "border-white/15 bg-[#0a1424] text-gray-400"
+              }`}
+            >
+              {isComplete ? "✓" : index + 1}
+            </div>
+            {index < steps.length - 1 ? (
+              <span className="absolute left-1/2 top-4 hidden h-px w-full bg-white/15 md:block" />
+            ) : null}
+            <span className={isActive ? "text-sm font-semibold text-white" : "text-sm text-gray-400"}>
+              {item.label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function RegistrationProgress({ activeStepIndex }: { activeStepIndex: number }) {
+  const percent = Math.round(((activeStepIndex + 1) / steps.length) * 100);
+  const remaining = steps.slice(activeStepIndex + 1);
+
+  return (
+    <section className="enterprise-card rounded-xl p-5">
+      <h2 className="text-lg font-semibold text-white">Registration Progress</h2>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-blue-light-500 to-blue-light-300"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <p className="enterprise-muted mt-2 text-sm">{percent}% Complete</p>
+      <div className="mt-4 border-t border-white/10 pt-4">
+        <p className="text-sm font-semibold text-white">Required Fields Remaining</p>
+        <ul className="enterprise-muted mt-3 space-y-3 text-sm">
+          {remaining.length ? (
+            remaining.map((item) => <li key={item.id}>• {item.label}</li>)
+          ) : (
+            <li>All steps complete</li>
+          )}
+        </ul>
+      </div>
+    </section>
   );
 }
 
@@ -362,14 +422,14 @@ function PatientDetailsStep({
         title="Patient details"
         description="Capture the identity details that will appear on the clinical record."
       />
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Field label="First name" htmlFor="first_name">
           <input
             id="first_name"
             name="first_name"
             value={form.first_name}
             onChange={(event) => setForm({ ...form, first_name: event.target.value })}
-            className={inputClass}
+            className={inputClassFor(form.first_name)}
           />
         </Field>
         <Field label="Middle name" htmlFor="middle_name">
@@ -378,7 +438,7 @@ function PatientDetailsStep({
             name="middle_name"
             value={form.middle_name}
             onChange={(event) => setForm({ ...form, middle_name: event.target.value })}
-            className={inputClass}
+            className={inputClassFor(form.middle_name)}
           />
         </Field>
         <Field label="Last name" htmlFor="last_name">
@@ -387,7 +447,7 @@ function PatientDetailsStep({
             name="last_name"
             value={form.last_name}
             onChange={(event) => setForm({ ...form, last_name: event.target.value })}
-            className={inputClass}
+            className={inputClassFor(form.last_name)}
           />
         </Field>
         <Field label="Date of birth" htmlFor="date_of_birth">
@@ -397,7 +457,7 @@ function PatientDetailsStep({
             type="date"
             value={form.date_of_birth}
             onChange={(event) => setForm({ ...form, date_of_birth: event.target.value })}
-            className={inputClass}
+            className={inputClassFor(form.date_of_birth)}
           />
         </Field>
         <Field label="Sex" htmlFor="sex">
@@ -408,7 +468,7 @@ function PatientDetailsStep({
             onChange={(event) =>
               setForm({ ...form, sex: event.target.value as PatientSex | "" })
             }
-            className={inputClass}
+            className={inputClassFor(form.sex)}
           >
             <option value="">Select sex</option>
             <option value="female">Female</option>
@@ -418,14 +478,14 @@ function PatientDetailsStep({
           </select>
         </Field>
         <div className="flex items-end">
-          <label className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 text-sm font-semibold text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300">
+          <label className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-white/10 bg-white/[0.025] px-4 text-sm font-semibold text-gray-100">
             <input
               type="checkbox"
               checked={form.medical_exception_flag}
               onChange={(event) =>
                 setForm({ ...form, medical_exception_flag: event.target.checked })
               }
-              className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+              className="h-4 w-4 rounded border-white/20 bg-white/[0.04] text-brand-500 focus:ring-brand-500"
             />
             Medical exception
           </label>
@@ -461,7 +521,7 @@ function CaregiverDetailsStep({
             name="caregiver_name"
             value={form.full_name}
             onChange={(event) => setForm({ ...form, full_name: event.target.value })}
-            className={inputClass}
+            className={inputClassFor(form.full_name)}
           />
         </Field>
         <Field label="Caregiver phone" htmlFor="caregiver_phone">
@@ -471,7 +531,7 @@ function CaregiverDetailsStep({
             value={form.phone_number}
             onChange={(event) => setForm({ ...form, phone_number: event.target.value })}
             placeholder="+2519..."
-            className={inputClass}
+            className={inputClassFor(form.phone_number)}
           />
         </Field>
         <Field label="Relationship" htmlFor="relationship">
@@ -482,7 +542,7 @@ function CaregiverDetailsStep({
             onChange={(event) =>
               setForm({ ...form, relationship_to_patient: event.target.value })
             }
-            className={inputClass}
+            className={inputClassFor(form.relationship_to_patient)}
           >
             <option value="mother">Mother</option>
             <option value="father">Father</option>
@@ -498,7 +558,7 @@ function CaregiverDetailsStep({
             onChange={(event) =>
               setForm({ ...form, preferred_language: event.target.value })
             }
-            className={inputClass}
+            className={inputClassFor(form.preferred_language)}
           >
             <option value="am">Amharic</option>
             <option value="om">Afaan Oromo</option>
@@ -515,7 +575,7 @@ function CaregiverDetailsStep({
             onChange={(event) =>
               setForm({ ...form, registered_facility_id: event.target.value })
             }
-            className={inputClass}
+            className={inputClassFor(form.registered_facility_id)}
           >
             <option value="">Select facility</option>
             {facilities.map((facility) => (
@@ -534,7 +594,7 @@ function CaregiverDetailsStep({
             onChange={(event) =>
               setForm({ ...form, residence_unit_id: event.target.value })
             }
-            className={inputClass}
+            className={inputClassFor(form.residence_unit_id)}
           >
             <option value="">Select location</option>
             {units.map((unit) => (
@@ -550,7 +610,7 @@ function CaregiverDetailsStep({
             name="address_line"
             value={form.address_line}
             onChange={(event) => setForm({ ...form, address_line: event.target.value })}
-            className={inputClass}
+            className={inputClassFor(form.address_line)}
           />
         </Field>
       </div>
@@ -571,7 +631,7 @@ function DuplicateCheckStep({
         title="Duplicate check"
         description="Review duplicate-detection status before creating a new registry record."
       />
-      <div className="rounded-xl border border-warning-200 bg-warning-50 p-5 text-sm text-warning-800 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-300">
+      <div className="rounded-xl border border-warning-500/30 bg-warning-500/10 p-5 text-sm text-warning-300">
         <p className="font-semibold">Backend duplicate matching is not connected yet.</p>
         <p className="mt-2 leading-6">
           For this section, continue only after manually confirming that{" "}
@@ -583,11 +643,11 @@ function DuplicateCheckStep({
           already present in the registry.
         </p>
       </div>
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-950">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+      <div className="enterprise-card rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white">
           Suggested backend behavior
         </h3>
-        <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
+        <p className="enterprise-muted mt-2 text-sm leading-6">
           The frontend should eventually call a duplicate-check API using patient
           name, date of birth, caregiver phone, and residence unit before submit.
         </p>
@@ -641,32 +701,32 @@ function ReviewStep({
 function SuccessStep({ patient }: { patient: Patient | null }) {
   return (
     <div className="mx-auto max-w-2xl py-8 text-center">
-      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-300">
+      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-success-500/10 text-success-300">
         <CheckCircleIcon className="h-7 w-7 fill-current" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <h2 className="text-2xl font-bold text-white">
         Patient registered
       </h2>
-      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      <p className="enterprise-muted mt-2 text-sm">
         {patient?.full_name ?? "The patient"} has been added to the registry.
       </p>
       {patient ? (
-        <div className="mt-5 inline-flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm dark:border-gray-800 dark:bg-gray-950">
-          <span className="text-gray-500 dark:text-gray-400">Generated UID</span>
-          <span className="font-bold text-brand-700 dark:text-brand-300">{patient.uid}</span>
+        <div className="enterprise-card mt-5 inline-flex items-center gap-3 rounded-xl px-4 py-3 text-sm">
+          <span className="enterprise-muted">Generated UID</span>
+          <span className="font-bold text-blue-light-300">{patient.uid}</span>
         </div>
       ) : null}
       <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
         <Link
           href="/patients"
-          className="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+          className="enterprise-button-secondary inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold shadow-theme-xs transition"
         >
           Back to registry
         </Link>
         <button
           type="button"
           disabled
-          className="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-lg border border-gray-200 bg-gray-100 px-4 text-sm font-semibold text-gray-400 dark:border-gray-800 dark:bg-gray-950"
+          className="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-gray-500"
         >
           Record first dose
         </button>
@@ -684,8 +744,8 @@ function SectionTitle({
 }) {
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+      <h2 className="text-lg font-semibold text-white">{title}</h2>
+      <p className="enterprise-muted mt-1 text-sm">{description}</p>
     </div>
   );
 }
@@ -703,7 +763,7 @@ function Field({
 }) {
   return (
     <label className={`block ${className}`} htmlFor={htmlFor}>
-      <span className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+      <span className="mb-2 block text-sm font-medium text-gray-100">
         {label}
       </span>
       {children}
@@ -713,16 +773,16 @@ function Field({
 
 function ReviewCard({ rows, title }: { title: string; rows: string[][] }) {
   return (
-    <article className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-950">
+    <article className="enterprise-card rounded-xl p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
+        <h3 className="font-semibold text-white">{title}</h3>
         <Badge color="info">Review</Badge>
       </div>
       <dl className="space-y-3">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4 text-sm">
-            <dt className="text-gray-500 dark:text-gray-400">{label}</dt>
-            <dd className="text-right font-semibold text-gray-800 dark:text-white/90">
+            <dt className="enterprise-muted">{label}</dt>
+            <dd className="text-right font-semibold text-white/90">
               {value || "Not provided"}
             </dd>
           </div>
@@ -775,5 +835,8 @@ function readApiError(error: unknown) {
   return "Could not complete patient registration.";
 }
 
-const inputClass =
-  "h-11 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-none placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800";
+function inputClassFor(value: string) {
+  return `enterprise-input h-11 px-3.5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60 ${
+    value ? "enterprise-input-success pr-9" : ""
+  }`;
+}

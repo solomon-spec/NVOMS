@@ -7,6 +7,7 @@ Playwright is used here for reviewable demo videos, not fast CI checks.
 - `npm run demo` records all demo walkthroughs.
 - `npm run demo:auth` records the current auth and role-navigation walkthrough.
 - `npm run demo:patients` records the patient registry walkthrough.
+- `npm run demo:patient-detail` records the patient detail workspace walkthrough.
 - `npm run demo:registration` records the patient registration walkthrough.
 - `npm run demo:report` opens the Playwright HTML report.
 

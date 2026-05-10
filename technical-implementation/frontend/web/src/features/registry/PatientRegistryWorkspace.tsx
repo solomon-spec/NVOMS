@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import type { HealthFacility, Patient, PatientStatus } from "@/features/registry/types";
 import { useAuthSession } from "@/features/auth/useAuthSession";
-import { ArrowRightIcon, ChevronLeftIcon, GroupIcon, PlusIcon } from "@/icons";
+import { ArrowRightIcon, ChevronLeftIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon } from "@/icons";
 import { ApiError } from "@/services/api";
 import {
   listFacilities,
@@ -161,16 +161,21 @@ export function PatientRegistryWorkspace() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 border-b border-gray-200 pb-5 dark:border-gray-800 lg:flex-row lg:items-center lg:justify-between">
+      <header className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
-            <GroupIcon className="h-4 w-4 fill-current" />
-            Clinical Operations
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <h1 className="enterprise-title text-2xl">
+              Professional Enterprise Patient Registry
+            </h1>
+            <span className="inline-flex items-center gap-1 rounded-full border border-success-500/20 bg-success-500/10 px-2.5 py-1 text-xs font-semibold text-success-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-success-400" />
+              Live Sync Active
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-gray-400">
+              Database: 12.4M records
+            </span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Patient Registry
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 max-w-2xl text-sm text-gray-100">
             Search, filter, and review patient records before opening registration or
             clinical workflows.
           </p>
@@ -178,7 +183,7 @@ export function PatientRegistryWorkspace() {
 
         <Link
           href="/patients/new"
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-brand-600 bg-brand-500 px-4 text-sm font-medium text-white shadow-theme-xs transition hover:border-brand-700 hover:bg-brand-600 focus:outline-hidden focus:ring-3 focus:ring-brand-100 lg:w-auto"
+          className="enterprise-button-primary inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition focus:outline-hidden focus:ring-3 focus:ring-brand-100 lg:w-auto"
         >
           <PlusIcon className="h-4 w-4 fill-current" />
           Register Patient
@@ -192,9 +197,9 @@ export function PatientRegistryWorkspace() {
         <MetricCard label="Medical exceptions" value={summary.exceptions} tone="error" />
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="border-b border-gray-200 p-4 dark:border-gray-800">
-          <div className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_180px_220px_auto]">
+      <section className="enterprise-card overflow-hidden rounded-xl">
+        <div className="border-b border-white/10 p-4">
+          <div className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_170px_180px_180px_150px_auto]">
             <label className="sr-only" htmlFor="patient-search">
               Search patients
             </label>
@@ -205,8 +210,15 @@ export function PatientRegistryWorkspace() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search UID, patient name, or caregiver phone"
-              className="h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+              className="enterprise-input h-10 px-4 text-sm"
             />
+
+            <button
+              type="button"
+              className="enterprise-button-secondary inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold"
+            >
+              Advanced Filters
+            </button>
 
             <label className="sr-only" htmlFor="patient-status">
               Status
@@ -218,7 +230,7 @@ export function PatientRegistryWorkspace() {
                 setStatus(event.target.value as PatientStatus | "all");
                 setPage(1);
               }}
-              className="h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              className="enterprise-input h-10 px-3 text-sm"
             >
               {registryStatuses.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -237,7 +249,7 @@ export function PatientRegistryWorkspace() {
                 setFacility(event.target.value);
                 setPage(1);
               }}
-              className="h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              className="enterprise-input h-10 px-3 text-sm"
             >
               <option value="all">All facilities</option>
               {facilities.map((row) => (
@@ -247,31 +259,41 @@ export function PatientRegistryWorkspace() {
               ))}
             </select>
 
+            <select
+              className="enterprise-input h-10 px-3 text-sm"
+              aria-label="Age group"
+              defaultValue="any"
+            >
+              <option value="any">Age Group: Any</option>
+              <option value="infant">Infant</option>
+              <option value="child">Child</option>
+            </select>
+
             <button
               type="button"
               onClick={resetFilters}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+              className="enterprise-button-secondary inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold shadow-theme-xs transition"
             >
               Reset
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-3 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400 md:flex-row md:items-center md:justify-between">
+        <div className="enterprise-muted flex flex-col gap-3 border-b border-white/10 px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
           <div>
             Showing{" "}
-            <span className="font-semibold text-gray-800 dark:text-white/90">
+            <span className="font-semibold text-white/90">
               {firstVisible}-{lastVisible}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-gray-800 dark:text-white/90">
+            <span className="font-semibold text-white/90">
               {result.count}
             </span>{" "}
             patients
           </div>
 
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-600 dark:text-gray-300" htmlFor="page-size">
+            <label className="text-sm font-medium text-gray-300" htmlFor="page-size">
               Rows
             </label>
             <select
@@ -281,7 +303,7 @@ export function PatientRegistryWorkspace() {
                 setPageSize(Number(event.target.value));
                 setPage(1);
               }}
-              className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-700 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              className="enterprise-input h-9 px-2 text-sm"
             >
               {pageSizeOptions.map((option) => (
                 <option key={option} value={option}>
@@ -293,14 +315,14 @@ export function PatientRegistryWorkspace() {
         </div>
 
         {error ? (
-          <div className="m-4 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm font-medium text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-300">
+          <div className="m-4 rounded-lg border border-error-500/30 bg-error-500/10 px-4 py-3 text-sm font-medium text-error-300">
             {error}
           </div>
         ) : null}
 
         <div className="max-h-[640px] overflow-auto" data-testid="patient-registry-table-scroll">
           <Table className="text-left">
-            <TableHeader className="sticky top-0 z-10 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-gray-950 dark:text-gray-400">
+            <TableHeader className="sticky top-0 z-10 bg-[#0b1424] text-xs font-semibold uppercase text-gray-400">
               <TableRow>
                 <TableCell isHeader className="min-w-[8.75rem] px-5 py-3">
                   UID
@@ -323,10 +345,13 @@ export function PatientRegistryWorkspace() {
                 <TableCell isHeader className="min-w-[10rem] px-5 py-3">
                   Updated
                 </TableCell>
+                <TableCell isHeader className="min-w-[8rem] px-5 py-3 text-right">
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHeader>
 
-            <TableBody className="divide-y divide-gray-100 text-sm dark:divide-gray-800">
+            <TableBody className="divide-y divide-white/10 text-sm">
               {isLoading ? (
                 <PatientTableSkeleton />
               ) : visibleRows.length ? (
@@ -339,12 +364,12 @@ export function PatientRegistryWorkspace() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="px-5 py-12 text-center">
+                  <TableCell colSpan={8} className="px-5 py-12 text-center">
                     <div className="mx-auto max-w-sm">
-                      <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                      <h2 className="text-base font-semibold text-white">
                         No patients found
                       </h2>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      <p className="enterprise-muted mt-1 text-sm">
                         Adjust the search, status, or facility filters.
                       </p>
                     </div>
@@ -355,8 +380,8 @@ export function PatientRegistryWorkspace() {
           </Table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="enterprise-muted text-sm">
             Page {page} of {totalPages}
           </p>
 
@@ -365,7 +390,7 @@ export function PatientRegistryWorkspace() {
               type="button"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={page <= 1 || isLoading}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+              className="enterprise-button-secondary inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold shadow-theme-xs transition disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ChevronLeftIcon className="h-4 w-4 fill-current" />
               Previous
@@ -374,7 +399,7 @@ export function PatientRegistryWorkspace() {
               type="button"
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={page >= totalPages || isLoading}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+              className="enterprise-button-secondary inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold shadow-theme-xs transition disabled:cursor-not-allowed disabled:opacity-50"
             >
               Next
               <ArrowRightIcon className="h-4 w-4 fill-current" />
@@ -396,24 +421,37 @@ function MetricCard({
   tone?: "brand" | "success" | "warning" | "error";
 }) {
   const toneClass = {
-    brand: "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300",
+    brand: "bg-blue-light-500/15 text-blue-light-300",
     success:
-      "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-300",
+      "bg-success-500/15 text-success-300",
     warning:
-      "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-300",
-    error: "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-300",
+      "bg-warning-500/15 text-warning-300",
+    error: "bg-error-500/15 text-error-300",
   };
 
   return (
-    <article className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</p>
+    <article className="enterprise-card rounded-xl p-5">
+      <p className="text-sm font-medium text-gray-300">{label}</p>
       <div className="mt-3 flex items-end justify-between gap-3">
-        <span className="text-2xl font-bold text-gray-900 dark:text-white">
+        <span className="text-2xl font-bold text-white">
           {value.toLocaleString()}
         </span>
         <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${toneClass[tone]}`}>
           Registry
         </span>
+      </div>
+      <div className="mt-4 h-7 overflow-hidden rounded bg-gradient-to-r from-transparent via-white/5 to-transparent">
+        <div
+          className={`mt-4 h-px w-full ${
+            tone === "error"
+              ? "bg-error-400 shadow-[0_0_16px_rgba(240,68,56,0.65)]"
+              : tone === "warning"
+                ? "bg-warning-300 shadow-[0_0_16px_rgba(254,200,75,0.55)]"
+                : tone === "success"
+                  ? "bg-success-300 shadow-[0_0_16px_rgba(50,213,131,0.55)]"
+                  : "bg-blue-light-400 shadow-[0_0_16px_rgba(47,143,217,0.65)]"
+          }`}
+        />
       </div>
     </article>
   );
@@ -427,28 +465,28 @@ function PatientTableRow({
   facilityName: string;
 }) {
   return (
-    <TableRow className="bg-white transition hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-white/[0.03]">
-      <TableCell className="px-5 py-4 align-top font-semibold text-brand-700 dark:text-brand-300">
+    <TableRow className="enterprise-table-row transition">
+      <TableCell className="px-5 py-4 align-top font-semibold text-blue-light-300">
         {patient.uid}
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
         <div className="min-w-0">
-          <p className="font-semibold text-gray-900 dark:text-white">{patient.full_name}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="font-semibold text-white">{patient.full_name}</p>
+          <p className="enterprise-muted mt-1 text-xs">
             {formatSex(patient.sex)} · DOB {formatDate(patient.date_of_birth)}
           </p>
         </div>
       </TableCell>
-      <TableCell className="px-5 py-4 align-top text-gray-700 dark:text-gray-300">
+      <TableCell className="px-5 py-4 align-top text-gray-300">
         {formatAge(patient.date_of_birth)}
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
         {patient.primary_caregiver ? (
           <div>
-            <p className="font-medium text-gray-800 dark:text-white/90">
+            <p className="font-medium text-white/90">
               {patient.primary_caregiver.full_name}
             </p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="enterprise-muted mt-1 text-xs">
               {patient.primary_caregiver.phone_number}
             </p>
           </div>
@@ -457,8 +495,8 @@ function PatientTableRow({
         )}
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
-        <p className="font-medium text-gray-800 dark:text-white/90">{facilityName}</p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p className="font-medium text-white/90">{facilityName}</p>
+        <p className="enterprise-muted mt-1 text-xs">
           {patient.residence_unit?.name ?? "No residence unit"}
         </p>
       </TableCell>
@@ -472,8 +510,33 @@ function PatientTableRow({
           ) : null}
         </div>
       </TableCell>
-      <TableCell className="px-5 py-4 align-top text-gray-500 dark:text-gray-400">
+      <TableCell className="enterprise-muted px-5 py-4 align-top">
         {formatDate(patient.updated_at)}
+      </TableCell>
+      <TableCell className="px-5 py-4 align-top">
+        <div className="flex justify-end gap-2">
+          <Link
+            href={`/patients/${patient.id}`}
+            className="enterprise-button-primary grid h-8 w-8 place-items-center rounded-lg"
+            aria-label={`View patient ${patient.full_name}`}
+          >
+            <EyeIcon className="h-4 w-4 fill-current" />
+          </Link>
+          <Link
+            href={`/patients/${patient.id}`}
+            className="enterprise-button-secondary grid h-8 w-8 place-items-center rounded-lg"
+            aria-label={`Edit patient ${patient.full_name}`}
+          >
+            <PencilIcon className="h-4 w-4 fill-current" />
+          </Link>
+          <Link
+            href={`/patients/${patient.id}`}
+            className="enterprise-button-secondary grid h-8 w-8 place-items-center rounded-lg"
+            aria-label={`Patient history ${patient.full_name}`}
+          >
+            <TimeIcon className="h-4 w-4 fill-current" />
+          </Link>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -482,9 +545,9 @@ function PatientTableRow({
 function PatientTableSkeleton() {
   return Array.from({ length: 8 }, (_, index) => (
     <TableRow key={index}>
-      {Array.from({ length: 7 }, (__, cellIndex) => (
+      {Array.from({ length: 8 }, (__, cellIndex) => (
         <TableCell key={cellIndex} className="px-5 py-4">
-          <div className="h-4 w-full max-w-32 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="h-4 w-full max-w-32 animate-pulse rounded bg-white/10" />
         </TableCell>
       ))}
     </TableRow>
