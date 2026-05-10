@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { useAuthSession } from "@/features/auth/useAuthSession";
+import { useSearchParams } from "next/navigation";
 import type {
   CreateDosePayload,
   HealthFacility,
@@ -94,6 +95,9 @@ const emptySlotForm = {
 
 export function ImmunizationWorkspace() {
   const session = useAuthSession();
+  const searchParams = useSearchParams();
+  const patientIdFromUrl = searchParams.get("patientId");
+
   const [patients, setPatients] = useState<Patient[]>([]);
   const [facilities, setFacilities] = useState<HealthFacility[]>([]);
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
@@ -108,7 +112,7 @@ export function ImmunizationWorkspace() {
     administered_at: toDatetimeLocalValue(new Date()),
   });
   const [slotForm, setSlotForm] = useState(emptySlotForm);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(patientIdFromUrl ?? "");
   const [status, setStatus] = useState<PatientStatus | "all">("registered");
   const [isLoading, setIsLoading] = useState(true);
   const [isPatientLoading, setIsPatientLoading] = useState(false);
@@ -159,11 +163,14 @@ export function ImmunizationWorkspace() {
           setVaccines(vaccineRows);
           setBatches(batchRows);
           setError("");
-          setSelectedPatientId((current) =>
-            current && patientRows.some((patient) => patient.id === current)
+          setSelectedPatientId((current) => {
+            if (!current && patientIdFromUrl && patientRows.some(p => p.id === patientIdFromUrl)) {
+              return patientIdFromUrl;
+            }
+            return current && patientRows.some((patient) => patient.id === current)
               ? current
-              : patientRows[0]?.id ?? "",
-          );
+              : patientRows[0]?.id ?? "";
+          });
         }
       } catch (caughtError) {
         if (isActive) {
@@ -181,7 +188,7 @@ export function ImmunizationWorkspace() {
       isActive = false;
       window.clearTimeout(timer);
     };
-  }, [search, status, token]);
+  }, [search, status, token, patientIdFromUrl]);
 
   useEffect(() => {
     let isActive = true;
@@ -264,6 +271,16 @@ export function ImmunizationWorkspace() {
       ),
     [batches, doseForm.vaccine_id],
   );
+
+  const selectedBatch = useMemo(
+    () => filteredBatches.find((b) => b.id === doseForm.vaccine_batch_id),
+    [filteredBatches, doseForm.vaccine_batch_id]
+  );
+
+  const isBatchExpired = useMemo(() => {
+    if (!selectedBatch?.expiry_date) return false;
+    return new Date(selectedBatch.expiry_date) < new Date();
+  }, [selectedBatch]);
 
   function selectSlot(slot: PatientScheduleSlot | null) {
     setSelectedSlotId(slot?.id ?? "");
@@ -367,6 +384,10 @@ export function ImmunizationWorkspace() {
       setDoseError("Select a vaccine before recording the dose.");
       return;
     }
+    if (isBatchExpired) {
+      setDoseError("Cannot record a dose using an expired vaccine batch.");
+      return;
+    }
     // Show confirm modal instead of submitting directly
     setShowDoseConfirm(true);
   }
@@ -450,8 +471,26 @@ export function ImmunizationWorkspace() {
       <ConfirmModal
         isOpen={showDoseConfirm}
         title="Confirm Dose Recording"
-        message={`Record a dose of ${vaccines.find((v) => v.id === doseForm.vaccine_id)?.vaccine_name ?? "selected vaccine"} for ${selectedPatient?.full_name ?? "this patient"}? This action cannot be undone.`}
-        confirmLabel="Record Dose"
+        message={
+          <div className="space-y-2">
+            <p className="mb-4">This action will update the patient&apos;s official vaccination record.</p>
+            <div className="grid grid-cols-[100px_1fr] gap-1 text-sm">
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Patient:</span>
+              <span>{selectedPatient?.full_name} / {selectedPatient?.uid}</span>
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Vaccine:</span>
+              <span>{vaccines.find((v) => v.id === doseForm.vaccine_id)?.vaccine_name}</span>
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Date:</span>
+              <span>{formatDateTime(doseForm.administered_at)}</span>
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Batch:</span>
+              <span>{selectedBatch?.batch_number ?? "No batch"}</span>
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Route/Site:</span>
+              <span>{doseForm.administration_route || "N/A"} / {doseForm.administration_site || "N/A"}</span>
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Facility:</span>
+              <span>{facilities.find((f) => f.id === doseForm.facility_id)?.facility_name ?? "Not selected"}</span>
+            </div>
+          </div>
+        }
+        confirmLabel="Confirm and Record"
         isLoading={isRecordingDose}
         onConfirm={() => { setShowDoseConfirm(false); confirmAndRecordDose(); }}
         onCancel={() => setShowDoseConfirm(false)}
@@ -698,13 +737,24 @@ export function ImmunizationWorkspace() {
                 />
                 {/* Batch expiry warning */}
                 {(() => {
-                  const selectedBatch = filteredBatches.find((b) => b.id === doseForm.vaccine_batch_id);
-                  if (selectedBatch?.expiry_date && new Date(selectedBatch.expiry_date) < new Date()) {
-                    return (
-                      <AlertBanner tone="warning" count={1}>
-                        <strong>Batch {selectedBatch.batch_number} expired on {selectedBatch.expiry_date}.</strong> Do not administer expired vaccines. Select a valid batch or contact your supervisor.
-                      </AlertBanner>
-                    );
+                  if (selectedBatch?.expiry_date) {
+                    const expiry = new Date(selectedBatch.expiry_date);
+                    const now = new Date();
+                    const daysUntilExpiry = (expiry.getTime() - now.getTime()) / (1000 * 3600 * 24);
+                    
+                    if (daysUntilExpiry < 0) {
+                      return (
+                        <AlertBanner tone="error" count={1}>
+                          <strong>Batch {selectedBatch.batch_number} expired on {selectedBatch.expiry_date}.</strong> Do not administer expired vaccines. Select a valid batch or contact your supervisor.
+                        </AlertBanner>
+                      );
+                    } else if (daysUntilExpiry <= 30) {
+                      return (
+                        <AlertBanner tone="warning" count={1}>
+                          <strong>Batch {selectedBatch.batch_number} expires soon ({selectedBatch.expiry_date}).</strong> Please ensure this is the oldest batch available.
+                        </AlertBanner>
+                      );
+                    }
                   }
                   return null;
                 })()}
@@ -797,7 +847,7 @@ export function ImmunizationWorkspace() {
 
                 <button
                   className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white shadow-theme-xs transition hover:bg-brand-700 disabled:bg-gray-300"
-                  disabled={!selectedPatientId || isRecordingDose}
+                  disabled={!selectedPatientId || isRecordingDose || isBatchExpired}
                   type="submit"
                 >
                   {isRecordingDose ? "Recording dose" : "Record dose"}
@@ -933,6 +983,7 @@ function TextInput({
         {label}
       </span>
       <input
+        aria-label={label}
         className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-800 shadow-theme-xs outline-none transition placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         required={required}
         type={type}
@@ -957,6 +1008,7 @@ function SelectInput({ label, value, options, onChange }: SelectInputProps) {
         {label}
       </span>
       <select
+        aria-label={label}
         className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-800 shadow-theme-xs outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -984,6 +1036,7 @@ function TextAreaInput({ label, value, onChange }: TextAreaInputProps) {
         {label}
       </span>
       <textarea
+        aria-label={label}
         className="min-h-24 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-800 shadow-theme-xs outline-none transition placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         value={value}
         onChange={(event) => onChange(event.target.value)}

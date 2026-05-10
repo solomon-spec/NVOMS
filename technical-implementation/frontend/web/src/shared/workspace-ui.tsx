@@ -82,7 +82,7 @@ export function useToast() {
 type ConfirmModalProps = {
   isOpen: boolean;
   title: string;
-  message: string;
+  message: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   tone?: "danger" | "warning";
@@ -128,7 +128,7 @@ export function ConfirmModal({
       onCancel={onCancel}
     >
       <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
-      <p className="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-400">{message}</p>
+      <div className="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-400">{message}</div>
       <div className="mt-6 flex justify-end gap-3">
         <button
           className="inline-flex min-h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"

@@ -244,7 +244,7 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
 
           <div className="flex flex-col gap-2 sm:flex-row xl:justify-end">
             <Link
-              href="/immunizations"
+              href={`/immunizations?patientId=${patient.id}`}
               className="enterprise-button-primary inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold"
             >
               Record dose

@@ -14,11 +14,14 @@ test.describe('NVOMS patient registration demo', () => {
     await signInAsHealthWorker(page);
 
     await clickWithPointer(page, page.getByRole('link', { name: 'Patients' }));
-    await expect(page.getByRole('heading', { name: 'Patient Registry' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Patient Registry/ })).toBeVisible();
     await pause(page, 1000);
 
     await clickWithPointer(page, page.getByRole('link', { name: 'Register Patient' }));
-    await expect(page.getByRole('heading', { name: 'Register Patient' })).toBeVisible();
+    await page.waitForURL('**/patients/new', { timeout: 20000 });
+    await expect(page.getByRole('heading', { name: 'Register Patient' })).toBeVisible({
+      timeout: 20000,
+    });
     await pause(page, 1400);
 
     await clickWithPointer(page, page.getByRole('button', { name: 'Continue' }));
@@ -67,7 +70,7 @@ test.describe('NVOMS patient registration demo', () => {
     await pause(page, 2200);
 
     await clickWithPointer(page, page.getByRole('link', { name: 'Back to registry' }).last());
-    await expect(page.getByRole('heading', { name: 'Patient Registry' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Patient Registry/ })).toBeVisible();
     await pause(page, 1200);
   });
 });

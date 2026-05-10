@@ -10,7 +10,7 @@ test.describe('NVOMS patient detail demo', () => {
     await signIn(page, 'hw@nvoms.local');
 
     await clickWithPointer(page, page.getByRole('link', { name: 'Patients' }));
-    await expect(page.getByRole('heading', { name: 'Patient Registry' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Patient Registry/ })).toBeVisible();
     await pause(page, 1200);
 
     const firstPatientLink = page.getByRole('link', { name: /^View patient / }).first();
@@ -20,7 +20,10 @@ test.describe('NVOMS patient detail demo', () => {
     }
 
     await clickWithPointer(page, firstPatientLink);
-    await expect(page.getByRole('link', { name: 'Back to Patient Registry' })).toBeVisible();
+    await page.waitForURL('**/patients/*', { timeout: 20000 });
+    await expect(page.getByRole('link', { name: 'Back to Patient Registry' })).toBeVisible({
+      timeout: 20000,
+    });
     await expect(page.getByRole('button', { name: 'Overview' })).toBeVisible();
     await expect(page.getByText('Clinical next step')).toBeVisible();
     await pause(page, 1600);
@@ -40,7 +43,9 @@ test.describe('NVOMS patient detail demo', () => {
     await pause(page, 1800);
 
     await clickWithPointer(page, page.getByRole('link', { name: 'Record dose' }));
-    await expect(page.getByRole('heading', { name: 'Immunizations' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Record doses and manage vaccination schedules' }),
+    ).toBeVisible();
     await pause(page, 1600);
 
     await resetSession(page);

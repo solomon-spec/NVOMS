@@ -1,10 +1,13 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { ProtectedRoute } from "@/components/app-shell/ProtectedRoute";
+import { ImmunizationWorkspace } from "@/features/immunizations/ImmunizationWorkspace";
+import { Suspense } from "react";
 
 export default function ImmunizationsPage() {
   return (
-    <RoutePlaceholder
-      title="Immunizations"
-      allowedRoles={["ADMIN", "HEALTH_WORKER"]}
-    />
+    <ProtectedRoute allowedRoles={["ADMIN", "HEALTH_WORKER"]}>
+      <Suspense fallback={<p className="p-4 text-sm text-gray-500">Loading workspace...</p>}>
+        <ImmunizationWorkspace />
+      </Suspense>
+    </ProtectedRoute>
   );
 }

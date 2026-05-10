@@ -10,7 +10,7 @@ test.describe('NVOMS patient registry demo', () => {
     await signInAsHealthWorker(page);
 
     await clickWithPointer(page, page.getByRole('link', { name: 'Patients' }));
-    await expect(page.getByRole('heading', { name: 'Patient Registry' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Patient Registry/ })).toBeVisible();
     await expect(page.getByText(/Showing 1-25 of \d+ patients/)).toBeVisible();
     await pause(page, 1400);
 

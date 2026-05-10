@@ -189,6 +189,11 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": r"/api/v1/",
+    # The API is still being documented incrementally. Several APIViews do not
+    # yet expose serializer hints, which makes drf-spectacular emit many
+    # warnings while serving /api/schema/. Suppress those warnings so Swagger
+    # remains usable during frontend/backend integration work.
+    "DISABLE_ERRORS_AND_WARNINGS": True,
 }
 
 # ── Celery ────────────────────────────────────────────────────────────────────
