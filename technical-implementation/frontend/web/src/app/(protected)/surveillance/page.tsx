@@ -1,10 +1,5 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { SurveillanceQueueWorkspace } from "@/features/surveillance/SurveillanceQueueWorkspace";
 
 export default function SurveillancePage() {
-  return (
-    <RoutePlaceholder
-      title="Surveillance"
-      allowedRoles={["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"]}
-    />
-  );
+  return <SurveillanceQueueWorkspace />;
 }
