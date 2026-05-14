@@ -229,6 +229,35 @@ DHIS2_PASSWORD = os.environ.get("DHIS2_PASSWORD", "")
 DHIS2_PROGRAM_ID = os.environ.get("DHIS2_PROGRAM_ID", "")
 DHIS2_DRY_RUN = os.environ.get("DHIS2_DRY_RUN", "True") == "True"
 
+CELERY_BEAT_SCHEDULE = {
+    # Daily 08:00 UTC — remind caregivers of vaccines due today
+    'send-vaccine-reminders-daily': {
+        'task': 'notifications.send_vaccine_reminders',
+        'schedule': timedelta(hours=24),
+        'options': {'expires': 3600},
+    },
+    # Daily 09:00 UTC — alert caregivers of overdue/defaulter slots
+    'send-overdue-alerts-daily': {
+        'task': 'notifications.send_overdue_alerts',
+        'schedule': timedelta(hours=24),
+        'options': {'expires': 3600},
+    },
+    # Every 5 minutes — dispatch all QUEUED notifications via the SMS gateway
+    'dispatch-queued-notifications': {
+        'task': 'notifications.dispatch_queued_notifications',
+        'schedule': timedelta(minutes=5),
+        'options': {'expires': 240},
+    },
+}
+
+# ── SMS Gateway (Android SMS Gateway by capcom6 – https://sms-gate.app) ──────
+SMS_GATEWAY_URL = os.environ.get(
+    "SMS_GATEWAY_URL", "https://api.sms-gate.app/3rdparty/v1/message"
+)
+SMS_GATEWAY_LOGIN = os.environ.get("SMS_GATEWAY_LOGIN", "")
+SMS_GATEWAY_PASSWORD = os.environ.get("SMS_GATEWAY_PASSWORD", "")
+SMS_MAX_RETRIES = int(os.environ.get("SMS_MAX_RETRIES", "3"))
+
 # ── Logging ───────────────────────────────────────────────────────────────────
 LOGGING = {
     "version": 1,

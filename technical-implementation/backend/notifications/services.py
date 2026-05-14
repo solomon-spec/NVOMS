@@ -1,230 +1,248 @@
+"""
+Notification services for NVOMS.
+
+send_via_gateway()          – dispatches a single SmsNotification via the Android SMS Gateway
+build_reminder_context()    – builds the template substitution dict for a due-today slot
+build_missed_context()      – builds the template substitution dict for an overdue slot
+create_reminder_notification()    – creates a queued SmsNotification for a due vaccine
+create_missed_notification()      – creates a queued SmsNotification for a missed vaccine
+"""
+
 import logging
-from urllib.parse import urlencode
 
+import requests
 from django.conf import settings
-from django.core.mail import send_mail
+from django.utils import timezone
 
-from notifications.models import Notification, SmsLog
+from notifications.models import NotificationAttempt, SmsNotification
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('nvoms.notifications')
+
+# Default fallback template texts (used when no matching MessageTemplate row exists)
+_DEFAULT_REMINDER_EN = (
+    "Dear {caregiver_name}, this is a reminder that {patient_name} is due for "
+    "{vaccine_name} vaccination TODAY ({due_date}). Please visit your nearest health "
+    "facility. - NVOMS"
+)
+_DEFAULT_MISSED_EN = (
+    "Dear {caregiver_name}, {patient_name} has MISSED their {vaccine_name} vaccination "
+    "that was due on {due_date}. Please visit your nearest health facility immediately. "
+    "- NVOMS"
+)
 
 
-def create_notification(*, recipient_user, type, title, body, linked_object_id=None):
-    if recipient_user is None:
-        return None
-    return Notification.objects.create(
-        recipient_user=recipient_user,
-        type=type,
-        title=title,
-        body=body,
-        linked_object_id=str(linked_object_id) if linked_object_id else None,
-    )
+# ── Gateway dispatch ──────────────────────────────────────────────────────────
 
+def send_via_gateway(notification: SmsNotification) -> bool:
+    """
+    Sends a queued SmsNotification via the Android SMS Gateway REST API.
+    Updates notification status to 'sent' or 'failed' and records an attempt.
 
-def create_notifications_for_roles(*, role_codes, type, title, body, linked_object_id=None):
-    from users.models import User
+    Gateway: Android SMS Gateway by capcom6 (https://sms-gate.app)
+    API docs: https://sms-gate.app/api/
 
-    users = User.objects.filter(role__role_code__in=role_codes, status=User.Status.ACTIVE)
-    return [
-        create_notification(
-            recipient_user=user,
-            type=type,
-            title=title,
-            body=body,
-            linked_object_id=linked_object_id,
+    Requires settings:
+        SMS_GATEWAY_URL      e.g. "https://api.sms-gate.app/3rdparty/v1/message"
+        SMS_GATEWAY_LOGIN    your gateway account login
+        SMS_GATEWAY_PASSWORD your gateway account password
+    """
+    gateway_url = getattr(settings, 'SMS_GATEWAY_URL', None)
+    login = getattr(settings, 'SMS_GATEWAY_LOGIN', None)
+    password = getattr(settings, 'SMS_GATEWAY_PASSWORD', None)
+
+    if not all([gateway_url, login, password]):
+        logger.warning(
+            'SMS gateway not configured (SMS_GATEWAY_URL/LOGIN/PASSWORD missing). '
+            'Notification %s not sent.', notification.id
         )
-        for user in users
-    ]
+        notification.status = SmsNotification.DeliveryStatus.FAILED
+        notification.last_error = 'SMS gateway not configured'
+        notification.save(update_fields=['status', 'last_error'])
+        return False
 
-
-def send_sms(recipient_phone, message):
-    if not recipient_phone:
-        return None
-
-    gateway = settings.SMS_GATEWAY
-    status = SmsLog.Status.SENT
-    error_message = None
+    attempt_number = notification.attempts.count() + 1
 
     try:
-        if gateway in ('console', 'mock', 'test'):
-            logger.info('SMS to %s: %s', recipient_phone, message)
-        elif gateway == 'twilio':
-            _send_twilio_sms(recipient_phone, message)
-        elif gateway in ('africas_talking', 'africastalking'):
-            _send_africas_talking_sms(recipient_phone, message)
+        response = requests.post(
+            gateway_url,
+            json={
+                'message': notification.message_body,
+                'phoneNumbers': [notification.phone_number],
+            },
+            auth=(login, password),
+            timeout=15,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        # The gateway returns a list of message states; grab the first id
+        gateway_id = None
+        messages = data if isinstance(data, list) else [data]
+        if messages:
+            gateway_id = messages[0].get('id') or messages[0].get('messageId')
+
+        notification.status = SmsNotification.DeliveryStatus.SENT
+        notification.gateway_message_id = gateway_id
+        notification.sent_at = timezone.now()
+        notification.last_error = None
+        notification.save(update_fields=['status', 'gateway_message_id', 'sent_at', 'last_error'])
+
+        NotificationAttempt.objects.create(
+            notification=notification,
+            attempt_number=attempt_number,
+            gateway_status_code=str(response.status_code),
+            gateway_response=response.text[:500],
+            attempt_status=NotificationAttempt.AttemptStatus.SENT,
+        )
+        logger.info('SMS sent: notification=%s phone=%s', notification.id, notification.phone_number)
+        return True
+
+    except requests.RequestException as exc:
+        error_msg = str(exc)[:500]
+        MAX_RETRIES = getattr(settings, 'SMS_MAX_RETRIES', 3)
+
+        notification.retry_count += 1
+        notification.last_error = error_msg
+        if notification.retry_count >= MAX_RETRIES:
+            notification.status = SmsNotification.DeliveryStatus.FAILED
+            attempt_status = NotificationAttempt.AttemptStatus.FAILED
         else:
-            raise ValueError(f'Unsupported SMS_GATEWAY: {gateway}')
-    except Exception as exc:
-        status = SmsLog.Status.FAILED
-        error_message = str(exc)
-        logger.warning('SMS delivery failed for %s: %s', recipient_phone, exc)
+            notification.status = SmsNotification.DeliveryStatus.PENDING_RETRY
+            attempt_status = NotificationAttempt.AttemptStatus.RETRYING
 
-    return SmsLog.objects.create(
-        recipient_phone=recipient_phone,
-        message=message,
-        status=status,
-        error_message=error_message,
-    )
+        notification.save(update_fields=['status', 'retry_count', 'last_error'])
 
-
-def _send_twilio_sms(recipient_phone, message):
-    import requests
-
-    if not all([settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN, settings.TWILIO_FROM_NUMBER]):
-        raise ValueError('Twilio credentials are not configured.')
-
-    url = (
-        f'https://api.twilio.com/2010-04-01/Accounts/'
-        f'{settings.TWILIO_ACCOUNT_SID}/Messages.json'
-    )
-    response = requests.post(
-        url,
-        data={
-            'To': recipient_phone,
-            'From': settings.TWILIO_FROM_NUMBER,
-            'Body': message,
-        },
-        auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN),
-        timeout=10,
-    )
-    response.raise_for_status()
+        NotificationAttempt.objects.create(
+            notification=notification,
+            attempt_number=attempt_number,
+            gateway_response=error_msg,
+            attempt_status=attempt_status,
+        )
+        logger.error(
+            'SMS dispatch failed: notification=%s error=%s retry=%d',
+            notification.id, error_msg, notification.retry_count,
+        )
+        return False
 
 
-def _send_africas_talking_sms(recipient_phone, message):
-    import requests
+# ── Template context builders ─────────────────────────────────────────────────
 
-    if not all([settings.AFRICASTALKING_USERNAME, settings.AFRICASTALKING_API_KEY]):
-        raise ValueError("Africa's Talking credentials are not configured.")
-
-    payload = {
-        'username': settings.AFRICASTALKING_USERNAME,
-        'to': recipient_phone,
-        'message': message,
-    }
-    if settings.AFRICASTALKING_SENDER_ID:
-        payload['from'] = settings.AFRICASTALKING_SENDER_ID
-
-    response = requests.post(
-        'https://api.africastalking.com/version1/messaging',
-        data=payload,
-        headers={'apiKey': settings.AFRICASTALKING_API_KEY},
-        timeout=10,
-    )
-    response.raise_for_status()
-
-
-def send_password_reset_email(user, token):
-    if not user.email:
-        return
-    params = urlencode({'token': token})
-    reset_url = f'{settings.PASSWORD_RESET_URL}?{params}'
-    send_mail(
-        subject='Reset your NVOMS password',
-        message=(
-            f'Hello {user.full_name},\n\n'
-            f'Use this link to reset your NVOMS password: {reset_url}\n'
-            'This token expires in 30 minutes.'
+def build_reminder_context(patient, slot, caregiver) -> dict:
+    return {
+        'caregiver_name': caregiver.full_name,
+        'patient_name': patient.full_name,
+        'vaccine_name': slot.vaccine.vaccine_name if slot.vaccine else 'vaccine',
+        'due_date': str(slot.due_date),
+        'facility_name': (
+            patient.registered_facility.facility_name
+            if patient.registered_facility else 'your nearest health facility'
         ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=False,
+    }
+
+
+def build_missed_context(patient, slot, caregiver) -> dict:
+    return {
+        'caregiver_name': caregiver.full_name,
+        'patient_name': patient.full_name,
+        'vaccine_name': slot.vaccine.vaccine_name if slot.vaccine else 'vaccine',
+        'due_date': str(slot.due_date),
+        'facility_name': (
+            patient.registered_facility.facility_name
+            if patient.registered_facility else 'your nearest health facility'
+        ),
+    }
+
+
+# ── Notification creators ─────────────────────────────────────────────────────
+
+def _get_template(message_type: str, language_code: str = 'en'):
+    """Returns the best matching active MessageTemplate, or None."""
+    from notifications.models import MessageTemplate
+    return (
+        MessageTemplate.objects
+        .filter(message_type=message_type, language_code=language_code, is_active=True)
+        .first()
+        or MessageTemplate.objects
+        .filter(message_type=message_type, is_active=True)
+        .first()
     )
 
 
-def send_welcome_message(user, temporary_password=None):
-    create_notification(
-        recipient_user=user,
-        type=Notification.Type.WELCOME,
-        title='Welcome to NVOMS',
-        body='Your NVOMS account has been created.',
-        linked_object_id=user.id,
-    )
-    if user.email:
-        from authentication.serializers import create_password_reset_token
-
-        token, _ = create_password_reset_token(user, user.email)
-        reset_url = f'{settings.PASSWORD_RESET_URL}?{urlencode({"token": token})}'
-        send_mail(
-            subject='Welcome to NVOMS',
-            message=(
-                f'Hello {user.full_name},\n\n'
-                f'Your NVOMS account is ready. Username: {user.email}.\n'
-                f'Use this temporary password link to set a new password: {reset_url}'
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
-    if user.phone_number:
-        credential_text = f' Temporary password: {temporary_password}.' if temporary_password else ''
-        send_sms(
-            user.phone_number,
-            f'Welcome to NVOMS. Username: {user.email or user.phone_number}.{credential_text}',
-        )
-
-
-def send_outbreak_confirmed_alert(alert):
-    from users.models import User
-
-    message = f'Confirmed outbreak alert: {alert.disease_code} in {alert.unit.name}.'
-    users = User.objects.filter(
-        role__role_code__in=['ADMIN', 'PUBLIC_HEALTH_OFFICIAL'],
-        status=User.Status.ACTIVE,
-    )
-    for user in users:
-        create_notification(
-            recipient_user=user,
-            type=Notification.Type.OUTBREAK_ALERT,
-            title='Outbreak alert confirmed',
-            body=message,
-            linked_object_id=alert.id,
-        )
-        if user.phone_number:
-            send_sms(user.phone_number, message)
-
-
-def send_overdue_vaccination_alert(slot):
-    patient = slot.patient
-    vaccine_name = slot.vaccine.vaccine_name
-    message = f'{patient.full_name} is overdue for {vaccine_name}.'
-
-    if patient.user_account:
-        create_notification(
-            recipient_user=patient.user_account,
-            type=Notification.Type.VACCINATION_REMINDER,
-            title='Vaccination overdue',
-            body=message,
-            linked_object_id=slot.id,
-        )
-        if patient.user_account.phone_number:
-            send_sms(patient.user_account.phone_number, message)
-
+def create_reminder_notification(patient, slot) -> SmsNotification | None:
+    """
+    Creates a queued SmsNotification reminding the caregiver that the patient's
+    vaccine dose is due today. Returns None if the caregiver has no phone number.
+    Skips creation if a reminder for this slot was already sent today.
+    """
     caregiver = patient.primary_caregiver
-    if caregiver and caregiver.phone_number:
-        send_sms(caregiver.phone_number, message)
+    if not caregiver or not caregiver.phone_number:
+        return None
+
+    already_sent = SmsNotification.objects.filter(
+        schedule_slot=slot,
+        notification_type=SmsNotification.NotificationType.REMINDER,
+        created_at__date=timezone.now().date(),
+    ).exists()
+    if already_sent:
+        return None
+
+    lang = caregiver.preferred_language or 'en'
+    template = _get_template(SmsNotification.NotificationType.REMINDER, lang)
+    context = build_reminder_context(patient, slot, caregiver)
+
+    if template:
+        body = template.render(context)
+    else:
+        body = _DEFAULT_REMINDER_EN.format_map(context)
+
+    return SmsNotification.objects.create(
+        caregiver=caregiver,
+        patient=patient,
+        schedule_slot=slot,
+        template=template,
+        notification_type=SmsNotification.NotificationType.REMINDER,
+        phone_number=caregiver.phone_number,
+        language_code=lang,
+        message_body=body,
+        priority=1,
+    )
 
 
-def send_vaccination_reminder(slot):
-    patient = slot.patient
-    vaccine_name = slot.vaccine.vaccine_name
-    message = f'{patient.full_name} is scheduled for {vaccine_name} on {slot.due_date}.'
-
-    if patient.user_account:
-        exists = patient.user_account.notifications.filter(
-            type=Notification.Type.VACCINATION_REMINDER,
-            linked_object_id=str(slot.id),
-        ).exists()
-        if not exists:
-            create_notification(
-                recipient_user=patient.user_account,
-                type=Notification.Type.VACCINATION_REMINDER,
-                title='Vaccination reminder',
-                body=message,
-                linked_object_id=slot.id,
-            )
-        if patient.user_account.phone_number:
-            send_sms(patient.user_account.phone_number, message)
-
+def create_missed_notification(patient, slot) -> SmsNotification | None:
+    """
+    Creates a queued SmsNotification alerting the caregiver that the patient has
+    missed a scheduled vaccine dose. Returns None if the caregiver has no phone number.
+    Skips creation if a missed-appointment alert for this slot was already sent today.
+    """
     caregiver = patient.primary_caregiver
-    if caregiver and caregiver.phone_number:
-        send_sms(caregiver.phone_number, message)
+    if not caregiver or not caregiver.phone_number:
+        return None
+
+    already_sent = SmsNotification.objects.filter(
+        schedule_slot=slot,
+        notification_type=SmsNotification.NotificationType.MISSED_APPOINTMENT,
+        created_at__date=timezone.now().date(),
+    ).exists()
+    if already_sent:
+        return None
+
+    lang = caregiver.preferred_language or 'en'
+    template = _get_template(SmsNotification.NotificationType.MISSED_APPOINTMENT, lang)
+    context = build_missed_context(patient, slot, caregiver)
+
+    if template:
+        body = template.render(context)
+    else:
+        body = _DEFAULT_MISSED_EN.format_map(context)
+
+    return SmsNotification.objects.create(
+        caregiver=caregiver,
+        patient=patient,
+        schedule_slot=slot,
+        template=template,
+        notification_type=SmsNotification.NotificationType.MISSED_APPOINTMENT,
+        phone_number=caregiver.phone_number,
+        language_code=lang,
+        message_body=body,
+        priority=2,
+    )
