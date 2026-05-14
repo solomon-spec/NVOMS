@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useAuthSession } from "@/features/auth/useAuthSession";
-import { logout } from "@/services/auth";
+import { logout, logoutAll } from "@/services/auth";
 import { clearStoredSession } from "@/shared/auth-storage";
 import { formatRole } from "@/shared/format";
 import { Dropdown } from "../ui/dropdown/Dropdown";
@@ -30,6 +30,20 @@ export default function UserDropdown() {
     if (session) {
       try {
         await logout(session);
+      } catch {
+        // Local sign out should not depend on the API being reachable.
+      }
+    }
+  }
+
+  async function handleSignOutAll() {
+    closeDropdown();
+    clearStoredSession();
+    router.replace("/login");
+
+    if (session) {
+      try {
+        await logoutAll(session);
       } catch {
         // Local sign out should not depend on the API being reachable.
       }
@@ -97,8 +111,15 @@ export default function UserDropdown() {
         </div>
 
         <DropdownItem
+          onClick={handleSignOutAll}
+          className="mt-2 flex items-center gap-3 border-t border-white/10 px-3 py-3 font-medium text-warning-400 rounded-lg group text-theme-sm hover:bg-warning-500/10"
+        >
+          Sign out all devices
+        </DropdownItem>
+
+        <DropdownItem
           onClick={handleSignOut}
-          className="mt-4 flex items-center gap-3 border-t border-white/10 px-3 py-3 font-medium text-error-400 rounded-lg group text-theme-sm hover:bg-error-500/10"
+          className="flex items-center gap-3 px-3 py-3 font-medium text-error-400 rounded-lg group text-theme-sm hover:bg-error-500/10"
         >
           Sign out
         </DropdownItem>

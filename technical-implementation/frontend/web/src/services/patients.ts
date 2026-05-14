@@ -263,6 +263,27 @@ export function listMyPatientSchedule(token: string) {
   });
 }
 
+export function listCaregiverPatients(token: string) {
+  return apiRequest<Patient[]>("/caregivers/me/patients", {
+    method: "GET",
+    token,
+  });
+}
+
+export function listCaregiverPatientDoses(token: string, patientId: string) {
+  return apiRequest<ImmunizationEvent[]>(`/caregivers/me/patients/${patientId}/doses`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function listCaregiverPatientSchedule(token: string, patientId: string) {
+  return apiRequest<PatientScheduleSlot[]>(`/caregivers/me/patients/${patientId}/schedule`, {
+    method: "GET",
+    token,
+  });
+}
+
 export function listCaregivers(token: string, search?: string) {
   return apiRequest<Caregiver[]>(
     withQuery("/caregivers/", {
@@ -278,6 +299,29 @@ export function listCaregivers(token: string, search?: string) {
 export function createCaregiver(token: string, payload: CreateCaregiverPayload) {
   return apiRequest<Caregiver>("/caregivers/", {
     method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getCaregiver(token: string, caregiverId: string) {
+  return apiRequest<Caregiver>(`/caregivers/${caregiverId}`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function updateCaregiver(token: string, caregiverId: string, payload: CreateCaregiverPayload) {
+  return apiRequest<Caregiver>(`/caregivers/${caregiverId}`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function patchCaregiver(token: string, caregiverId: string, payload: Partial<CreateCaregiverPayload>) {
+  return apiRequest<Caregiver>(`/caregivers/${caregiverId}`, {
+    method: "PATCH",
     token,
     body: JSON.stringify(payload),
   });

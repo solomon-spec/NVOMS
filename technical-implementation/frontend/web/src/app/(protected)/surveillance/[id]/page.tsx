@@ -1,9 +1,18 @@
+import { ProtectedRoute } from "@/components/app-shell/ProtectedRoute";
 import { SurveillanceDetailWorkspace } from "@/features/surveillance/SurveillanceDetailWorkspace";
 
-export default function SurveillanceDetailPage({
+export default async function SurveillanceDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  return <SurveillanceDetailWorkspace reportId={params.id} />;
+  const { id } = await params;
+
+  return (
+    <ProtectedRoute
+      allowedRoles={["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"]}
+    >
+      <SurveillanceDetailWorkspace reportId={id} />
+    </ProtectedRoute>
+  );
 }

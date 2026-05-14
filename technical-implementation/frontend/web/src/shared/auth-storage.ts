@@ -1,4 +1,4 @@
-import type { AuthSession, AuthTokens } from "@/features/auth/types";
+import type { AuthSession, AuthTokens, AuthUser } from "@/features/auth/types";
 
 const STORAGE_KEY = "nvoms.auth.session";
 const SESSION_EVENT = "nvoms-auth-session-change";
@@ -47,14 +47,14 @@ export function saveStoredSession(session: AuthSession) {
   notifySessionChange();
 }
 
-export function updateStoredTokens(tokens: AuthTokens) {
+export function updateStoredTokens(tokens: AuthTokens, user?: AuthUser) {
   const current = getStoredSession();
   if (!current) {
     return;
   }
 
   saveStoredSession({
-    user: { ...current.user, mustChangePassword: false },
+    user: user ?? current.user,
     tokens,
   });
 }

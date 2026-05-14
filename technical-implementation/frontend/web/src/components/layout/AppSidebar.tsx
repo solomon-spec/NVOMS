@@ -2,6 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuthSession } from "@/features/auth/useAuthSession";
 import { clearStoredSession } from "@/shared/auth-storage";
@@ -42,7 +43,7 @@ const navItems: NavItem[] = [
     icon: <DocsIcon />,
     name: "My Vaccination Card",
     path: "/self-service",
-    roles: ["PATIENT"],
+    roles: ["PATIENT", "CAREGIVER"],
   },
 
   // Patient Self Service (PATIENT)
@@ -50,19 +51,19 @@ const navItems: NavItem[] = [
     icon: <GroupIcon />,
     name: "QR ID",
     path: "/self-service/qr",
-    roles: ["PATIENT"],
+    roles: ["PATIENT", "CAREGIVER"],
   },
   {
     icon: <CalenderIcon />,
     name: "Upcoming Doses",
     path: "/self-service/timeline",
-    roles: ["PATIENT"],
+    roles: ["PATIENT", "CAREGIVER"],
   },
   {
     icon: <BellIcon />,
     name: "Alerts",
     path: "/self-service/alerts",
-    roles: ["PATIENT"],
+    roles: ["PATIENT", "CAREGIVER"],
   },
 
   // Clinical Operations (HEALTH WORKER / ADMIN)
@@ -143,6 +144,7 @@ const navItems: NavItem[] = [
 ];
 
 const AppSidebar: React.FC = () => {
+  const router = useRouter();
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
   const session = useAuthSession();
@@ -236,7 +238,10 @@ const AppSidebar: React.FC = () => {
         {isExpanded || isHovered || isMobileOpen ? (
           <div className="mt-auto p-4">
             <button
-              onClick={() => clearStoredSession()}
+              onClick={() => {
+                clearStoredSession();
+                router.replace("/login");
+              }}
             className="enterprise-button-secondary flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-error-400 transition-colors hover:text-error-300"
             >
               Log out

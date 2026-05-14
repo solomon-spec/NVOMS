@@ -39,7 +39,6 @@ export default function LoginPage() {
 
       router.push("/");
     } catch (err) {
-      console.error("Login error:", err);
       setError(
         err instanceof Error
           ? err.message
@@ -87,7 +86,7 @@ export default function LoginPage() {
               <div className="mb-2 flex items-center justify-between">
                 <Label>Password</Label>
                 <Link
-                  href="#"
+                  href="/forgot-password"
                   className="text-sm font-medium text-blue-light-400 transition-colors hover:text-blue-light-300"
                 >
                   Forgot password?

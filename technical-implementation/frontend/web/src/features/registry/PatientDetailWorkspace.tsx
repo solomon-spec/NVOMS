@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { EditCaregiverModal } from "./components/EditCaregiverModal";
 
 import Badge from "@/components/ui/badge/Badge";
 import {
@@ -146,7 +147,7 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
     return () => {
       isActive = false;
     };
-  }, [patientId, token]);
+  }, [patientId, token, notice]); // Added notice as dependency so it reloads on successful edit. Actually, let's just trigger reload manually. Wait, I'll pass a reload function.
 
   const facilityById = useMemo(() => {
     return new Map(facilities.map((facility) => [facility.id, facility]));
@@ -313,7 +314,12 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
 
           {activeTab === "doses" ? <DosesTab doses={doses} /> : null}
 
-          {activeTab === "caregiver" ? <CaregiverTab patient={patient} /> : null}
+          {activeTab === "caregiver" ? <CaregiverTab patient={patient} token={token} onUpdated={() => {
+            setNotice("Caregiver details updated successfully.");
+            // Trigger a re-fetch by clearing patient, or just let user refresh if we don't want complex state.
+            // A simple way is to reload the window or refetch.
+            window.location.reload();
+          }} /> : null}
         </div>
       </section>
     </div>
@@ -553,8 +559,9 @@ function DosesTab({ doses }: { doses: ImmunizationEvent[] }) {
   );
 }
 
-function CaregiverTab({ patient }: { patient: Patient }) {
+function CaregiverTab({ patient, token, onUpdated }: { patient: Patient; token: string; onUpdated: () => void }) {
   const caregiver = patient.primary_caregiver;
+  const [isEditing, setIsEditing] = useState(false);
 
   if (!caregiver) {
     return (
@@ -567,6 +574,15 @@ function CaregiverTab({ patient }: { patient: Patient }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      <div className="lg:col-span-2 mb-2 flex justify-end">
+        <button
+          onClick={() => setIsEditing(true)}
+          className="enterprise-button-secondary inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold"
+        >
+          <PencilIcon className="h-4 w-4 fill-current" />
+          Edit Caregiver
+        </button>
+      </div>
       <DetailItem label="Full name" value={caregiver.full_name} strong />
       <DetailItem label="Relationship" value={caregiver.relationship_to_patient} />
       <DetailItem label="Phone number" value={caregiver.phone_number} />
@@ -587,6 +603,18 @@ function CaregiverTab({ patient }: { patient: Patient }) {
           </div>
         </div>
       </div>
+
+      {isEditing && (
+        <EditCaregiverModal
+          caregiver={caregiver}
+          token={token}
+          onClose={() => setIsEditing(false)}
+          onSuccess={() => {
+            setIsEditing(false);
+            onUpdated();
+          }}
+        />
+      )}
     </div>
   );
 }

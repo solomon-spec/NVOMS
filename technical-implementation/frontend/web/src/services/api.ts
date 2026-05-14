@@ -1,4 +1,5 @@
-import type { ApiErrorPayload } from "@/features/auth/types";
+import type { ApiErrorPayload, AuthSession } from "@/features/auth/types";
+import { getStoredSession, updateStoredTokens, clearStoredSession } from "@/shared/auth-storage";
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000/api/v1";
 
@@ -76,6 +77,42 @@ export async function apiRequest<T>(
   const data = text ? safeJsonParse(text) : undefined;
 
   if (!response.ok) {
+    if (response.status === 401 && path !== "/auth/refresh" && path !== "/auth/login") {
+      const session = getStoredSession();
+      if (session?.tokens?.refreshToken) {
+        try {
+          const refreshRes = await fetch(buildUrl("/auth/refresh"), {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ refreshToken: session.tokens.refreshToken }),
+          });
+
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            if (refreshData.tokens) {
+              const refreshedSession = refreshData as Partial<AuthSession>;
+              updateStoredTokens(refreshData.tokens, refreshedSession.user);
+              return apiRequest<T>(path, {
+                ...options,
+                token: refreshData.tokens.accessToken,
+                headers,
+                body,
+              });
+            }
+          }
+        } catch {
+          // Ignore network errors during refresh, fall through to clear
+        }
+
+        clearStoredSession();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+      }
+    }
     throw new ApiError(response.status, data);
   }
 

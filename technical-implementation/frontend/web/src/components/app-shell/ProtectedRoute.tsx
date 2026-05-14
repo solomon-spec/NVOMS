@@ -5,6 +5,9 @@ import { useEffect } from "react";
 
 import type { UserRole } from "@/features/auth/types";
 import { useAuthSession } from "@/features/auth/useAuthSession";
+import { fetchMe } from "@/services/auth";
+import { clearStoredSession } from "@/shared/auth-storage";
+import { useRef, useState } from "react";
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
@@ -20,6 +23,9 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   const isHydratingStoredSession = !session && hasStoredSession;
   const isAllowed =
     session && (!allowedRoles || allowedRoles.includes(session.user.role));
+
+  const [isValidated, setIsValidated] = useState(false);
+  const validationInFlight = useRef(false);
 
   useEffect(() => {
     if (isHydratingStoredSession) {
@@ -38,8 +44,24 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
     if (!isAllowed) {
       router.replace("/");
+      return;
     }
-  }, [isAllowed, isHydratingStoredSession, router, session]);
+
+    if (!isValidated && !validationInFlight.current && session) {
+      validationInFlight.current = true;
+      fetchMe(session.tokens.accessToken)
+        .then(() => {
+          setIsValidated(true);
+        })
+        .catch(() => {
+          clearStoredSession();
+          router.replace("/login");
+        })
+        .finally(() => {
+          validationInFlight.current = false;
+        });
+    }
+  }, [isAllowed, isHydratingStoredSession, router, session, isValidated]);
 
   if (isHydratingStoredSession || !session || session.user.mustChangePassword) {
     return <LoadingState label="Loading workspace" />;
@@ -47,6 +69,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
   if (!isAllowed) {
     return <LoadingState label="Checking access" />;
+  }
+
+  if (!isValidated) {
+    return <LoadingState label="Validating session" />;
   }
 
   return children;

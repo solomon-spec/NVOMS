@@ -56,3 +56,18 @@ export function confirmPasswordReset(token: string, new_password: string) {
     body: JSON.stringify({ token, new_password }),
   });
 }
+
+export function refreshToken(refreshToken: string) {
+  return apiRequest<LoginResponse>("/auth/refresh", {
+    method: "POST",
+    body: JSON.stringify({ refreshToken }),
+  });
+}
+
+export function logoutAll(session: AuthSession) {
+  return apiRequest<{ message: string }>("/auth/logout-all", {
+    method: "POST",
+    token: session.tokens.accessToken,
+    body: JSON.stringify({ refreshToken: session.tokens.refreshToken }),
+  });
+}

@@ -1,12 +1,11 @@
-import { expect, type Locator, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-const pause = (page: Page, ms = 900) => page.waitForTimeout(ms);
+import { clickWithPointer, loginAs, pause } from "./helpers";
 
 test.describe('NVOMS Disease Surveillance Flow demo', () => {
   test('displays surveillance queue, creates a report, and adds a follow-up', async ({ page }) => {
     // 1. Log in as Health Worker
-    await page.goto('/login');
-    await signInAsHealthWorker(page);
+    await loginAs(page, "HEALTH_WORKER");
 
     // 2. Open Surveillance Workspace
     await clickWithPointer(page, page.getByRole('link', { name: 'Surveillance' }));
@@ -14,8 +13,8 @@ test.describe('NVOMS Disease Surveillance Flow demo', () => {
     await pause(page, 1500);
 
     // 3. Verify queue and alerts sections are visible
-    await expect(page.getByRole('heading', { name: 'Triage queue' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Outbreak alerts' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Triage queue', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Outbreak alerts', exact: true })).toBeVisible();
     await pause(page, 1000);
 
     // 4. Create New Surveillance Report
@@ -64,7 +63,11 @@ test.describe('NVOMS Disease Surveillance Flow demo', () => {
     await pause(page, 1500);
 
     // Update status
-    const statusSelect = page.getByLabel('Status');
+    const statusSelect = page
+      .locator('form')
+      .filter({ has: page.getByRole('button', { name: 'Update status' }) })
+      .locator('select')
+      .first();
     await statusSelect.selectOption({ label: 'Under follow-up' });
     await pause(page, 500);
     
@@ -85,36 +88,3 @@ test.describe('NVOMS Disease Surveillance Flow demo', () => {
     await pause(page, 2000);
   });
 });
-
-async function signInAsHealthWorker(page: Page) {
-  await expect(page.getByRole('heading', { name: 'Sign in to NVOMS' })).toBeVisible();
-  await pause(page, 1000);
-
-  await page.locator('input[name="email"]').pressSequentially('hw@nvoms.local', {
-    delay: 45,
-  });
-  await pause(page, 350);
-  await page.locator('input[name="password"]').pressSequentially('password123', {
-    delay: 65,
-  });
-  await pause(page, 600);
-  await clickWithPointer(page, page.getByRole('button', { name: 'Sign In' }));
-
-  await expect(page).toHaveURL('/');
-  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
-  await pause(page, 1000);
-}
-
-async function clickWithPointer(page: Page, locator: Locator) {
-  await locator.scrollIntoViewIfNeeded();
-  const box = await locator.boundingBox();
-
-  if (box) {
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, {
-      steps: 18,
-    });
-    await pause(page, 250);
-  }
-
-  await locator.click();
-}

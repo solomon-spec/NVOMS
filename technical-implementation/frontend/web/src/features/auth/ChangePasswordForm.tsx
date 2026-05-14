@@ -60,7 +60,7 @@ export function ChangePasswordForm() {
         accessToken: session?.tokens.accessToken ?? "",
       });
       updateStoredTokens(response.tokens);
-      router.replace("/dashboard");
+      router.replace("/");
     } catch (caughtError) {
       setError(readChangePasswordError(caughtError));
     } finally {
