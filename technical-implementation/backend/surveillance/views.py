@@ -7,7 +7,6 @@ from rest_framework.views import APIView
 
 from core.audit import write_audit_log
 from core.models import AuditLog
-from notifications.models import Notification
 from notifications.services import (
     create_notifications_for_roles,
     send_outbreak_confirmed_alert,
@@ -67,7 +66,7 @@ class SurveillanceReportListView(APIView):
         report = serializer.save(reported_by=request.user)
         create_notifications_for_roles(
             role_codes=['PUBLIC_HEALTH_OFFICIAL'],
-            type=Notification.Type.SURVEILLANCE_REPORT,
+            type='surveillance_report',
             title='New surveillance report submitted',
             body=f'New {report.surveillance_category} report submitted for {report.condition_type}.',
             linked_object_id=report.id,

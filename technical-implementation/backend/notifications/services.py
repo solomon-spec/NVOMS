@@ -8,15 +8,61 @@ create_reminder_notification()    – creates a queued SmsNotification for a due
 create_missed_notification()      – creates a queued SmsNotification for a missed vaccine
 """
 
+from __future__ import annotations
+
 import logging
 
-import requests
 from django.conf import settings
 from django.utils import timezone
 
 from notifications.models import NotificationAttempt, SmsNotification
 
+try:
+    import requests
+except ImportError:  # pragma: no cover - optional SMS gateway dependency in local demos
+    requests = None
+
 logger = logging.getLogger('nvoms.notifications')
+
+
+def create_notification(**kwargs):
+    """Compatibility shim for legacy in-app notification call sites."""
+    logger.info('Legacy notification event recorded: %s', kwargs.get('type'))
+    return None
+
+
+def create_notifications_for_roles(role_codes, **kwargs):
+    """Compatibility shim until role-targeted in-app notifications are restored."""
+    logger.info(
+        'Legacy role notification event recorded: roles=%s type=%s',
+        role_codes,
+        kwargs.get('type'),
+    )
+    return []
+
+
+def send_outbreak_confirmed_alert(alert):
+    """Compatibility shim for outbreak alert notification hooks."""
+    logger.info('Outbreak confirmed alert hook skipped for alert=%s', getattr(alert, 'id', None))
+    return None
+
+
+def send_overdue_vaccination_alert(slot):
+    """Compatibility shim for overdue vaccination notification hooks."""
+    logger.info('Overdue vaccination alert hook skipped for slot=%s', getattr(slot, 'id', None))
+    return None
+
+
+def send_password_reset_email(user, token):
+    """Development placeholder for password reset delivery."""
+    logger.info('Password reset token generated for user=%s', getattr(user, 'id', None))
+    return None
+
+
+def send_sms(phone_number, message):
+    """Development placeholder for direct SMS delivery."""
+    logger.info('SMS delivery placeholder: phone=%s message_length=%d', phone_number, len(message))
+    return None
 
 # Default fallback template texts (used when no matching MessageTemplate row exists)
 _DEFAULT_REMINDER_EN = (
@@ -46,6 +92,13 @@ def send_via_gateway(notification: SmsNotification) -> bool:
         SMS_GATEWAY_LOGIN    your gateway account login
         SMS_GATEWAY_PASSWORD your gateway account password
     """
+    if requests is None:
+        logger.warning('SMS gateway dependency requests is not installed.')
+        notification.status = SmsNotification.DeliveryStatus.FAILED
+        notification.last_error = 'SMS gateway dependency not installed'
+        notification.save(update_fields=['status', 'last_error'])
+        return False
+
     gateway_url = getattr(settings, 'SMS_GATEWAY_URL', None)
     login = getattr(settings, 'SMS_GATEWAY_LOGIN', None)
     password = getattr(settings, 'SMS_GATEWAY_PASSWORD', None)

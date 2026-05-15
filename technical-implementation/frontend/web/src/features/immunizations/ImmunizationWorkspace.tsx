@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import { useAuthSession } from "@/features/auth/useAuthSession";
 import { useSearchParams } from "next/navigation";
@@ -20,6 +21,7 @@ import type {
 import { ApiError } from "@/services/api";
 import {
   createPatientDose,
+  getPatientSummary,
   listFacilities,
   listPatientDoses,
   listPatients,
@@ -30,6 +32,13 @@ import {
   updatePatientScheduleSlot,
 } from "@/services/patients";
 import { formatRole } from "@/shared/format";
+import {
+  maskIdentifier,
+  maskPhone,
+  PrivacyBoundaryBadge,
+  PrivacyModeToggle,
+  usePrivacyMode,
+} from "@/shared/privacy";
 import { AlertBanner, ConfirmModal } from "@/shared/workspace-ui";
 
 const patientStatuses: Array<{ label: string; value: PatientStatus | "all" }> = [
@@ -95,6 +104,7 @@ const emptySlotForm = {
 
 export function ImmunizationWorkspace() {
   const session = useAuthSession();
+  const { isPrivacyMode } = usePrivacyMode();
   const searchParams = useSearchParams();
   const patientIdFromUrl = searchParams.get("patientId");
 
@@ -164,7 +174,7 @@ export function ImmunizationWorkspace() {
           setBatches(batchRows);
           setError("");
           setSelectedPatientId((current) => {
-            if (!current && patientIdFromUrl && patientRows.some(p => p.id === patientIdFromUrl)) {
+            if (patientIdFromUrl) {
               return patientIdFromUrl;
             }
             return current && patientRows.some((patient) => patient.id === current)
@@ -204,14 +214,15 @@ export function ImmunizationWorkspace() {
 
       setIsPatientLoading(true);
       try {
-        const patient = patients.find((row) => row.id === selectedPatientId) ?? null;
-        const [scheduleRows, doseRows] = await Promise.all([
+        const listedPatient = patients.find((row) => row.id === selectedPatientId) ?? null;
+        const [scheduleRows, doseRows, summaryResponse] = await Promise.all([
           listPatientSchedule(token, selectedPatientId),
           listPatientDoses(token, selectedPatientId),
+          listedPatient ? Promise.resolve(null) : getPatientSummary(token, selectedPatientId),
         ]);
 
         if (isActive) {
-          setSelectedPatient(patient);
+          setSelectedPatient(listedPatient ?? summaryResponse?.patient ?? null);
           setSchedule(scheduleRows);
           setDoses(doseRows);
           setPatientError("");
@@ -239,10 +250,21 @@ export function ImmunizationWorkspace() {
     };
   }, [patients, selectedPatientId, token]);
 
+  useEffect(() => {
+    if (selectedPatient) {
+      rememberRecentPatient(selectedPatient.id);
+    }
+  }, [selectedPatient]);
+
   const queueSlots = useMemo(
-    () => schedule.filter((slot) => actionableSlotStatuses.has(slot.status)),
+    () =>
+      schedule
+        .filter((slot) => actionableSlotStatuses.has(slot.status))
+        .sort(compareScheduleSlots),
     [schedule],
   );
+
+  const reviewSlots = queueSlots.length ? queueSlots : [...schedule].sort(compareScheduleSlots);
 
   const metrics = useMemo(() => {
     const dueToday = schedule.filter((slot) => slot.status === "due_today").length;
@@ -417,25 +439,53 @@ export function ImmunizationWorkspace() {
 
   return (
     <div className="space-y-6">
+      <nav aria-label="Breadcrumb">
+        <ol className="flex flex-wrap items-center gap-2 text-sm font-medium">
+          <li>
+            <Link href="/patients" className="text-gray-400 hover:text-white">
+              Patients
+            </Link>
+          </li>
+          {selectedPatient ? (
+            <>
+              <li className="text-gray-500">/</li>
+              <li>
+                <Link
+                  href={`/patients/${selectedPatient.id}`}
+                  className="text-gray-400 hover:text-white"
+                >
+                  Patient Detail
+                </Link>
+              </li>
+            </>
+          ) : null}
+          <li className="text-gray-500">/</li>
+          <li className="text-white">Immunization</li>
+        </ol>
+      </nav>
+
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-600 dark:text-brand-400">
-          Immunization
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-600 dark:text-brand-400">
+            Immunization
+          </p>
+          <PrivacyBoundaryBadge />
+        </div>
         <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-              Record doses and manage vaccination schedules
+              Due and overdue vaccination work
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500 dark:text-gray-400">
-              Select a patient, review due schedule slots, update slot status,
-              and record immunization events through the patient dose API.
+              Select a patient, review today&apos;s clinical queue, update schedule
+              outcomes, and record doses through the patient dose API.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            {/* Offline indicator */}
+            <PrivacyModeToggle />
             <div className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${isOnline ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-300" : "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-300"}`}>
               <span className={`h-2 w-2 rounded-full ${isOnline ? "bg-success-500" : "bg-warning-500 animate-pulse"}`} />
-              {isOnline ? "Online" : "Offline — doses will be queued"}
+              {isOnline ? "Online" : "Offline - doses will be queued"}
             </div>
             <button
               className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
@@ -470,15 +520,17 @@ export function ImmunizationWorkspace() {
       {/* Confirm dose modal */}
       <ConfirmModal
         isOpen={showDoseConfirm}
-        title="Confirm Dose Recording"
+        title="Confirm dose before submission"
         message={
           <div className="space-y-2">
             <p className="mb-4">This action will update the patient&apos;s official vaccination record.</p>
-            <div className="grid grid-cols-[100px_1fr] gap-1 text-sm">
+            <div className="grid grid-cols-[110px_1fr] gap-1 text-sm">
               <span className="font-semibold text-gray-500 dark:text-gray-400">Patient:</span>
               <span>{selectedPatient?.full_name} / {selectedPatient?.uid}</span>
               <span className="font-semibold text-gray-500 dark:text-gray-400">Vaccine:</span>
               <span>{vaccines.find((v) => v.id === doseForm.vaccine_id)?.vaccine_name}</span>
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Dose:</span>
+              <span>{selectedSlot ? `${selectedSlot.vaccine.vaccine_code} due ${selectedSlot.due_date}` : formatRole(doseForm.event_status ?? "administered")}</span>
               <span className="font-semibold text-gray-500 dark:text-gray-400">Date:</span>
               <span>{formatDateTime(doseForm.administered_at)}</span>
               <span className="font-semibold text-gray-500 dark:text-gray-400">Batch:</span>
@@ -505,7 +557,7 @@ export function ImmunizationWorkspace() {
             <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
               <input
                 className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-800 shadow-theme-xs outline-none transition placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                placeholder="Search patient UID, name, caregiver phone"
+                placeholder="Search UID or patient/caregiver terms"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -548,17 +600,21 @@ export function ImmunizationWorkspace() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                          {patient.full_name}
+                          {isPrivacyMode ? "Name hidden" : patient.full_name}
                         </p>
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          {patient.uid} · {patient.date_of_birth}
+                          {maskIdentifier(patient.uid)} · {formatAge(patient.date_of_birth)}
                         </p>
                       </div>
                       <StatusPill label={formatRole(patient.status)} />
                     </div>
                     <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
                       {patient.primary_caregiver
-                        ? `${patient.primary_caregiver.full_name} · ${patient.primary_caregiver.phone_number}`
+                        ? `${
+                            isPrivacyMode
+                              ? "Caregiver hidden"
+                              : patient.primary_caregiver.full_name
+                          } · ${maskPhone(patient.primary_caregiver.phone_number)}`
                         : "No caregiver"}
                     </p>
                   </button>
@@ -578,24 +634,33 @@ export function ImmunizationWorkspace() {
             isLoading={isPatientLoading}
             onRegenerate={handleRegenerateSchedule}
             isRegenerating={isRegenerating}
+            isPrivacyMode={isPrivacyMode}
+            dueCount={schedule.filter((slot) => slot.status === "due_today").length}
+            overdueCount={schedule.filter((slot) =>
+              ["overdue", "defaulter"].includes(slot.status),
+            ).length}
           />
 
           {patientError ? <InlineError message={patientError} /> : null}
 
           <div className="grid gap-6 2xl:grid-cols-[minmax(0,0.9fr)_minmax(430px,1.1fr)]">
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+            <section
+              id="immunization-schedule-review"
+              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
+            >
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Schedule queue
+                Due and overdue review
               </h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Choose a slot to prefill the dose form or update its status.
+                Choose a clinical slot to prefill the dose form, review the schedule,
+                or mark an exemption, contraindication, refusal, or cancellation.
               </p>
 
               {slotError ? <InlineError className="mt-4" message={slotError} /> : null}
 
               <div className="mt-5 max-h-[420px] space-y-3 overflow-y-auto pr-1">
-                {schedule.length ? (
-                  schedule.map((slot) => (
+                {reviewSlots.length ? (
+                  reviewSlots.map((slot) => (
                     <button
                       className={`flex w-full items-center justify-between gap-3 rounded-xl border p-4 text-left transition hover:border-brand-200 hover:bg-brand-25 dark:hover:bg-brand-500/10 ${
                         selectedSlotId === slot.id
@@ -619,7 +684,7 @@ export function ImmunizationWorkspace() {
                   ))
                 ) : (
                   <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
-                    No schedule slots yet. Regenerate the selected patient’s
+                    No schedule slots yet. Regenerate the selected patient&apos;s
                     schedule once vaccine schedule rules exist.
                   </p>
                 )}
@@ -667,13 +732,23 @@ export function ImmunizationWorkspace() {
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+            <section
+              id="record-dose"
+              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
+            >
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Record dose
               </h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Uses POST /patients/{selectedPatientId || "{id}"}/doses.
+                Dose submission opens a confirmation step with patient, vaccine,
+                dose, date/time, batch, and facility.
               </p>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <ActionPill href="#immunization-schedule-review" label="Review schedule" />
+                <ActionPill href="#dose-history" label="Dose history" />
+                <ActionPill href="#record-dose" label="Exemption/refusal" />
+              </div>
 
               <form className="mt-5 grid gap-4" onSubmit={handleRecordDose}>
                 <SelectInput
@@ -856,7 +931,10 @@ export function ImmunizationWorkspace() {
             </section>
           </div>
 
-          <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+          <section
+            id="dose-history"
+            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
+          >
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Dose history
             </h2>
@@ -900,14 +978,20 @@ export function ImmunizationWorkspace() {
 }
 
 function SelectedPatientHeader({
+  dueCount,
   isLoading,
   isRegenerating,
+  isPrivacyMode,
   onRegenerate,
+  overdueCount,
   patient,
 }: {
+  dueCount: number;
   isLoading: boolean;
   isRegenerating: boolean;
+  isPrivacyMode: boolean;
   onRegenerate: () => void;
+  overdueCount: number;
   patient: Patient | null;
 }) {
   return (
@@ -916,23 +1000,35 @@ function SelectedPatientHeader({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-600 dark:text-brand-400">
-              Selected patient
+              Patient context
             </p>
             <h2 className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">
-              {patient.full_name}
+              {isPrivacyMode ? "Name hidden" : patient.full_name}
             </h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {patient.uid} · born {patient.date_of_birth}
+              {patient.uid} · {formatAge(patient.date_of_birth)} · {formatRole(patient.status)}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <StatusPill label={`${dueCount} due today`} />
+              <StatusPill label={`${overdueCount} overdue`} />
+            </div>
           </div>
-          <button
-            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-            disabled={isLoading || isRegenerating}
-            type="button"
-            onClick={onRegenerate}
-          >
-            {isRegenerating ? "Regenerating" : "Regenerate schedule"}
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              href={`/patients/${patient.id}`}
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+            >
+              Back to Patient
+            </Link>
+            <button
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+              disabled={isLoading || isRegenerating}
+              type="button"
+              onClick={onRegenerate}
+            >
+              {isRegenerating ? "Regenerating" : "Regenerate schedule"}
+            </button>
+          </div>
         </div>
       ) : (
         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -954,12 +1050,64 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ActionPill({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-center text-xs font-semibold text-gray-600 transition hover:border-brand-200 hover:bg-brand-25 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-brand-500/10"
+    >
+      {label}
+    </a>
+  );
+}
+
 function StatusPill({ label }: { label: string }) {
   return (
     <span className="inline-flex shrink-0 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
       {label}
     </span>
   );
+}
+
+function compareScheduleSlots(left: PatientScheduleSlot, right: PatientScheduleSlot) {
+  const statusPriority: Record<ScheduleSlotStatus, number> = {
+    overdue: 0,
+    defaulter: 1,
+    due_today: 2,
+    due_soon: 3,
+    pending: 4,
+    scheduled: 5,
+    administered: 6,
+    exempt: 7,
+    cancelled: 8,
+  };
+
+  const leftPriority = statusPriority[left.status] ?? 9;
+  const rightPriority = statusPriority[right.status] ?? 9;
+
+  if (leftPriority !== rightPriority) {
+    return leftPriority - rightPriority;
+  }
+
+  return new Date(left.due_date).getTime() - new Date(right.due_date).getTime();
+}
+
+function rememberRecentPatient(patientId: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const key = "nvoms.recentPatientIds";
+  try {
+    const current = window.sessionStorage.getItem(key);
+    const ids = current ? (JSON.parse(current) as string[]) : [];
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify([patientId, ...ids.filter((id) => id !== patientId)].slice(0, 5)),
+    );
+  } catch {
+    window.sessionStorage.setItem(key, JSON.stringify([patientId]));
+  }
 }
 
 type TextInputProps = {
@@ -1090,6 +1238,29 @@ function facilityOptions(facilities: HealthFacility[]) {
 function toDatetimeLocalValue(date: Date) {
   const offset = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function formatAge(dateOfBirth: string) {
+  const dob = new Date(dateOfBirth);
+  if (Number.isNaN(dob.getTime())) {
+    return "Unknown age";
+  }
+
+  const today = new Date();
+  let months =
+    (today.getFullYear() - dob.getFullYear()) * 12 +
+    today.getMonth() -
+    dob.getMonth();
+
+  if (today.getDate() < dob.getDate()) {
+    months -= 1;
+  }
+
+  if (months < 24) {
+    return `${Math.max(0, months)} mo`;
+  }
+
+  return `${Math.floor(months / 12)} yr`;
 }
 
 function formatDateTime(value: string) {

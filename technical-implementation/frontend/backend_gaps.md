@@ -57,3 +57,22 @@ Staff need to be able to view and edit caregiver information:
 
 - **`PATCH /api/v1/caregivers/{id}`**:
   - Partially updates a caregiver record (e.g., updating just the phone number).
+
+## 5. Patient Registry and Immunization UX Privacy
+
+- **Cross-patient clinical immunization queue**:
+  - The frontend can review due/overdue slots after a patient is selected via `GET /api/v1/patients/{id}/schedule`.
+  - There is no backend endpoint that returns a facility-scoped due-today/overdue immunization queue across patients with minimum necessary fields.
+  - Add a queryable endpoint such as `GET /api/v1/immunizations/queue?facility=&status=due_today,overdue` for scalable clinic worklists.
+
+- **Recent patient shortcuts**:
+  - The frontend stores only recent patient IDs in session storage and renders shortcuts when matching rows are already loaded.
+  - A backend-supported recent-records endpoint would allow server-side audit controls, expiry, and role-aware minimum fields.
+
+- **Rendered QR artifact**:
+  - Patient Detail can display `patient.qr_code_value`, but the backend does not provide a rendered QR image or signed short-lived QR payload for staff workflows.
+  - Add a dedicated QR endpoint if printable or scannable clinic QR cards are required.
+
+- **Role-scoped list contracts**:
+  - Protected routes currently keep Patient Registry and Immunization workspaces limited to ADMIN and HEALTH_WORKER.
+  - If public health users ever need restricted line lists, the backend should expose an explicit, audited permission and minimum-field serializer instead of reusing operational patient list payloads.

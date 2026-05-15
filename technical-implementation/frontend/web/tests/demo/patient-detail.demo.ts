@@ -3,7 +3,7 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 const pause = (page: Page, ms = 900) => page.waitForTimeout(ms);
 
 test.describe('NVOMS patient detail demo', () => {
-  test('opens a patient workspace, reviews clinical sections, and shows role protection', async ({
+  test('opens a patient record, reviews identity sections, and hands off to immunization', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -13,7 +13,7 @@ test.describe('NVOMS patient detail demo', () => {
     await expect(page.getByRole('heading', { name: /Patient Registry/ })).toBeVisible();
     await pause(page, 1200);
 
-    const firstPatientLink = page.getByRole('link', { name: /^View patient / }).first();
+    const firstPatientLink = page.getByRole('link', { name: /^Open patient record / }).first();
     const patientPath = await firstPatientLink.getAttribute('href');
     if (!patientPath) {
       throw new Error('Patient detail link was not available in the registry.');
@@ -21,31 +21,26 @@ test.describe('NVOMS patient detail demo', () => {
 
     await clickWithPointer(page, firstPatientLink);
     await page.waitForURL('**/patients/*', { timeout: 20000 });
-    await expect(page.getByRole('link', { name: 'Back to Patient Registry' })).toBeVisible({
+    await expect(page.getByRole('link', { name: 'Back to Registry' })).toBeVisible({
       timeout: 20000,
     });
-    await expect(page.getByRole('button', { name: 'Overview' })).toBeVisible();
-    await expect(page.getByText('Clinical next step')).toBeVisible();
+    await expect(page.getByText('Identity and demographics')).toBeVisible();
+    await expect(page.getByText('Caregiver, facility, and residence')).toBeVisible();
+    await expect(page.getByText('Immunization summary')).toBeVisible();
     await pause(page, 1600);
 
-    await clickWithPointer(page, page.getByRole('button', { name: 'Schedule' }));
-    await expect(page.getByRole('heading', { name: 'Vaccination schedule' })).toBeVisible();
-    await pause(page, 1800);
+    await clickWithPointer(page, page.getByRole('button', { name: 'Show QR' }).first());
+    await expect(page.getByText('Patient QR')).toBeVisible();
+    await pause(page, 1400);
+    await clickWithPointer(page, page.getByRole('button', { name: 'Close QR' }));
+    await pause(page, 800);
 
-    await clickWithPointer(page, page.getByRole('button', { name: 'Dose history' }));
+    await clickWithPointer(page, page.getByRole('link', { name: 'Open Immunization Record' }).first());
     await expect(
-      page.getByRole('heading', { name: /No administered doses yet|Dose history/ }),
+      page.getByRole('heading', { name: 'Due and overdue vaccination work' }),
     ).toBeVisible();
-    await pause(page, 1600);
-
-    await clickWithPointer(page, page.getByRole('button', { name: 'Caregiver' }));
-    await expect(page.getByText(/Reminder readiness|No caregiver linked/)).toBeVisible();
-    await pause(page, 1800);
-
-    await clickWithPointer(page, page.getByRole('link', { name: 'Record dose' }));
-    await expect(
-      page.getByRole('heading', { name: 'Record doses and manage vaccination schedules' }),
-    ).toBeVisible();
+    await expect(page.getByText('Patient context')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Back to Patient' })).toBeVisible();
     await pause(page, 1600);
 
     await resetSession(page);

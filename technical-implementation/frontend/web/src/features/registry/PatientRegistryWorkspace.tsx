@@ -20,6 +20,13 @@ import {
   listPatientRegistry,
   type PatientRegistryResult,
 } from "@/services/patients";
+import {
+  maskIdentifier,
+  maskPhone,
+  PrivacyBoundaryBadge,
+  PrivacyModeToggle,
+  usePrivacyMode,
+} from "@/shared/privacy";
 
 const registryStatuses: Array<{ label: string; value: PatientStatus | "all" }> = [
   { label: "All statuses", value: "all" },
@@ -55,6 +62,7 @@ const statusLabels: Record<PatientStatus, string> = {
 
 export function PatientRegistryWorkspace() {
   const session = useAuthSession();
+  const { isPrivacyMode } = usePrivacyMode();
   const token = session?.tokens.accessToken ?? "";
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -74,6 +82,11 @@ export function PatientRegistryWorkspace() {
   const [facilities, setFacilities] = useState<HealthFacility[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [recentPatientIds, setRecentPatientIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setRecentPatientIds(readRecentPatientIds());
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -151,6 +164,14 @@ export function PatientRegistryWorkspace() {
     };
   }, [result.count, result.rows]);
 
+  const recentPatients = useMemo(() => {
+    const rowById = new Map(result.rows.map((patient) => [patient.id, patient]));
+    return recentPatientIds
+      .map((patientId) => rowById.get(patientId))
+      .filter((patient): patient is Patient => Boolean(patient))
+      .slice(0, 4);
+  }, [recentPatientIds, result.rows]);
+
   function resetFilters() {
     setSearch("");
     setDebouncedSearch("");
@@ -167,6 +188,7 @@ export function PatientRegistryWorkspace() {
             <h1 className="enterprise-title text-2xl">
               Professional Enterprise Patient Registry
             </h1>
+            <PrivacyBoundaryBadge />
             <span className="inline-flex items-center gap-1 rounded-full border border-success-500/20 bg-success-500/10 px-2.5 py-1 text-xs font-semibold text-success-300">
               <span className="h-1.5 w-1.5 rounded-full bg-success-400" />
               Live Sync Active
@@ -176,18 +198,21 @@ export function PatientRegistryWorkspace() {
             </span>
           </div>
           <p className="mt-1 max-w-2xl text-sm text-gray-100">
-            Search, filter, and review patient records before opening registration or
-            clinical workflows.
+            Search and filter operational records before opening identity
+            management or clinical immunization workflows.
           </p>
         </div>
 
-        <Link
-          href="/patients/new"
-          className="enterprise-button-primary inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition focus:outline-hidden focus:ring-3 focus:ring-brand-100 lg:w-auto"
-        >
-          <PlusIcon className="h-4 w-4 fill-current" />
-          Register Patient
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <PrivacyModeToggle />
+          <Link
+            href="/patients/new"
+            className="enterprise-button-primary inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition focus:outline-hidden focus:ring-3 focus:ring-brand-100 lg:w-auto"
+          >
+            <PlusIcon className="h-4 w-4 fill-current" />
+            Register Patient
+          </Link>
+        </div>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -196,6 +221,35 @@ export function PatientRegistryWorkspace() {
         <MetricCard label="Verifying" value={summary.verifying} tone="warning" />
         <MetricCard label="Medical exceptions" value={summary.exceptions} tone="error" />
       </section>
+
+      {recentPatients.length ? (
+        <section className="enterprise-card rounded-xl p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Recently opened</h2>
+              <p className="enterprise-muted mt-1 text-xs">
+                Session shortcuts use UID, age, and status only.
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {recentPatients.map((patient) => (
+                <Link
+                  key={patient.id}
+                  href={`/patients/${patient.id}`}
+                  className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm transition hover:border-brand-400/50 hover:bg-brand-500/10"
+                >
+                  <span className="block font-semibold text-blue-light-300">
+                    {maskIdentifier(patient.uid)}
+                  </span>
+                  <span className="enterprise-muted mt-1 block text-xs">
+                    {formatAge(patient.date_of_birth)} · {statusLabels[patient.status]}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="enterprise-card overflow-hidden rounded-xl">
         <div className="border-b border-white/10 p-4">
@@ -209,7 +263,7 @@ export function PatientRegistryWorkspace() {
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search UID, patient name, or caregiver phone"
+              placeholder="Search UID or patient/caregiver terms"
               className="enterprise-input h-10 px-4 text-sm"
             />
 
@@ -360,6 +414,7 @@ export function PatientRegistryWorkspace() {
                     key={patient.id}
                     patient={patient}
                     facilityName={readFacilityName(patient, facilityById)}
+                    isPrivacyMode={isPrivacyMode}
                   />
                 ))
               ) : (
@@ -459,21 +514,30 @@ function MetricCard({
 
 function PatientTableRow({
   facilityName,
+  isPrivacyMode,
   patient,
 }: {
   patient: Patient;
   facilityName: string;
+  isPrivacyMode: boolean;
 }) {
+  const patientLabel = isPrivacyMode ? "Name hidden" : patient.full_name;
+  const caregiverLabel = patient.primary_caregiver
+    ? isPrivacyMode
+      ? "Caregiver hidden"
+      : patient.primary_caregiver.full_name
+    : "No caregiver";
+
   return (
     <TableRow className="enterprise-table-row transition">
       <TableCell className="px-5 py-4 align-top font-semibold text-blue-light-300">
-        {patient.uid}
+        {maskIdentifier(patient.uid)}
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
         <div className="min-w-0">
-          <p className="font-semibold text-white">{patient.full_name}</p>
+          <p className="font-semibold text-white">{patientLabel}</p>
           <p className="enterprise-muted mt-1 text-xs">
-            {formatSex(patient.sex)} · DOB {formatDate(patient.date_of_birth)}
+            {formatSex(patient.sex)} · {formatAge(patient.date_of_birth)}
           </p>
         </div>
       </TableCell>
@@ -484,10 +548,11 @@ function PatientTableRow({
         {patient.primary_caregiver ? (
           <div>
             <p className="font-medium text-white/90">
-              {patient.primary_caregiver.full_name}
+              {caregiverLabel}
             </p>
             <p className="enterprise-muted mt-1 text-xs">
-              {patient.primary_caregiver.phone_number}
+              {patient.primary_caregiver.relationship_to_patient} ·{" "}
+              {maskPhone(patient.primary_caregiver.phone_number)}
             </p>
           </div>
         ) : (
@@ -497,7 +562,9 @@ function PatientTableRow({
       <TableCell className="px-5 py-4 align-top">
         <p className="font-medium text-white/90">{facilityName}</p>
         <p className="enterprise-muted mt-1 text-xs">
-          {patient.residence_unit?.name ?? "No residence unit"}
+          {isPrivacyMode
+            ? "Residence hidden"
+            : patient.residence_unit?.name ?? "No residence unit"}
         </p>
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
@@ -518,21 +585,21 @@ function PatientTableRow({
           <Link
             href={`/patients/${patient.id}`}
             className="enterprise-button-primary grid h-8 w-8 place-items-center rounded-lg"
-            aria-label={`View patient ${patient.full_name}`}
+            aria-label={`Open patient record ${maskIdentifier(patient.uid)}`}
           >
             <EyeIcon className="h-4 w-4 fill-current" />
           </Link>
           <Link
             href={`/patients/${patient.id}`}
             className="enterprise-button-secondary grid h-8 w-8 place-items-center rounded-lg"
-            aria-label={`Edit patient ${patient.full_name}`}
+            aria-label={`Edit caregiver for ${maskIdentifier(patient.uid)}`}
           >
             <PencilIcon className="h-4 w-4 fill-current" />
           </Link>
           <Link
-            href={`/patients/${patient.id}`}
+            href={`/immunizations?patientId=${patient.id}`}
             className="enterprise-button-secondary grid h-8 w-8 place-items-center rounded-lg"
-            aria-label={`Patient history ${patient.full_name}`}
+            aria-label={`Open immunization record ${maskIdentifier(patient.uid)}`}
           >
             <TimeIcon className="h-4 w-4 fill-current" />
           </Link>
@@ -563,6 +630,19 @@ function readFacilityName(
   }
 
   return facilityById.get(patient.registered_facility)?.facility_name ?? "Assigned facility";
+}
+
+function readRecentPatientIds() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const stored = window.sessionStorage.getItem("nvoms.recentPatientIds");
+    return stored ? (JSON.parse(stored) as string[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 function formatDate(value: string) {

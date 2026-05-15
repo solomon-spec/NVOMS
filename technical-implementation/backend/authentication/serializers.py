@@ -11,7 +11,6 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.models import PasswordResetToken, UserSession
-from notifications.models import Notification
 from notifications.services import create_notification, send_password_reset_email, send_sms
 from users.models import User
 
@@ -222,7 +221,7 @@ def password_reset_rate_limited(contact):
 def send_password_reset_token(user, token, contact):
     create_notification(
         recipient_user=user,
-        type=Notification.Type.PASSWORD_RESET,
+        type='password_reset',
         title='Password reset requested',
         body='A password reset token was issued for your NVOMS account.',
         linked_object_id=user.id,
@@ -231,4 +230,3 @@ def send_password_reset_token(user, token, contact):
         send_password_reset_email(user, token)
     else:
         send_sms(contact, f'Your NVOMS password reset token is {token}. It expires in 30 minutes.')
-

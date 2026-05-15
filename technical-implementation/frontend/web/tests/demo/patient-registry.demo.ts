@@ -3,7 +3,7 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 const pause = (page: Page, ms = 900) => page.waitForTimeout(ms);
 
 test.describe('NVOMS patient registry demo', () => {
-  test('shows a high-volume registry with search, filters, empty state, and pagination controls', async ({
+  test('shows registry search, privacy mode, filters, pagination, and patient opening', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -58,6 +58,20 @@ test.describe('NVOMS patient registry demo', () => {
     await clickWithPointer(page, page.getByRole('button', { name: 'Previous', exact: true }));
     await expect(page.getByText(/Page 1 of \d+/)).toBeVisible();
     await pause(page, 1200);
+
+    await clickWithPointer(page, page.getByRole('button', { name: 'Privacy off' }).first());
+    await expect(page.getByText('Name hidden').first()).toBeVisible();
+    await pause(page, 1400);
+
+    await clickWithPointer(page, page.getByRole('button', { name: 'Privacy on' }).first());
+    await expect(page.getByRole('link', { name: /^Open patient record / }).first()).toBeVisible();
+    await pause(page, 1000);
+
+    await clickWithPointer(page, page.getByRole('link', { name: /^Open patient record / }).first());
+    await page.waitForURL('**/patients/*', { timeout: 20000 });
+    await expect(page.getByRole('link', { name: 'Back to Registry' })).toBeVisible();
+    await expect(page.getByText('Identity and demographics')).toBeVisible();
+    await pause(page, 1600);
   });
 });
 

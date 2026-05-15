@@ -96,6 +96,10 @@ class NotificationListView(APIView):
         return Response(SmsNotificationSerializer(notification).data, status=status.HTTP_201_CREATED)
 
 
+class SmsLogListView(NotificationListView):
+    """Backward-compatible list view for the legacy sms-logs route."""
+
+
 class NotificationDetailView(APIView):
     """GET – retrieve a single SmsNotification with its delivery attempt history."""
     permission_classes = [IsHealthWorker]

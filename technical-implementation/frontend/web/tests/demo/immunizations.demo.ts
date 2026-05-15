@@ -10,11 +10,11 @@ test.describe('NVOMS immunization flow demo', () => {
 
     // 2. Open Immunizations Workspace
     await clickWithPointer(page, page.getByRole('link', { name: 'Immunizations' }));
-    await expect(page.getByRole('heading', { name: 'Record doses and manage vaccination schedules' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Due and overdue vaccination work' })).toBeVisible();
     await pause(page, 1500);
 
     // 3. Search and select a patient
-    const searchInput = page.getByPlaceholder('Search patient UID, name, caregiver phone');
+    const searchInput = page.getByPlaceholder('Search UID or patient/caregiver terms');
     await searchInput.pressSequentially('Amanuel', { delay: 60 });
     await pause(page, 1500);
     
@@ -22,7 +22,15 @@ test.describe('NVOMS immunization flow demo', () => {
     const patientButton = page.locator('button').filter({ hasText: 'Amanuel' }).first();
     await expect(patientButton).toBeVisible({ timeout: 10000 });
     await clickWithPointer(page, patientButton);
+    await expect(page.getByText('Patient context')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Due and overdue review' })).toBeVisible();
     await pause(page, 1200);
+
+    await clickWithPointer(page, page.getByRole('button', { name: 'Privacy off' }).first());
+    await expect(page.getByText('Name hidden').first()).toBeVisible();
+    await pause(page, 1000);
+    await clickWithPointer(page, page.getByRole('button', { name: 'Privacy on' }).first());
+    await pause(page, 800);
 
     // 4. Safety case: Try to submit without selecting a vaccine
     // Clear the prefilled vaccine if any
@@ -77,7 +85,7 @@ test.describe('NVOMS immunization flow demo', () => {
     await pause(page, 1500);
 
     // Confirm modal should be visible
-    await expect(page.getByRole('heading', { name: 'Confirm Dose Recording' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Confirm dose before submission' })).toBeVisible();
     await pause(page, 2500); // Wait long enough for viewer to read the structured data
 
     // 8. Confirm and observe success

@@ -14,6 +14,13 @@ from django.utils import timezone
 logger = logging.getLogger('nvoms.notifications')
 
 
+@shared_task(bind=True, name='notifications.send_welcome_notification', max_retries=1)
+def send_welcome_notification_task(self, user_id, temporary_password=None):
+    """Compatibility task for legacy user creation welcome notifications."""
+    logger.info('Welcome notification hook skipped for user=%s', user_id)
+    return {'user_id': user_id, 'sent': False}
+
+
 @shared_task(bind=True, name='notifications.send_vaccine_reminders', max_retries=3)
 def send_vaccine_reminders(self):
     """

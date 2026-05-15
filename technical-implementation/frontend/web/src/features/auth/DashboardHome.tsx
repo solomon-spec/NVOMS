@@ -16,7 +16,7 @@ const allModules = [
   {
     label: "Patient Registry",
     href: "/patients",
-    description: "Register new patients, search by UID or caregiver phone, manage vaccination schedules.",
+    description: "Register patients and manage operational records with minimum necessary identifiers.",
     icon: "👤",
     access: ["ADMIN", "HEALTH_WORKER"],
     color: "from-brand-500 to-brand-700",
@@ -24,7 +24,7 @@ const allModules = [
   {
     label: "Immunization",
     href: "/immunizations",
-    description: "Review actionable schedule slots and record vaccine doses for selected patients.",
+    description: "Review due and overdue schedule slots, then record vaccine doses for selected records.",
     icon: "💉",
     access: ["ADMIN", "HEALTH_WORKER"],
     color: "from-success-500 to-success-700",

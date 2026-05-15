@@ -3,6 +3,7 @@ import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
+import { PrivacyModeToggle } from "@/shared/privacy";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
@@ -143,11 +144,14 @@ const AppHeader: React.FC = () => {
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="Search patients, alerts, reports..."
+                  placeholder="Search modules, alerts, reports..."
                   className="enterprise-input h-9 w-full py-2 pl-12 pr-14 text-sm xl:w-[430px]"
                 />
 
-                <button className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs text-gray-500 shadow-theme-xs dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-400">
+                <button
+                  type="button"
+                  className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs text-gray-500 shadow-theme-xs dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-400"
+                >
                   <span> ⌘ </span>
                   <span> K </span>
                 </button>
@@ -161,6 +165,7 @@ const AppHeader: React.FC = () => {
           } w-full items-center justify-between gap-4 px-5 py-4 shadow-theme-md lg:flex lg:justify-end lg:px-0 lg:py-0 lg:shadow-none`}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
+            <PrivacyModeToggle />
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
             {/* <!-- Dark Mode Toggler --> */}
