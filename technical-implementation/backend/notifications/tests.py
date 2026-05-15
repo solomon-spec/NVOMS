@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 from authentication.serializers import issue_tokens_for_user
 from geography.models import AdministrativeUnit
 from immunizations.models import PatientVaccinationSchedule
-from notifications.models import Notification, SmsLog
+from notifications.models import MessageTemplate, SmsNotification
 from patients.models import Caregiver, Patient
 from surveillance.models import OutbreakAlert
 from users.models import Role, User

@@ -5,7 +5,6 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from authentication.models import PasswordResetToken
-from notifications.models import SmsLog
 from users.models import Role, User
 
 

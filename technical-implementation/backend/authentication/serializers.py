@@ -11,8 +11,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.models import PasswordResetToken, UserSession
-from notifications.models import Notification
-from notifications.services import create_notification, send_password_reset_email, send_sms
+from notifications.services import send_password_reset_email, send_sms
 from users.models import User
 
 MAX_FAILED_LOGIN_ATTEMPTS = 5
@@ -220,13 +219,6 @@ def password_reset_rate_limited(contact):
 
 
 def send_password_reset_token(user, token, contact):
-    create_notification(
-        recipient_user=user,
-        type=Notification.Type.PASSWORD_RESET,
-        title='Password reset requested',
-        body='A password reset token was issued for your NVOMS account.',
-        linked_object_id=user.id,
-    )
     if '@' in contact:
         send_password_reset_email(user, token)
     else:

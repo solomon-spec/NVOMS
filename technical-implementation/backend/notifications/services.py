@@ -9,14 +9,64 @@ create_missed_notification()      – creates a queued SmsNotification for a mis
 """
 
 import logging
+import smtplib
 
 import requests
 from django.conf import settings
+from django.core.mail import send_mail
 from django.utils import timezone
 
 from notifications.models import NotificationAttempt, SmsNotification
 
 logger = logging.getLogger('nvoms.notifications')
+
+
+def send_sms(phone_number: str, message: str) -> bool:
+    """
+    Fire-and-forget SMS via the Android SMS Gateway without creating a DB record.
+    Used for transactional messages (e.g. password reset) where no caregiver FK exists.
+    """
+    gateway_url = getattr(settings, 'SMS_GATEWAY_URL', None)
+    login = getattr(settings, 'SMS_GATEWAY_LOGIN', None)
+    password = getattr(settings, 'SMS_GATEWAY_PASSWORD', None)
+
+    if not all([gateway_url, login, password]):
+        logger.warning('send_sms: gateway not configured, skipping SMS to %s', phone_number)
+        return False
+
+    try:
+        response = requests.post(
+            gateway_url,
+            json={'message': message, 'phoneNumbers': [phone_number]},
+            auth=(login, password),
+            timeout=15,
+        )
+        response.raise_for_status()
+        logger.info('send_sms: sent to %s', phone_number)
+        return True
+    except requests.RequestException as exc:
+        logger.error('send_sms: failed for %s – %s', phone_number, exc)
+        return False
+
+
+def send_password_reset_email(user, token: str) -> None:
+    """Send a password-reset link to the user's email via Django's email backend."""
+    reset_url = getattr(settings, 'PASSWORD_RESET_URL', 'http://localhost:3000/auth/reset-password')
+    link = f'{reset_url}?token={token}'
+    try:
+        send_mail(
+            subject='NVOMS – Password Reset Request',
+            message=(
+                f'Dear {user.full_name},\n\n'
+                f'Use the link below to reset your NVOMS password (valid 30 minutes):\n{link}\n\n'
+                'If you did not request this, please ignore this email.\n\n– NVOMS'
+            ),
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@nvoms.local'),
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except smtplib.SMTPException as exc:
+        logger.error('send_password_reset_email: failed for %s – %s', user.email, exc)
 
 # Default fallback template texts (used when no matching MessageTemplate row exists)
 _DEFAULT_REMINDER_EN = (

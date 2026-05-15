@@ -112,3 +112,32 @@ def dispatch_queued_notifications(self):
 
     logger.info('dispatch_queued_notifications: sent=%d failed=%d', sent, failed)
     return {'sent': sent, 'failed': failed}
+
+
+@shared_task(bind=True, name='notifications.send_welcome_notification_task', max_retries=2)
+def send_welcome_notification_task(self, user_id: str, temporary_password: str):
+    """
+    Sends a welcome SMS to a newly created user's phone number.
+    Called by users.views.UserListView after creating a new account.
+    """
+    from users.models import User
+    from notifications.services import send_sms
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        logger.warning('send_welcome_notification_task: user %s not found', user_id)
+        return
+
+    if not user.phone_number:
+        logger.info('send_welcome_notification_task: user %s has no phone number, skipping', user_id)
+        return
+
+    message = (
+        f'Welcome to NVOMS, {user.full_name}! '
+        f'Your account has been created. '
+        f'Temporary password: {temporary_password}. '
+        f'Please change it on first login. – NVOMS'
+    )
+    send_sms(user.phone_number, message)
+    logger.info('send_welcome_notification_task: welcome SMS sent to user %s', user_id)

@@ -1,0 +1,16 @@
+nvoms_env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.env
+.env.*
+db.sqlite3
+*.log
+.git/
+.gitignore
+docs/

@@ -13,7 +13,6 @@ from immunizations.serializers import (
     ScheduleSlotSerializer,
     ScheduleSlotStatusUpdateSerializer,
 )
-from notifications.services import send_overdue_vaccination_alert
 from patients.models import Patient
 from users.permissions import IsHealthWorker
 from vaccines.models import EpiScheduleVersion
@@ -105,8 +104,6 @@ class PatientScheduleSlotDetailView(APIView):
                 changed_by=request.user,
                 reason=request.data.get('status_reason'),
             )
-            if slot.status == PatientVaccinationSchedule.SlotStatus.OVERDUE:
-                send_overdue_vaccination_alert(slot)
         return Response(ScheduleSlotSerializer(slot).data)
 
 
