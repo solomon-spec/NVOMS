@@ -5,6 +5,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.audit import write_audit_log
+from core.models import AuditLog
+from notifications.models import Notification
+from notifications.services import (
+    create_notifications_for_roles,
+    send_outbreak_confirmed_alert,
+)
 from surveillance.models import FollowUpAction, OutbreakAlert, SurveillanceReport
 from surveillance.serializers import (
     AlertStatusUpdateSerializer,
@@ -58,6 +65,13 @@ class SurveillanceReportListView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         report = serializer.save(reported_by=request.user)
+        create_notifications_for_roles(
+            role_codes=['PUBLIC_HEALTH_OFFICIAL'],
+            type=Notification.Type.SURVEILLANCE_REPORT,
+            title='New surveillance report submitted',
+            body=f'New {report.surveillance_category} report submitted for {report.condition_type}.',
+            linked_object_id=report.id,
+        )
         return Response(
             SurveillanceReportSerializer(report).data,
             status=status.HTTP_201_CREATED,
@@ -152,4 +166,14 @@ class OutbreakAlertStatusView(APIView):
             )
         except ValueError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        if updated.status == OutbreakAlert.Status.CONFIRMED:
+            write_audit_log(
+                actor_user=request.user,
+                action=AuditLog.Action.OUTBREAK_ALERT_CONFIRM,
+                entity_type='outbreak_alert',
+                entity_id=updated.id,
+                detail={'disease_code': updated.disease_code, 'unit_id': str(updated.unit_id)},
+                request=request,
+            )
+            send_outbreak_confirmed_alert(updated)
         return Response(OutbreakAlertSerializer(updated).data)

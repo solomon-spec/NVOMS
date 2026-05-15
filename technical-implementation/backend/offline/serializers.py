@@ -45,10 +45,14 @@ class SyncBatchItemInputSerializer(serializers.Serializer):
 
 
 class SyncBatchSerializer(serializers.ModelSerializer):
+    device_id = serializers.UUIDField(source='device.id', read_only=True)
+    user_id = serializers.UUIDField(source='user.id', read_only=True)
+
     class Meta:
         model = SyncBatch
         fields = [
-            'id', 'status', 'submitted_at', 'acknowledged_at',
+            'id', 'device_id', 'user_id',
+            'status', 'submitted_at', 'acknowledged_at',
             'record_count', 'conflict_count',
         ]
         read_only_fields = fields

@@ -12,7 +12,9 @@ from patients.views import PatientDetailView, PatientListView, PatientSummaryVie
 urlpatterns = [
     # Patient self-service (must appear before <uuid:pk>)
     path('me/', PatientMeView.as_view(), name='patient-me'),
+    path('me/schedule/', PatientMeScheduleView.as_view(), name='patient-me-schedule-slash'),
     path('me/schedule', PatientMeScheduleView.as_view(), name='patient-me-schedule'),
+    path('me/doses/', PatientMeDosesView.as_view(), name='patient-me-doses-slash'),
     path('me/doses', PatientMeDosesView.as_view(), name='patient-me-doses'),
     # Staff-managed patient endpoints
     path('', PatientListView.as_view(), name='patient-list'),

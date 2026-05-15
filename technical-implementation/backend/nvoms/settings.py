@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     "notifications",
     "analytics",
     "reports",
+    "prediction",
+    "environmental",
     # 5. Integration & Offline
     "integrations",
     "offline",
@@ -102,11 +104,12 @@ TEMPLATES = [
 WSGI_APPLICATION = "nvoms.wsgi.application"
 
 # ── Database ──────────────────────────────────────────────────────────────────
+DATABASE_URL = config('DATABASE_URL', default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 DATABASES = {
     'default': dj_database_url.parse(
-        config('DATABASE_URL'),
+        DATABASE_URL,
         conn_max_age=600,
-        ssl_require=True
+        ssl_require=not DATABASE_URL.startswith('sqlite'),
     )
 }
 
@@ -195,6 +198,65 @@ CELERY_CACHE_BACKEND = "django-cache"
 CELERY_TIMEZONE = "UTC"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "False") == "True"
+
+# ── Email / SMS delivery ──────────────────────────────────────────────────────
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@nvoms.local")
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+PASSWORD_RESET_URL = os.environ.get(
+    "PASSWORD_RESET_URL",
+    "http://localhost:3000/auth/reset-password",
+)
+
+SMS_GATEWAY = os.environ.get("SMS_GATEWAY", "console").lower()
+SMS_FROM = os.environ.get("SMS_FROM", "NVOMS")
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER", "")
+AFRICASTALKING_USERNAME = os.environ.get("AFRICASTALKING_USERNAME", "")
+AFRICASTALKING_API_KEY = os.environ.get("AFRICASTALKING_API_KEY", "")
+AFRICASTALKING_SENDER_ID = os.environ.get("AFRICASTALKING_SENDER_ID", "")
+
+# ── Prediction / External integrations ───────────────────────────────────────
+PREDICTION_DISEASES = os.environ.get("PREDICTION_DISEASES", "measles")
+OPEN_METEO_ENABLED = os.environ.get("OPEN_METEO_ENABLED", "False") == "True"
+DHIS2_BASE_URL = os.environ.get("DHIS2_BASE_URL", "")
+DHIS2_USERNAME = os.environ.get("DHIS2_USERNAME", "")
+DHIS2_PASSWORD = os.environ.get("DHIS2_PASSWORD", "")
+DHIS2_PROGRAM_ID = os.environ.get("DHIS2_PROGRAM_ID", "")
+DHIS2_DRY_RUN = os.environ.get("DHIS2_DRY_RUN", "True") == "True"
+
+CELERY_BEAT_SCHEDULE = {
+    # Daily 08:00 UTC — remind caregivers of vaccines due today
+    'send-vaccine-reminders-daily': {
+        'task': 'notifications.send_vaccine_reminders',
+        'schedule': timedelta(hours=24),
+        'options': {'expires': 3600},
+    },
+    # Daily 09:00 UTC — alert caregivers of overdue/defaulter slots
+    'send-overdue-alerts-daily': {
+        'task': 'notifications.send_overdue_alerts',
+        'schedule': timedelta(hours=24),
+        'options': {'expires': 3600},
+    },
+    # Every 5 minutes — dispatch all QUEUED notifications via the SMS gateway
+    'dispatch-queued-notifications': {
+        'task': 'notifications.dispatch_queued_notifications',
+        'schedule': timedelta(minutes=5),
+        'options': {'expires': 240},
+    },
+}
+
+# ── SMS Gateway (Android SMS Gateway by capcom6 – https://sms-gate.app) ──────
+SMS_GATEWAY_URL = os.environ.get(
+    "SMS_GATEWAY_URL", "https://api.sms-gate.app/3rdparty/v1/message"
+)
+SMS_GATEWAY_LOGIN = os.environ.get("SMS_GATEWAY_LOGIN", "")
+SMS_GATEWAY_PASSWORD = os.environ.get("SMS_GATEWAY_PASSWORD", "")
+SMS_MAX_RETRIES = int(os.environ.get("SMS_MAX_RETRIES", "3"))
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 LOGGING = {

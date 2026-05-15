@@ -3,6 +3,8 @@ from django.urls import path
 from vaccines.views import (
     EpiScheduleRuleDetailView,
     EpiScheduleRuleListView,
+    EpiScheduleRegenerateAllView,
+    EpiScheduleRegenerationStatusView,
     EpiScheduleVersionDetailView,
     EpiScheduleVersionListView,
     VaccineBatchDetailView,
@@ -21,6 +23,16 @@ urlpatterns = [
 
     # EPI schedule versions
     path('schedules/', EpiScheduleVersionListView.as_view(), name='epi-schedule-version-list'),
+    path(
+        'schedules/<uuid:version_pk>/regenerate-all/',
+        EpiScheduleRegenerateAllView.as_view(),
+        name='epi-schedule-regenerate-all',
+    ),
+    path(
+        'schedules/<uuid:version_pk>/regeneration-status/',
+        EpiScheduleRegenerationStatusView.as_view(),
+        name='epi-schedule-regeneration-status',
+    ),
     path('schedules/<uuid:pk>', EpiScheduleVersionDetailView.as_view(), name='epi-schedule-version-detail'),
 
     # EPI schedule rules (nested under version)

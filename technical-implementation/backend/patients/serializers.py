@@ -27,9 +27,10 @@ class CaregiverSerializer(serializers.ModelSerializer):
             'id', 'full_name', 'phone_number', 'alternate_phone_number',
             'relationship_to_patient', 'preferred_language',
             'residence_unit', 'residence_unit_id',
-            'address_line', 'status', 'created_at',
+            'address_line', 'status', 'local_client_record_id',
+            'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class CaregiverBriefSerializer(serializers.ModelSerializer):
@@ -62,7 +63,7 @@ class PatientSerializer(serializers.ModelSerializer):
             'primary_caregiver', 'residence_unit',
             'registered_facility', 'registered_by',
             'medical_exception_flag', 'duplicate_review_status',
-            'status', 'qr_code_value',
+            'status', 'qr_code_value', 'local_client_record_id',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'uid', 'registered_by', 'created_at', 'updated_at']
