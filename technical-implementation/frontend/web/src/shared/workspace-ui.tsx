@@ -321,7 +321,7 @@ type MetricCardProps = {
   value: string;
   detail?: string;
   trend?: number;
-  icon?: string;
+  icon?: ReactNode;
   tone?: "brand" | "success" | "warning" | "error";
 };
 

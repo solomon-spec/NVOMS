@@ -11,6 +11,8 @@ Playwright is used here for reviewable demo videos, not fast CI checks.
 - `npm run demo:registration` records the patient registration walkthrough.
 - `npm run demo:immunizations` records the immunization walkthrough.
 - `npm run demo:surveillance` records the surveillance walkthrough.
+- `npm run demo:risk-map` records the public health risk map walkthrough.
+- `npm run demo:defaulters` records the defaulter cluster walkthrough.
 - `npm run demo:self-service` records the patient self-service walkthrough.
 - `npm run demo:caregiver` records the caregiver gap/fallback walkthrough.
 - `npm run demo:videos` prints generated `.webm` video paths.
@@ -26,7 +28,7 @@ After a successful run, locate videos with:
 npm run demo:videos
 ```
 
-For the patient registry demo, seed local backend data first:
+For patient registry and public health monitoring demos, seed local backend data first:
 
 ```bash
 cd ../../backend

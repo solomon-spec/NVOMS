@@ -89,7 +89,7 @@ export type ReportingGapRow = {
 export type ReportingGapResponse = ReportingGapRow[];
 
 export type RiskScoreRow = {
-  id: string;
+  id?: string;
   unit_id: string;
   unit_name: string;
   risk_score: number;

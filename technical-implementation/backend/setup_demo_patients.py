@@ -8,8 +8,12 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "nvoms.settings")
 django.setup()
 
 from geography.models import AdministrativeUnit
+from immunizations.models import ImmunizationEvent, PatientVaccinationSchedule
 from patients.models import Caregiver, Patient, PatientImmunizationStatus
+from prediction.models import OutbreakRiskScore
+from surveillance.models import OutbreakAlert
 from users.models import HealthFacility, User
+from vaccines.models import Antigen, EpiScheduleRule, EpiScheduleVersion, VaccineDefinition
 
 
 FIRST_NAMES = [
@@ -75,6 +79,7 @@ def run_seed(total_patients=120):
     created = 0
     updated = 0
     today = timezone.localdate()
+    seeded_patients = []
 
     for index in range(total_patients):
         first_name = FIRST_NAMES[index % len(FIRST_NAMES)]
@@ -144,8 +149,14 @@ def run_seed(total_patients=120):
             created += 1
         else:
             updated += 1
+        seeded_patients.append((patient, index, kebele, facility))
 
     print(f"Demo patient seed complete. Created: {created}, updated: {updated}.")
+    ensure_public_health_monitoring_data(
+        patients=seeded_patients,
+        kebeles=kebeles,
+        registered_by=registered_by,
+    )
 
 
 def ensure_facilities():
@@ -202,6 +213,162 @@ def ensure_geography():
         kebeles.append(kebele)
 
     return kebeles
+
+
+def ensure_public_health_monitoring_data(patients, kebeles, registered_by):
+    print("Seeding public health monitoring schedule, risk, and alert data...")
+
+    antigen, _ = Antigen.objects.get_or_create(
+        code="demo-monitoring",
+        defaults={"name": "Demo Monitoring Antigens", "is_active": True},
+    )
+
+    vaccine_specs = [
+        ("DEMO-MCV1", "Measles Containing Vaccine 1", 270),
+        ("DEMO-OPV3", "Oral Polio Vaccine 3", 98),
+        ("DEMO-PENTA3", "Pentavalent 3", 98),
+    ]
+    vaccines = []
+    for code, name, _age_days in vaccine_specs:
+        vaccine, _ = VaccineDefinition.objects.update_or_create(
+            vaccine_code=code,
+            defaults={
+                "vaccine_name": name,
+                "antigen": antigen,
+                "dose_sequence": len(vaccines) + 1,
+                "default_route": "IM",
+                "default_site": "Left thigh",
+                "is_active": True,
+            },
+        )
+        vaccines.append(vaccine)
+
+    version, _ = EpiScheduleVersion.objects.update_or_create(
+        version_name="NVOMS Demo Monitoring Schedule",
+        defaults={
+            "effective_from": timezone.localdate() - timedelta(days=365),
+            "status": EpiScheduleVersion.Status.ACTIVE,
+            "notes": "Demo schedule used by frontend monitoring videos.",
+            "created_by": registered_by,
+        },
+    )
+
+    rules = []
+    for vaccine, (_code, _name, age_days) in zip(vaccines, vaccine_specs):
+        rule, _ = EpiScheduleRule.objects.update_or_create(
+            schedule_version=version,
+            vaccine=vaccine,
+            dose_label=vaccine.vaccine_code,
+            defaults={
+                "recommended_age_days": age_days,
+                "grace_period_days": 7,
+                "defaulter_threshold_days": 14,
+                "is_birth_dose": False,
+                "is_active": True,
+            },
+        )
+        rules.append(rule)
+
+    status_pattern = [
+        PatientVaccinationSchedule.SlotStatus.ADMINISTERED,
+        PatientVaccinationSchedule.SlotStatus.ADMINISTERED,
+        PatientVaccinationSchedule.SlotStatus.OVERDUE,
+        PatientVaccinationSchedule.SlotStatus.DEFAULTER,
+        PatientVaccinationSchedule.SlotStatus.SCHEDULED,
+        PatientVaccinationSchedule.SlotStatus.DUE_SOON,
+    ]
+
+    schedule_count = 0
+    event_count = 0
+    now = timezone.now()
+    for patient, patient_index, _kebele, facility in patients:
+        for rule_index, rule in enumerate(rules):
+            status_index = (patient_index + rule_index) % len(status_pattern)
+            slot_status = status_pattern[status_index]
+            due_date = timezone.localdate() - timedelta(days=(patient_index % 35) + rule_index * 7)
+            if slot_status in {
+                PatientVaccinationSchedule.SlotStatus.SCHEDULED,
+                PatientVaccinationSchedule.SlotStatus.DUE_SOON,
+            }:
+                due_date = timezone.localdate() + timedelta(days=(patient_index % 21) + rule_index)
+
+            slot, _ = PatientVaccinationSchedule.objects.update_or_create(
+                patient=patient,
+                schedule_rule=rule,
+                defaults={
+                    "vaccine": rule.vaccine,
+                    "due_date": due_date,
+                    "status": slot_status,
+                    "status_reason": "Demo monitoring seed",
+                    "status_changed_at": now,
+                },
+            )
+            schedule_count += 1
+
+            if slot_status == PatientVaccinationSchedule.SlotStatus.ADMINISTERED and patient_index % 4 != 3:
+                ImmunizationEvent.objects.update_or_create(
+                    local_client_record_id=f"demo-monitoring-dose-{patient.local_client_record_id}-{rule.vaccine.vaccine_code}",
+                    defaults={
+                        "patient": patient,
+                        "schedule_slot": slot,
+                        "vaccine": rule.vaccine,
+                        "administered_by": registered_by,
+                        "facility": facility,
+                        "administered_at": now - timedelta(days=patient_index % 10),
+                        "administration_route": rule.vaccine.default_route,
+                        "administration_site": rule.vaccine.default_site,
+                        "event_status": ImmunizationEvent.EventStatus.ADMINISTERED,
+                        "source_channel": ImmunizationEvent.SourceChannel.ONLINE,
+                        "notes": "Demo monitoring dose",
+                    },
+                )
+                event_count += 1
+
+    risk_specs = [
+        ("measles", 0.86, OutbreakAlert.Status.CONFIRMED),
+        ("cholera", 0.72, OutbreakAlert.Status.UNDER_REVIEW),
+        ("polio", 0.54, OutbreakAlert.Status.POTENTIAL),
+        ("measles", 0.31, OutbreakAlert.Status.DISMISSED),
+    ]
+    for index, kebele in enumerate(kebeles):
+        disease, score, alert_status = risk_specs[index % len(risk_specs)]
+        OutbreakRiskScore.objects.update_or_create(
+            unit=kebele,
+            disease=disease,
+            defaults={
+                "risk_score": score,
+                "computed_at": now - timedelta(hours=index * 3),
+                "model_version": "demo-monitoring-v1",
+                "factors": {
+                    "defaulter_pressure": round(score * 0.8, 2),
+                    "reporting_gap_days": 10 + index * 5,
+                },
+            },
+        )
+
+        alert = OutbreakAlert.objects.filter(
+            unit=kebele,
+            disease_code=disease,
+            alert_source=OutbreakAlert.AlertSource.PREDICTION,
+            notes__startswith="Demo monitoring alert",
+        ).first()
+        if alert is None:
+            alert = OutbreakAlert(
+                unit=kebele,
+                disease_code=disease,
+                alert_source=OutbreakAlert.AlertSource.PREDICTION,
+            )
+        alert.risk_probability = score
+        alert.status = alert_status
+        alert.triggered_at = now - timedelta(hours=index * 4)
+        alert.notes = f"Demo monitoring alert for {kebele.name}"
+        alert.save()
+
+    print(
+        "Public health monitoring seed complete. "
+        f"Schedule slots: {schedule_count}, immunization events: {event_count}, "
+        f"risk areas: {len(kebeles)}."
+    )
 
 
 if __name__ == "__main__":

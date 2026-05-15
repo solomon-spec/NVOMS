@@ -35,7 +35,7 @@ The backend API will be available at:
 - Swagger docs: `http://127.0.0.1:8000/api/docs/`
 - ReDoc: `http://127.0.0.1:8000/api/redoc/`
 
-If you want the patient registry demo to look realistic, seed demo patient data before starting or while the backend environment is active:
+If you want the patient registry and public health monitoring demos to look realistic, seed demo patient and monitoring data before starting or while the backend environment is active:
 
 ```bash
 python setup_demo_patients.py
@@ -63,7 +63,8 @@ The `backend/setup_test_accounts.py` script creates these local development acco
 | Administrator | `admin@nvoms.local` | `password123` |
 | Health Worker | `hw@nvoms.local` | `password123` |
 | Public Health Official | `pho@nvoms.local` | `password123` |
-| Patient / Caregiver | `patient@nvoms.local` | `password123` |
+| Patient | `patient@nvoms.local` | `password123` |
+| Caregiver | `caregiver@nvoms.local` | `password123` |
 
 Use these accounts to test role-based navigation and protected pages.
 
@@ -83,6 +84,8 @@ npm run demo:auth
 npm run demo:patients
 npm run demo:patient-detail
 npm run demo:registration
+npm run demo:risk-map
+npm run demo:defaulters
 ```
 
 Generated videos are written under:

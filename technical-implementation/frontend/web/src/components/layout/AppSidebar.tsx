@@ -85,7 +85,7 @@ const navItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Risk Map",
     path: "/risk-map",
-    roles: ["PUBLIC_HEALTH_OFFICIAL"],
+    roles: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
   },
   {
     icon: <TaskIcon />,
@@ -97,7 +97,7 @@ const navItems: NavItem[] = [
     icon: <GroupIcon />,
     name: "Defaulter Clusters",
     path: "/defaulters",
-    roles: ["PUBLIC_HEALTH_OFFICIAL"],
+    roles: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
   },
   {
     icon: <DocsIcon />,

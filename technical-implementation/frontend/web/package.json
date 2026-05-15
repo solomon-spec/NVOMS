@@ -15,6 +15,8 @@
     "demo:registration": "playwright test tests/demo/patient-registration.demo.ts --output=test-results/registration",
     "demo:immunizations": "playwright test tests/demo/immunizations.demo.ts --output=test-results/immunizations",
     "demo:surveillance": "playwright test tests/demo/surveillance.demo.ts --output=test-results/surveillance",
+    "demo:risk-map": "playwright test tests/demo/risk-map.demo.ts --output=test-results/risk-map",
+    "demo:defaulters": "playwright test tests/demo/defaulters.demo.ts --output=test-results/defaulters",
     "demo:self-service": "playwright test tests/demo/self-service.demo.ts --output=test-results/self-service",
     "demo:caregiver": "playwright test tests/demo/caregiver-portal.demo.ts --output=test-results/caregiver",
     "demo:videos": "find test-results -name '*.webm' -print | sort",

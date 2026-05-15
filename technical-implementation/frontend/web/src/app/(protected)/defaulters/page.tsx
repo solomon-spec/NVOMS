@@ -1,10 +1,5 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { DefaulterClustersWorkspace } from "@/features/public-health/PublicHealthMonitoringWorkspace";
 
 export default function DefaultersPage() {
-  return (
-    <RoutePlaceholder
-      title="Defaulter Clusters"
-      allowedRoles={["PUBLIC_HEALTH_OFFICIAL"]}
-    />
-  );
+  return <DefaulterClustersWorkspace />;
 }

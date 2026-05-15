@@ -1,10 +1,5 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { RiskMapWorkspace } from "@/features/public-health/PublicHealthMonitoringWorkspace";
 
 export default function RiskMapPage() {
-  return (
-    <RoutePlaceholder
-      title="Risk Map"
-      allowedRoles={["PUBLIC_HEALTH_OFFICIAL"]}
-    />
-  );
+  return <RiskMapWorkspace />;
 }

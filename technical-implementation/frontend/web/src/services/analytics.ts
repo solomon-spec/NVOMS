@@ -85,11 +85,20 @@ export function getReportingGaps(token: string, threshold_days?: number) {
   );
 }
 
-export function getRiskScores(token: string) {
-  return apiRequest<RiskScoreResponse>("/prediction/risk-scores/", {
-    method: "GET",
-    token,
-  });
+export function getRiskScores(
+  token: string,
+  filters: { unit_id?: string; disease?: string } = {},
+) {
+  return apiRequest<RiskScoreResponse>(
+    withQuery("/prediction/risk-scores/", {
+      unit_id: filters.unit_id,
+      disease: filters.disease,
+    }),
+    {
+      method: "GET",
+      token,
+    },
+  );
 }
 
 export function runPrediction(token: string) {
