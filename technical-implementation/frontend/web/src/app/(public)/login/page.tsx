@@ -56,7 +56,7 @@ export default function LoginPage() {
         title="Sign in to NVOMS"
         description="Use your assigned facility or district account to continue into the vaccination and outbreak monitoring workspace."
         footer={
-          <div className="space-y-3 text-sm leading-6 text-gray-400">
+          <div className="space-y-3 text-sm leading-6 text-[#545f72]">
             <p>
               New accounts are provisioned by an administrator. If you need access,
               contact your system administrator or district focal person.
@@ -87,7 +87,7 @@ export default function LoginPage() {
                 <Label>Password</Label>
                 <Link
                   href="/forgot-password"
-                  className="text-sm font-medium text-blue-light-400 transition-colors hover:text-blue-light-300"
+                  className="text-sm font-medium text-brand-700 transition-colors hover:text-brand-600"
                 >
                   Forgot password?
                 </Link>
@@ -128,7 +128,7 @@ export default function LoginPage() {
           </div>
 
           {error ? (
-            <div className="rounded-lg border border-error-500/30 bg-error-500/10 px-4 py-3 text-sm text-error-300">
+            <div className="rounded border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700">
               {error}
             </div>
           ) : null}

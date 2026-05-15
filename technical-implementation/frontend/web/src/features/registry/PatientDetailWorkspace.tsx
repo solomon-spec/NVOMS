@@ -121,11 +121,11 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
         <BackToRegistry />
         <section className="enterprise-card rounded-xl p-6">
           <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-error-500/15 text-error-300">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded bg-error-50 text-error-700">
               <ErrorIcon className="h-5 w-5 fill-current" />
             </span>
             <div>
-              <h1 className="text-lg font-semibold text-white">
+              <h1 className="text-lg font-semibold text-[#002045]">
                 Patient record could not be opened
               </h1>
               <p className="enterprise-muted mt-1 text-sm">
@@ -161,8 +161,8 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
             </div>
 
             <h1 className="enterprise-title text-2xl">{displayName}</h1>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-300">
-              <span className="font-semibold text-blue-light-300">{patient.uid}</span>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[#43474e]">
+              <span className="font-semibold text-brand-700">{patient.uid}</span>
               <span>{formatSex(patient.sex)}</span>
               <span>{formatAge(patient.date_of_birth)}</span>
               <span>{facilityName}</span>
@@ -200,7 +200,7 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
       </header>
 
       {notice ? (
-        <div className="rounded-lg border border-success-500/25 bg-success-500/10 px-4 py-3 text-sm font-medium text-success-300">
+        <div className="rounded border border-success-200 bg-success-50 px-4 py-3 text-sm font-medium text-success-700">
           {notice}
         </div>
       ) : null}
@@ -304,11 +304,11 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
 
           <section className="enterprise-card rounded-xl p-5">
             <SectionHeader title="UID and QR" />
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-xs font-semibold uppercase text-gray-400">
+            <div className="mt-4 rounded border border-[#c4c6cf] bg-[#f8f9fa] p-4">
+              <p className="text-xs font-semibold uppercase text-[#545f72]">
                 QR payload
               </p>
-              <p className="mt-2 break-all font-mono text-sm text-white">
+              <p className="mt-2 break-all font-mono text-sm text-[#191c1d]">
                 {patient.qr_code_value ?? patient.uid}
               </p>
             </div>
@@ -354,19 +354,19 @@ function Breadcrumbs({ patientId }: { patientId: string }) {
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-2 text-sm font-medium">
           <li>
-            <Link href="/patients" className="text-gray-400 hover:text-white">
+            <Link href="/patients" className="text-[#545f72] hover:text-[#002045]">
               Patients
             </Link>
           </li>
-          <li className="text-gray-500">/</li>
-          <li className="text-white">Patient Detail</li>
+          <li className="text-[#74777f]">/</li>
+          <li className="text-[#002045]">Patient Detail</li>
         </ol>
       </nav>
       <div className="flex flex-wrap gap-2">
         <BackToRegistry />
         <Link
           href={`/immunizations?patientId=${patientId}`}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-blue-light-300 hover:text-blue-light-200"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-600"
         >
           Open Immunization Record
           <ArrowRightIcon className="h-4 w-4 fill-current" />
@@ -380,7 +380,7 @@ function BackToRegistry() {
   return (
     <Link
       href="/patients"
-      className="inline-flex items-center gap-2 text-sm font-semibold text-gray-300 hover:text-white"
+      className="inline-flex items-center gap-2 text-sm font-semibold text-[#545f72] hover:text-[#002045]"
     >
       <ChevronLeftIcon className="h-4 w-4 fill-current" />
       Back to Registry
@@ -398,14 +398,14 @@ function QrModal({
   patient: Patient;
 }) {
   return (
-    <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1424] p-6 shadow-theme-xl">
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded border border-[#c4c6cf] bg-white p-6 shadow-theme-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-light-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#545f72]">
               Patient QR
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-white">{displayName}</h2>
+            <h2 className="mt-2 text-xl font-semibold text-[#002045]">{displayName}</h2>
             <p className="enterprise-muted mt-1 text-sm">{patient.uid}</p>
           </div>
           <button
@@ -418,11 +418,11 @@ function QrModal({
           </button>
         </div>
 
-        <div className="mt-6 rounded-xl border border-dashed border-white/20 bg-white/[0.03] p-5 text-center">
-          <div className="mx-auto grid h-40 w-40 place-items-center rounded-xl border border-white/15 bg-white/[0.04]">
-            <CopyIcon className="h-12 w-12 fill-current text-blue-light-300" />
+        <div className="mt-6 rounded border border-dashed border-[#c4c6cf] bg-[#f8f9fa] p-5 text-center">
+          <div className="mx-auto grid h-40 w-40 place-items-center rounded border border-[#c4c6cf] bg-white">
+            <CopyIcon className="h-12 w-12 fill-current text-brand-700" />
           </div>
-          <p className="mt-4 break-all font-mono text-sm text-white">
+          <p className="mt-4 break-all font-mono text-sm text-[#191c1d]">
             {patient.qr_code_value ?? patient.uid}
           </p>
         </div>
@@ -434,10 +434,10 @@ function QrModal({
 function SectionHeader({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-light-500/15 text-blue-light-300">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded border border-brand-100 bg-brand-50 text-brand-700">
         <TimeIcon className="h-5 w-5 fill-current" />
       </span>
-      <h2 className="text-base font-semibold text-white">{title}</h2>
+      <h2 className="text-base font-semibold text-[#002045]">{title}</h2>
     </div>
   );
 }
@@ -452,20 +452,20 @@ function MetricCard({
   tone?: "brand" | "success" | "warning" | "error";
 }) {
   const toneClass = {
-    brand: "bg-blue-light-500/15 text-blue-light-300",
-    success: "bg-success-500/15 text-success-300",
-    warning: "bg-warning-500/15 text-warning-300",
-    error: "bg-error-500/15 text-error-300",
+    brand: "border-brand-100 bg-brand-50 text-brand-700",
+    success: "border-success-200 bg-success-50 text-success-700",
+    warning: "border-warning-200 bg-warning-50 text-warning-700",
+    error: "border-error-200 bg-error-50 text-error-700",
   };
 
   return (
     <article className="enterprise-card rounded-xl p-5">
-      <p className="text-sm font-medium text-gray-300">{label}</p>
+      <p className="text-sm font-medium text-[#545f72]">{label}</p>
       <div className="mt-3 flex items-end justify-between gap-3">
-        <span className="text-2xl font-bold text-white">
+        <span className="text-2xl font-bold text-[#002045]">
           {typeof value === "number" ? value.toLocaleString() : value}
         </span>
-        <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${toneClass[tone]}`}>
+        <span className={`rounded border px-2.5 py-1 text-xs font-semibold ${toneClass[tone]}`}>
           Summary
         </span>
       </div>
@@ -483,9 +483,9 @@ function DetailItem({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-xs font-semibold uppercase text-gray-400">{label}</p>
-      <p className={`mt-2 break-words text-sm ${strong ? "font-semibold text-white" : "text-gray-200"}`}>
+    <div className="rounded border border-[#c4c6cf] bg-[#f8f9fa] p-4">
+      <p className="text-xs font-semibold uppercase text-[#545f72]">{label}</p>
+      <p className={`mt-2 break-words text-sm ${strong ? "font-semibold text-[#191c1d]" : "text-[#43474e]"}`}>
         {value}
       </p>
     </div>
@@ -495,16 +495,16 @@ function DetailItem({
 function PatientDetailSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="h-5 w-56 animate-pulse rounded bg-white/10" />
+      <div className="h-5 w-56 animate-pulse rounded bg-gray-200" />
       <section className="enterprise-card rounded-xl p-5">
-        <div className="h-6 w-64 animate-pulse rounded bg-white/10" />
-        <div className="mt-4 h-4 w-full max-w-xl animate-pulse rounded bg-white/10" />
+        <div className="h-6 w-64 animate-pulse rounded bg-gray-200" />
+        <div className="mt-4 h-4 w-full max-w-xl animate-pulse rounded bg-gray-200" />
       </section>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, index) => (
           <div key={index} className="enterprise-card h-28 rounded-xl p-5">
-            <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
-            <div className="mt-4 h-7 w-12 animate-pulse rounded bg-white/10" />
+            <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+            <div className="mt-4 h-7 w-12 animate-pulse rounded bg-gray-200" />
           </div>
         ))}
       </section>

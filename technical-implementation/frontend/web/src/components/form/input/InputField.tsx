@@ -40,11 +40,11 @@ const Input: FC<InputProps> = ({
   if (disabled) {
     inputClasses += ` cursor-not-allowed opacity-60`;
   } else if (error) {
-    inputClasses += ` border-error-500 text-error-300`;
+    inputClasses += ` border-error-500 text-error-700`;
   } else if (success) {
-    inputClasses += ` enterprise-input-success text-success-100`;
+    inputClasses += ` enterprise-input-success text-success-700`;
   } else {
-    inputClasses += ` text-white/90`;
+    inputClasses += ` text-[#191c1d]`;
   }
 
   return (

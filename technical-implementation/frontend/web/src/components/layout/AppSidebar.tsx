@@ -189,7 +189,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-gray-200 bg-white/95 px-5 text-gray-800 shadow-[18px_0_55px_rgba(16,24,40,0.08)] backdrop-blur transition-all duration-300 ease-in-out dark:border-white/10 dark:bg-[#08111f]/95 dark:text-gray-100 dark:shadow-[18px_0_55px_rgba(0,0,0,0.22)] lg:mt-0
+      className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-[#c4c6cf] bg-[#f3f4f5] px-5 text-[#191c1d] transition-all duration-300 ease-in-out dark:border-[#c4c6cf] dark:bg-[#f3f4f5] dark:text-[#191c1d] lg:mt-0
         ${
           isExpanded || isMobileOpen
             ? "w-[220px]"
@@ -209,15 +209,15 @@ const AppSidebar: React.FC = () => {
       >
         <Link href="/" className="flex items-center gap-3">
           {isExpanded || isHovered || isMobileOpen ? (
-            <span className="flex items-center gap-3">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-[#6a82ff] to-[#2d8fea] text-sm font-bold text-white shadow-[0_8px_20px_rgba(45,143,234,0.35)]">
-                N
+              <span className="flex items-center gap-3">
+              <span className="grid h-8 w-8 place-items-center rounded border border-[#c4c6cf] bg-white text-[#002045]">
+                <GroupIcon className="h-4 w-4" />
               </span>
-              <span className="text-xl font-semibold text-gray-900 dark:text-white">NVOMS</span>
+              <span className="text-xl font-bold tracking-tight text-[#002045] dark:text-[#002045]">NVOMS</span>
             </span>
           ) : (
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-[#6a82ff] to-[#2d8fea] text-sm font-bold text-white">
-              N
+            <span className="grid h-8 w-8 place-items-center rounded border border-[#c4c6cf] bg-white text-[#002045]">
+              <GroupIcon className="h-4 w-4" />
             </span>
           )}
         </Link>
@@ -225,7 +225,7 @@ const AppSidebar: React.FC = () => {
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <h2
-            className={`mb-4 flex text-[11px] font-semibold uppercase tracking-[0.12em] leading-[20px] text-gray-500 ${
+            className={`mb-4 flex text-[11px] font-semibold uppercase tracking-[0.16em] leading-[20px] text-[#43474e] ${
               !isExpanded && !isHovered
                 ? "lg:justify-center"
                 : "justify-start"
@@ -242,7 +242,7 @@ const AppSidebar: React.FC = () => {
                 clearStoredSession();
                 router.replace("/login");
               }}
-            className="enterprise-button-secondary flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-error-400 transition-colors hover:text-error-300"
+            className="enterprise-button-secondary flex w-full items-center justify-center rounded px-4 py-2 text-sm font-medium text-error-700 transition-colors hover:text-error-800"
             >
               Log out
             </button>

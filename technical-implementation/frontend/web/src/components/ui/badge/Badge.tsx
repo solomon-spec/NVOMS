@@ -29,7 +29,7 @@ const Badge: React.FC<BadgeProps> = ({
   children,
 }) => {
   const baseStyles =
-    "inline-flex items-center justify-center gap-1 rounded-md px-2.5 py-1 font-semibold";
+    "inline-flex items-center justify-center gap-1 rounded px-2 py-1 font-semibold border";
 
   // Define size styles
   const sizeStyles = {
@@ -41,26 +41,26 @@ const Badge: React.FC<BadgeProps> = ({
   const variants = {
     light: {
       primary:
-        "bg-brand-500/15 text-blue-light-300",
+        "border-brand-100 bg-brand-50 text-brand-700",
       success:
-        "bg-success-500/15 text-success-300",
+        "border-success-100 bg-success-50 text-success-700",
       error:
-        "bg-error-500/15 text-error-300",
+        "border-error-200 bg-error-50 text-error-700",
       warning:
-        "bg-warning-500/15 text-warning-300",
+        "border-warning-100 bg-warning-50 text-warning-700",
       info:
-        "bg-blue-light-500/15 text-blue-light-300",
-      light: "bg-white/10 text-white/80",
-      dark: "bg-white/10 text-white",
+        "border-brand-100 bg-brand-50 text-brand-700",
+      light: "border-gray-200 bg-gray-50 text-gray-700",
+      dark: "border-gray-300 bg-gray-100 text-gray-800",
     },
     solid: {
-      primary: "bg-brand-500 text-white dark:text-white",
-      success: "bg-success-500 text-white dark:text-white",
-      error: "bg-error-500 text-white dark:text-white",
-      warning: "bg-warning-500 text-white dark:text-white",
-      info: "bg-blue-light-500 text-white dark:text-white",
-      light: "bg-gray-400 dark:bg-white/5 text-white dark:text-white/80",
-      dark: "bg-gray-700 text-white dark:text-white",
+      primary: "border-brand-700 bg-brand-700 text-white",
+      success: "border-success-600 bg-success-600 text-white",
+      error: "border-error-600 bg-error-600 text-white",
+      warning: "border-warning-500 bg-warning-500 text-white",
+      info: "border-brand-600 bg-brand-600 text-white",
+      light: "border-gray-400 bg-gray-400 text-white",
+      dark: "border-gray-700 bg-gray-700 text-white",
     },
   };
 

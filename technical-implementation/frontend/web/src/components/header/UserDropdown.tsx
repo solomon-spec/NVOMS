@@ -63,9 +63,9 @@ export default function UserDropdown() {
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className="dropdown-toggle flex items-center rounded-lg border border-transparent px-2 py-1.5 text-gray-300 transition-colors hover:border-white/10 hover:bg-white/5 hover:text-white"
+        className="dropdown-toggle flex items-center rounded border border-transparent px-2 py-1.5 text-[#191c1d] transition-colors hover:border-[#c4c6cf] hover:bg-[#f3f4f5]"
       >
-        <span className="mr-3 grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-brand-500/15 text-sm font-semibold text-blue-light-300">
+        <span className="mr-3 grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-[#c4c6cf] bg-[#e1e3e4] text-sm font-semibold text-[#002045]">
           {initials}
         </span>
 
@@ -96,10 +96,10 @@ export default function UserDropdown() {
       <Dropdown
         isOpen={isOpen}
         onClose={closeDropdown}
-        className="enterprise-surface absolute right-0 mt-4 flex w-[260px] flex-col rounded-xl p-3 shadow-theme-lg"
+        className="enterprise-surface absolute right-0 mt-4 flex w-[260px] flex-col rounded p-3"
       >
         <div>
-          <span className="block font-medium text-gray-100 text-theme-sm">
+          <span className="block font-medium text-[#191c1d] text-theme-sm">
             {displayName}
           </span>
           <span className="enterprise-muted mt-0.5 block text-theme-xs">
@@ -112,14 +112,14 @@ export default function UserDropdown() {
 
         <DropdownItem
           onClick={handleSignOutAll}
-          className="mt-2 flex items-center gap-3 border-t border-white/10 px-3 py-3 font-medium text-warning-400 rounded-lg group text-theme-sm hover:bg-warning-500/10"
+          className="mt-2 flex items-center gap-3 border-t border-[#c4c6cf] px-3 py-3 font-medium text-warning-700 rounded group text-theme-sm hover:bg-warning-50"
         >
           Sign out all devices
         </DropdownItem>
 
         <DropdownItem
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-3 font-medium text-error-400 rounded-lg group text-theme-sm hover:bg-error-500/10"
+          className="flex items-center gap-3 px-3 py-3 font-medium text-error-700 rounded group text-theme-sm hover:bg-error-50"
         >
           Sign out
         </DropdownItem>

@@ -54,10 +54,10 @@ export function PrivacyModeToggle({ className = "" }: { className?: string }) {
       aria-pressed={isPrivacyMode}
       title={isPrivacyMode ? "Privacy mode is on" : "Privacy mode is off"}
       onClick={togglePrivacyMode}
-      className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold shadow-theme-xs transition ${
+      className={`inline-flex h-10 items-center justify-center gap-2 rounded border px-3 text-sm font-semibold transition ${
         isPrivacyMode
-          ? "border-warning-300 bg-warning-50 text-warning-700 dark:border-warning-500/40 dark:bg-warning-500/10 dark:text-warning-300"
-          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+          ? "border-warning-100 bg-warning-50 text-warning-700 dark:border-warning-100 dark:bg-warning-50 dark:text-warning-700"
+          : "border-[#c4c6cf] bg-white text-[#002045] hover:bg-[#f3f4f5] dark:border-[#c4c6cf] dark:bg-white dark:text-[#002045]"
       } ${className}`}
     >
       <span className="relative grid h-4 w-4 place-items-center">
@@ -77,7 +77,7 @@ export function PrivacyModeToggle({ className = "" }: { className?: string }) {
 export function PrivacyBoundaryBadge({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border border-blue-light-500/25 bg-blue-light-500/10 px-2.5 py-1 text-xs font-semibold text-blue-light-300 ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded border border-brand-100 bg-brand-50 px-2 py-1 text-xs font-semibold text-brand-700 ${className}`}
     >
       <LockIcon className="h-3.5 w-3.5 fill-current" />
       Operational access

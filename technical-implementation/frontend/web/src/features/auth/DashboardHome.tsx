@@ -17,7 +17,7 @@ const allModules = [
     label: "Patient Registry",
     href: "/patients",
     description: "Register patients and manage operational records with minimum necessary identifiers.",
-    icon: "👤",
+    icon: "PR",
     access: ["ADMIN", "HEALTH_WORKER"],
     color: "from-brand-500 to-brand-700",
   },
@@ -25,7 +25,7 @@ const allModules = [
     label: "Immunization",
     href: "/immunizations",
     description: "Review due and overdue schedule slots, then record vaccine doses for selected records.",
-    icon: "💉",
+    icon: "IM",
     access: ["ADMIN", "HEALTH_WORKER"],
     color: "from-success-500 to-success-700",
   },
@@ -33,7 +33,7 @@ const allModules = [
     label: "Surveillance",
     href: "/surveillance",
     description: "Submit surveillance reports, manage follow-up actions, and verify outbreak alerts.",
-    icon: "🔬",
+    icon: "SV",
     access: ["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"],
     color: "from-warning-500 to-warning-700",
   },
@@ -41,7 +41,7 @@ const allModules = [
     label: "Analytics",
     href: "/analytics",
     description: "View coverage rates, regional comparisons, and vaccination performance indicators.",
-    icon: "📊",
+    icon: "AN",
     access: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
     color: "from-purple-500 to-purple-700",
   },
@@ -49,7 +49,7 @@ const allModules = [
     label: "Reports",
     href: "/reports",
     description: "Queue coverage, defaulter, and AEFI reports and download them as PDF or CSV.",
-    icon: "📄",
+    icon: "RP",
     access: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
     color: "from-indigo-500 to-indigo-700",
   },
@@ -57,7 +57,7 @@ const allModules = [
     label: "Offline Sync",
     href: "/sync",
     description: "Register your device, submit data batches collected offline, and resolve conflicts.",
-    icon: "🔄",
+    icon: "OS",
     access: ["HEALTH_WORKER"],
     color: "from-teal-500 to-teal-700",
   },
@@ -65,7 +65,7 @@ const allModules = [
     label: "My Vaccination Record",
     href: "/my-patient",
     description: "View your personal vaccination history, upcoming appointments, and overdue alerts.",
-    icon: "🗂️",
+    icon: "VC",
     access: ["PATIENT"],
     color: "from-pink-500 to-pink-700",
   },
@@ -73,7 +73,7 @@ const allModules = [
     label: "Admin Console",
     href: "/admin",
     description: "Manage users, roles, facilities, and administrative unit configurations.",
-    icon: "⚙️",
+    icon: "AD",
     access: ["ADMIN"],
     color: "from-gray-600 to-gray-800",
   },
@@ -186,41 +186,35 @@ export function DashboardHome() {
   return (
     <div className="space-y-8">
 
-      {/* ── Hero header ── */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 px-6 py-8 shadow-lg md:px-10 md:py-10">
-        {/* Decorative blobs */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute -bottom-12 right-32 h-40 w-40 rounded-full bg-white/5" />
-
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+      <section className="border border-[#c4c6cf] bg-white px-5 py-5 md:px-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-semibold text-brand-200">{today}</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white md:text-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#43474e]">{today}</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#002045] md:text-3xl">
               Welcome back,{" "}
-              <span className="text-brand-100">
+              <span>
                 {session?.user.displayName ?? "NVOMS User"}
               </span>
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-brand-200">
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#545f72]">
               {role
                 ? `${formatRole(role)} access${session?.user.facilityCode ? ` · ${session.user.facilityCode}` : ""}`
-                : "Loading workspace…"}
+                : "Loading workspace..."}
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Online / offline pill */}
+          <div className="flex items-center gap-3">
             <div
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold ${
+              className={`flex items-center gap-2 rounded border px-3 py-2 text-sm font-semibold ${
                 onlineStatus
-                  ? "bg-success-500/20 text-success-100"
-                  : "bg-error-500/20 text-error-100"
+                  ? "border-success-100 bg-success-50 text-success-700"
+                  : "border-error-200 bg-error-50 text-error-700"
               }`}
             >
-              <span className={`h-2 w-2 rounded-full ${onlineStatus ? "bg-success-400" : "bg-error-400"}`} />
+              <span className={`h-2 w-2 rounded-full ${onlineStatus ? "bg-success-600" : "bg-error-600"}`} />
               {onlineStatus ? "Online" : "Offline"}
             </div>
-            <div className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white">
+            <div className="rounded border border-[#c4c6cf] bg-[#f3f4f5] px-3 py-2 text-sm font-semibold text-[#002045]">
               Authenticated
             </div>
           </div>
@@ -233,7 +227,7 @@ export function DashboardHome() {
           <strong>{confirmedAlertCount} confirmed outbreak alert{confirmedAlertCount > 1 ? "s" : ""}</strong>{" "}
           require immediate attention.{" "}
           <Link href="/surveillance" className="underline underline-offset-2 hover:no-underline">
-            Review in Surveillance →
+            Review in Surveillance
           </Link>
         </AlertBanner>
       )}
@@ -252,7 +246,7 @@ export function DashboardHome() {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {/* Coverage ring — PHO/Admin only */}
               {coveragePct !== null && (
-                <div className="flex items-center gap-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+                <div className="flex items-center gap-5 rounded border border-[#d9dadb] bg-white p-4 dark:border-[#d9dadb] dark:bg-white">
                   <ProgressRing
                     value={coveragePct}
                     tone={coveragePct >= 90 ? "success" : coveragePct >= 70 ? "warning" : "error"}
@@ -306,22 +300,20 @@ export function DashboardHome() {
             <Link
               key={module.label}
               href={module.href}
-              className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm transition-all hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-theme-md dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-500/30"
+              className="group relative overflow-hidden rounded border border-[#d9dadb] bg-white p-4 transition-colors hover:border-[#455f88] hover:bg-[#f8f9fa] dark:border-[#d9dadb] dark:bg-white dark:hover:border-[#455f88]"
             >
-              {/* Gradient accent */}
-              <div
-                className={`absolute right-0 top-0 h-24 w-24 -translate-y-8 translate-x-8 rounded-full bg-gradient-to-br opacity-10 group-hover:opacity-20 transition-opacity ${module.color}`}
-              />
-              <div className="relative">
-                <span className="text-3xl">{module.icon}</span>
+              <div>
+                <span className="inline-grid h-9 w-9 place-items-center rounded border border-[#c4c6cf] bg-[#f3f4f5] text-xs font-bold text-[#002045]">
+                  {module.icon}
+                </span>
                 <h3 className="mt-3 text-sm font-semibold text-gray-900 dark:text-white">
                   {module.label}
                 </h3>
                 <p className="mt-2 min-h-10 text-xs leading-5 text-gray-500 dark:text-gray-400">
                   {module.description}
                 </p>
-                <span className="mt-4 inline-flex text-xs font-semibold text-brand-600 group-hover:text-brand-700 dark:text-brand-400">
-                  Open module →
+                <span className="mt-4 inline-flex text-xs font-semibold text-brand-700 group-hover:text-brand-800 dark:text-brand-700">
+                  Open module
                 </span>
               </div>
             </Link>
@@ -340,10 +332,10 @@ export function DashboardHome() {
               href="/surveillance"
               className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
             >
-              View all →
+              View all
             </Link>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+          <div className="rounded border border-[#d9dadb] bg-white dark:border-[#d9dadb] dark:bg-white">
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {recentReports.map((report, index) => (
                 <li key={report.id} className="flex items-center gap-4 px-5 py-4">

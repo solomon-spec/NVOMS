@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg transition-all animate-in slide-in-from-right-4 ${toneCls[toast.tone]}`}
+            className={`pointer-events-auto flex max-w-sm items-start gap-3 rounded border px-4 py-3 text-sm font-medium shadow-theme-xl transition-all animate-in slide-in-from-right-4 ${toneCls[toast.tone]}`}
           >
             <span className="mt-px shrink-0 font-bold">{icons[toast.tone]}</span>
             <span>{toast.message}</span>
@@ -124,14 +124,14 @@ export function ConfirmModal({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 z-50 m-auto max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl backdrop:bg-black/50 dark:border-gray-700 dark:bg-gray-900"
+      className="fixed inset-0 z-50 m-auto max-w-md rounded border border-[#c4c6cf] bg-white p-6 shadow-theme-xl backdrop:bg-black/40 dark:border-[#c4c6cf] dark:bg-white"
       onCancel={onCancel}
     >
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
-      <div className="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-400">{message}</div>
+      <h2 className="text-lg font-semibold text-[#002045] dark:text-[#002045]">{title}</h2>
+      <div className="mt-3 text-sm leading-6 text-[#43474e] dark:text-[#43474e]">{message}</div>
       <div className="mt-6 flex justify-end gap-3">
         <button
-          className="inline-flex min-h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+          className="inline-flex min-h-10 items-center rounded border border-[#c4c6cf] bg-white px-4 text-sm font-semibold text-[#002045] hover:bg-[#f3f4f5] dark:border-[#c4c6cf] dark:bg-white dark:text-[#002045]"
           disabled={isLoading}
           type="button"
           onClick={onCancel}
@@ -139,7 +139,7 @@ export function ConfirmModal({
           {cancelLabel}
         </button>
         <button
-          className={`inline-flex min-h-10 items-center rounded-lg px-4 text-sm font-semibold shadow-theme-xs transition disabled:opacity-60 ${confirmCls}`}
+          className={`inline-flex min-h-10 items-center rounded px-4 text-sm font-semibold transition disabled:opacity-60 ${confirmCls}`}
           disabled={isLoading}
           type="button"
           onClick={onConfirm}
@@ -170,11 +170,11 @@ export function AlertBanner({
   const icon = tone === "error" ? "🚨" : "⚠️";
 
   return (
-    <div className={`flex items-start gap-3 rounded-xl border px-5 py-4 ${cls}`} role="alert">
+    <div className={`flex items-start gap-3 rounded border px-5 py-4 ${cls}`} role="alert">
       <span className="text-xl">{icon}</span>
       <div className="flex-1 text-sm font-medium">{children}</div>
       {count !== undefined && (
-        <span className="ml-auto shrink-0 rounded-full bg-current/10 px-2.5 py-0.5 text-xs font-bold">
+        <span className="ml-auto shrink-0 rounded border border-current/20 bg-current/10 px-2.5 py-0.5 text-xs font-bold">
           {count}
         </span>
       )}
@@ -249,7 +249,7 @@ export function TrendBadge({ value, suffix = "%" }: { value: number; suffix?: st
   const arrow = isUp ? "↑" : "↓";
 
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`}>
+    <span className={`inline-flex items-center gap-0.5 rounded border border-current/20 px-2 py-0.5 text-xs font-semibold ${cls}`}>
       {arrow} {Math.abs(value)}{suffix}
     </span>
   );
@@ -299,7 +299,7 @@ export function TimelineItem({
 
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
-    <div className="animate-pulse rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+    <div className="animate-pulse rounded border border-gray-200 bg-white p-5 dark:border-gray-200 dark:bg-white">
       <div className="h-3 w-1/3 rounded bg-gray-200 dark:bg-gray-700" />
       <div className="mt-4 space-y-2">
         {Array.from({ length: lines }).map((_, i) => (
@@ -336,19 +336,19 @@ export function MetricCard({ detail, icon, label, tone, trend, value }: MetricCa
     : "";
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+    <div className="rounded border border-gray-200 bg-white p-5 dark:border-gray-200 dark:bg-white">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+        <p className="text-sm text-[#545f72] dark:text-[#545f72]">{label}</p>
         {icon && (
           <span className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg ${toneBg}`}>
             {icon}
           </span>
         )}
       </div>
-      <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{value}</p>
+      <p className="mt-2 text-2xl font-semibold text-[#002045] dark:text-[#002045]">{value}</p>
       <div className="mt-2 flex items-center gap-2">
         {trend !== undefined && <TrendBadge value={trend} />}
-        {detail && <p className="text-xs text-gray-500 dark:text-gray-400">{detail}</p>}
+        {detail && <p className="text-xs text-[#545f72] dark:text-[#545f72]">{detail}</p>}
       </div>
     </div>
   );
@@ -363,19 +363,19 @@ export function StatusPill({
 }) {
   const tones = {
     brand:
-      "bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300",
+      "border-brand-100 bg-brand-50 text-brand-700 dark:border-brand-100 dark:bg-brand-50 dark:text-brand-700",
     success:
-      "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-300",
+      "border-success-200 bg-success-50 text-success-700 dark:border-success-200 dark:bg-success-50 dark:text-success-700",
     warning:
-      "bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-300",
+      "border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-200 dark:bg-warning-50 dark:text-warning-700",
     error:
-      "bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-300",
-    gray: "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300",
+      "border-error-200 bg-error-50 text-error-700 dark:border-error-200 dark:bg-error-50 dark:text-error-700",
+    gray: "border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-200 dark:bg-gray-100 dark:text-gray-700",
   };
 
   return (
     <span
-      className={`inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${tones[tone]}`}
+      className={`inline-flex shrink-0 rounded border px-3 py-1 text-xs font-semibold ${tones[tone]}`}
     >
       {label}
     </span>

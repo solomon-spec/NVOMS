@@ -182,22 +182,22 @@ export function PatientRegistryWorkspace() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
+      <header className="flex flex-col gap-4 border-b border-[#c4c6cf] pb-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h1 className="enterprise-title text-2xl">
-              Professional Enterprise Patient Registry
+              Patient Registry
             </h1>
             <PrivacyBoundaryBadge />
-            <span className="inline-flex items-center gap-1 rounded-full border border-success-500/20 bg-success-500/10 px-2.5 py-1 text-xs font-semibold text-success-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-success-400" />
+            <span className="inline-flex items-center gap-1 rounded border border-success-200 bg-success-50 px-2.5 py-1 text-xs font-semibold text-success-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-success-600" />
               Live Sync Active
             </span>
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-gray-400">
+            <span className="rounded border border-[#c4c6cf] bg-white px-2.5 py-1 text-xs font-medium text-[#545f72]">
               Database: 12.4M records
             </span>
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-gray-100">
+          <p className="mt-1 max-w-2xl text-sm text-[#545f72]">
             Search and filter operational records before opening identity
             management or clinical immunization workflows.
           </p>
@@ -226,7 +226,7 @@ export function PatientRegistryWorkspace() {
         <section className="enterprise-card rounded-xl p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-white">Recently opened</h2>
+              <h2 className="text-sm font-semibold text-[#002045]">Recently opened</h2>
               <p className="enterprise-muted mt-1 text-xs">
                 Session shortcuts use UID, age, and status only.
               </p>
@@ -236,9 +236,9 @@ export function PatientRegistryWorkspace() {
                 <Link
                   key={patient.id}
                   href={`/patients/${patient.id}`}
-                  className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm transition hover:border-brand-400/50 hover:bg-brand-500/10"
+                  className="rounded border border-[#c4c6cf] bg-[#f8f9fa] px-3 py-2 text-sm transition hover:border-brand-500 hover:bg-brand-50"
                 >
-                  <span className="block font-semibold text-blue-light-300">
+                  <span className="block font-semibold text-brand-700">
                     {maskIdentifier(patient.uid)}
                   </span>
                   <span className="enterprise-muted mt-1 block text-xs">
@@ -252,7 +252,7 @@ export function PatientRegistryWorkspace() {
       ) : null}
 
       <section className="enterprise-card overflow-hidden rounded-xl">
-        <div className="border-b border-white/10 p-4">
+        <div className="border-b border-[#c4c6cf] p-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_170px_180px_180px_150px_auto]">
             <label className="sr-only" htmlFor="patient-search">
               Search patients
@@ -333,21 +333,21 @@ export function PatientRegistryWorkspace() {
           </div>
         </div>
 
-        <div className="enterprise-muted flex flex-col gap-3 border-b border-white/10 px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
+        <div className="enterprise-muted flex flex-col gap-3 border-b border-[#c4c6cf] px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
           <div>
             Showing{" "}
-            <span className="font-semibold text-white/90">
+            <span className="font-semibold text-[#002045]">
               {firstVisible}-{lastVisible}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-white/90">
+            <span className="font-semibold text-[#002045]">
               {result.count}
             </span>{" "}
             patients
           </div>
 
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-300" htmlFor="page-size">
+            <label className="text-sm font-medium text-[#43474e]" htmlFor="page-size">
               Rows
             </label>
             <select
@@ -369,14 +369,14 @@ export function PatientRegistryWorkspace() {
         </div>
 
         {error ? (
-          <div className="m-4 rounded-lg border border-error-500/30 bg-error-500/10 px-4 py-3 text-sm font-medium text-error-300">
+          <div className="m-4 rounded border border-error-200 bg-error-50 px-4 py-3 text-sm font-medium text-error-700">
             {error}
           </div>
         ) : null}
 
         <div className="max-h-[640px] overflow-auto" data-testid="patient-registry-table-scroll">
           <Table className="text-left">
-            <TableHeader className="sticky top-0 z-10 bg-[#0b1424] text-xs font-semibold uppercase text-gray-400">
+            <TableHeader className="sticky top-0 z-10 bg-[#e1e3e4] text-xs font-semibold uppercase text-[#43474e]">
               <TableRow>
                 <TableCell isHeader className="min-w-[8.75rem] px-5 py-3">
                   UID
@@ -405,7 +405,7 @@ export function PatientRegistryWorkspace() {
               </TableRow>
             </TableHeader>
 
-            <TableBody className="divide-y divide-white/10 text-sm">
+            <TableBody className="divide-y divide-[#c4c6cf] text-sm">
               {isLoading ? (
                 <PatientTableSkeleton />
               ) : visibleRows.length ? (
@@ -421,7 +421,7 @@ export function PatientRegistryWorkspace() {
                 <TableRow>
                   <TableCell colSpan={8} className="px-5 py-12 text-center">
                     <div className="mx-auto max-w-sm">
-                      <h2 className="text-base font-semibold text-white">
+                      <h2 className="text-base font-semibold text-[#002045]">
                         No patients found
                       </h2>
                       <p className="enterprise-muted mt-1 text-sm">
@@ -435,7 +435,7 @@ export function PatientRegistryWorkspace() {
           </Table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-[#c4c6cf] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="enterprise-muted text-sm">
             Page {page} of {totalPages}
           </p>
@@ -476,38 +476,26 @@ function MetricCard({
   tone?: "brand" | "success" | "warning" | "error";
 }) {
   const toneClass = {
-    brand: "bg-blue-light-500/15 text-blue-light-300",
+    brand: "border-brand-100 bg-brand-50 text-brand-700",
     success:
-      "bg-success-500/15 text-success-300",
+      "border-success-200 bg-success-50 text-success-700",
     warning:
-      "bg-warning-500/15 text-warning-300",
-    error: "bg-error-500/15 text-error-300",
+      "border-warning-200 bg-warning-50 text-warning-700",
+    error: "border-error-200 bg-error-50 text-error-700",
   };
 
   return (
     <article className="enterprise-card rounded-xl p-5">
-      <p className="text-sm font-medium text-gray-300">{label}</p>
+      <p className="text-sm font-medium text-[#545f72]">{label}</p>
       <div className="mt-3 flex items-end justify-between gap-3">
-        <span className="text-2xl font-bold text-white">
+        <span className="text-2xl font-bold text-[#002045]">
           {value.toLocaleString()}
         </span>
-        <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${toneClass[tone]}`}>
+        <span className={`rounded border px-2.5 py-1 text-xs font-semibold ${toneClass[tone]}`}>
           Registry
         </span>
       </div>
-      <div className="mt-4 h-7 overflow-hidden rounded bg-gradient-to-r from-transparent via-white/5 to-transparent">
-        <div
-          className={`mt-4 h-px w-full ${
-            tone === "error"
-              ? "bg-error-400 shadow-[0_0_16px_rgba(240,68,56,0.65)]"
-              : tone === "warning"
-                ? "bg-warning-300 shadow-[0_0_16px_rgba(254,200,75,0.55)]"
-                : tone === "success"
-                  ? "bg-success-300 shadow-[0_0_16px_rgba(50,213,131,0.55)]"
-                  : "bg-blue-light-400 shadow-[0_0_16px_rgba(47,143,217,0.65)]"
-          }`}
-        />
-      </div>
+      <div className="mt-4 h-px bg-[#c4c6cf]" />
     </article>
   );
 }
@@ -530,24 +518,24 @@ function PatientTableRow({
 
   return (
     <TableRow className="enterprise-table-row transition">
-      <TableCell className="px-5 py-4 align-top font-semibold text-blue-light-300">
+      <TableCell className="px-5 py-4 align-top font-semibold text-brand-700">
         {maskIdentifier(patient.uid)}
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
         <div className="min-w-0">
-          <p className="font-semibold text-white">{patientLabel}</p>
+          <p className="font-semibold text-[#191c1d]">{patientLabel}</p>
           <p className="enterprise-muted mt-1 text-xs">
             {formatSex(patient.sex)} · {formatAge(patient.date_of_birth)}
           </p>
         </div>
       </TableCell>
-      <TableCell className="px-5 py-4 align-top text-gray-300">
+      <TableCell className="px-5 py-4 align-top text-[#43474e]">
         {formatAge(patient.date_of_birth)}
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
         {patient.primary_caregiver ? (
           <div>
-            <p className="font-medium text-white/90">
+            <p className="font-medium text-[#191c1d]">
               {caregiverLabel}
             </p>
             <p className="enterprise-muted mt-1 text-xs">
@@ -556,11 +544,11 @@ function PatientTableRow({
             </p>
           </div>
         ) : (
-          <span className="text-gray-400">No caregiver</span>
+          <span className="text-[#74777f]">No caregiver</span>
         )}
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
-        <p className="font-medium text-white/90">{facilityName}</p>
+        <p className="font-medium text-[#191c1d]">{facilityName}</p>
         <p className="enterprise-muted mt-1 text-xs">
           {isPrivacyMode
             ? "Residence hidden"
@@ -614,7 +602,7 @@ function PatientTableSkeleton() {
     <TableRow key={index}>
       {Array.from({ length: 8 }, (__, cellIndex) => (
         <TableCell key={cellIndex} className="px-5 py-4">
-          <div className="h-4 w-full max-w-32 animate-pulse rounded bg-white/10" />
+          <div className="h-4 w-full max-w-32 animate-pulse rounded bg-gray-200" />
         </TableCell>
       ))}
     </TableRow>
