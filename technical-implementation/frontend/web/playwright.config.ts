@@ -17,13 +17,13 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:3100',
     headless: true,
-    viewport: { width: 1440, height: 900 },
+    viewport: { width: 1600, height: 900 },
     launchOptions: {
       slowMo: 100,
     },
     video: {
       mode: 'on',
-      size: { width: 1440, height: 900 },
+      size: { width: 1600, height: 900 },
     },
     trace: 'retain-on-failure',
   },

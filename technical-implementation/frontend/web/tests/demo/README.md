@@ -15,14 +15,36 @@ Playwright is used here for reviewable demo videos, not fast CI checks.
 - `npm run demo:defaulters` records the defaulter cluster walkthrough.
 - `npm run demo:self-service` records the patient self-service walkthrough.
 - `npm run demo:caregiver` records the caregiver gap/fallback walkthrough.
-- `npm run demo:videos` prints generated `.webm` video paths.
+- `npm run demo:videos` prints generated raw Playwright `.webm` video paths.
+- `npm run demo:publish-videos` copies the latest raw videos into easy stable paths.
 - `npm run demo:report` opens the Playwright HTML report.
 
-The demo tests run headlessly, slow down interaction timing, and record video for every run. Section commands write to stable folders under `test-results/<section>/`, and reports are linked from `playwright-report/`.
+The demo tests run headlessly, slow down interaction timing, and record 16:9 video for every run. Section commands write to folders under `test-results/<section>/`, and reports are linked from `playwright-report/`.
 
 Keep demo specs user-flow oriented. Prefer slower typing, short pauses after transitions, and role coverage that makes the resulting video useful to review.
 
-After a successful run, locate videos with:
+After a successful run, publish easy-to-open video paths with:
+
+```bash
+npm run demo:publish-videos
+```
+
+The published files are ignored by Git and appear at:
+
+```text
+demo-videos/auth.webm
+demo-videos/patients.webm
+demo-videos/patient-detail.webm
+demo-videos/registration.webm
+demo-videos/immunizations.webm
+demo-videos/surveillance.webm
+demo-videos/self-service.webm
+demo-videos/caregiver.webm
+demo-videos/risk-map.webm
+demo-videos/defaulters.webm
+```
+
+To inspect the raw Playwright output instead, run:
 
 ```bash
 npm run demo:videos

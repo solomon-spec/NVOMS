@@ -88,11 +88,29 @@ npm run demo:risk-map
 npm run demo:defaulters
 ```
 
-Generated videos are written under:
+Generated raw videos are written under:
 
 ```bash
 frontend/web/test-results/
 ```
+
+For easy review paths, publish the latest generated videos into stable filenames:
+
+```bash
+npm run demo:publish-videos
+```
+
+Published videos are written under:
+
+```bash
+frontend/web/demo-videos/
+```
+
+Example published paths:
+
+- `frontend/web/demo-videos/auth.webm`
+- `frontend/web/demo-videos/risk-map.webm`
+- `frontend/web/demo-videos/defaulters.webm`
 
 Playwright starts its own frontend server for demos. If a manual `npm run dev` server is already running and Next.js reports a dev-server lock, stop the manual frontend server first, run the demo command, then restart the frontend.
 

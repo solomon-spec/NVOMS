@@ -20,6 +20,7 @@
     "demo:self-service": "playwright test tests/demo/self-service.demo.ts --output=test-results/self-service",
     "demo:caregiver": "playwright test tests/demo/caregiver-portal.demo.ts --output=test-results/caregiver",
     "demo:videos": "find test-results -name '*.webm' -print | sort",
+    "demo:publish-videos": "node scripts/publish-demo-videos.mjs",
     "demo:report": "playwright show-report"
   },
   "dependencies": {
