@@ -104,12 +104,12 @@ TEMPLATES = [
 WSGI_APPLICATION = "nvoms.wsgi.application"
 
 # ── Database ──────────────────────────────────────────────────────────────────
-DATABASE_URL = config('DATABASE_URL', default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
+DATABASE_URL = config("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 DATABASES = {
-    'default': dj_database_url.parse(
+    "default": dj_database_url.parse(
         DATABASE_URL,
         conn_max_age=600,
-        ssl_require=not DATABASE_URL.startswith('sqlite'),
+        ssl_require=not DATABASE_URL.startswith("sqlite"),
     )
 }
 
@@ -189,6 +189,11 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": r"/api/v1/",
+    # The API is still being documented incrementally. Several APIViews do not
+    # yet expose serializer hints, which makes drf-spectacular emit many
+    # warnings while serving /api/schema/. Suppress those warnings so Swagger
+    # remains usable during frontend/backend integration work.
+    "DISABLE_ERRORS_AND_WARNINGS": True,
 }
 
 # ── Celery ────────────────────────────────────────────────────────────────────
