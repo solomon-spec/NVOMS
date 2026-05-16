@@ -125,6 +125,7 @@ class VaccineBatch(models.Model):
     manufacturer_name = models.CharField(max_length=120, null=True, blank=True)
     expiry_date = models.DateField(null=True, blank=True)
     source_system = models.CharField(max_length=80, null=True, blank=True)
+    qty_on_hand = models.PositiveIntegerField(default=0)
     is_valid = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
 

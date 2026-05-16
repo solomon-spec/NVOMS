@@ -7,7 +7,7 @@ from immunizations.views import (
     PatientScheduleSlotDetailView,
 )
 from patients.me_views import PatientMeDosesView, PatientMeScheduleView, PatientMeView
-from patients.views import PatientDetailView, PatientListView, PatientSummaryView
+from patients.views import DefaulterListView, PatientDetailView, PatientListView, PatientSendReminderView, PatientSummaryView
 
 urlpatterns = [
     # Patient self-service (must appear before <uuid:pk>)
@@ -18,6 +18,7 @@ urlpatterns = [
     path('me/doses', PatientMeDosesView.as_view(), name='patient-me-doses'),
     # Staff-managed patient endpoints
     path('', PatientListView.as_view(), name='patient-list'),
+    path('defaulters/', DefaulterListView.as_view(), name='patient-defaulters'),
     path('<uuid:pk>', PatientDetailView.as_view(), name='patient-detail'),
     path('<uuid:pk>/summary', PatientSummaryView.as_view(), name='patient-summary'),
     # schedule
@@ -26,4 +27,6 @@ urlpatterns = [
     path('<uuid:pk>/schedule/<uuid:slot_id>', PatientScheduleSlotDetailView.as_view(), name='patient-schedule-slot'),
     # doses
     path('<uuid:pk>/doses', PatientDoseListView.as_view(), name='patient-dose-list'),
+    # manual reminder
+    path('<uuid:pk>/send-reminder', PatientSendReminderView.as_view(), name='patient-send-reminder'),
 ]

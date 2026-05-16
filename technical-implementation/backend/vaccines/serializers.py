@@ -66,7 +66,7 @@ class VaccineBatchSerializer(serializers.ModelSerializer):
             'id', 'vaccine', 'vaccine_id',
             'batch_number', 'manufacturer_name',
             'expiry_date', 'source_system',
-            'is_valid', 'created_at',
+            'qty_on_hand', 'is_valid', 'created_at',
         ]
         read_only_fields = ['id', 'created_at']
 

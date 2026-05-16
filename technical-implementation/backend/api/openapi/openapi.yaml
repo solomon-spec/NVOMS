@@ -603,6 +603,11 @@ components:
             source_system:
               type: string
               nullable: true
+            qty_on_hand:
+              type: integer
+              minimum: 0
+              description: Current quantity of doses in stock
+              example: 250
             is_valid:
               type: boolean
             created_at:
@@ -627,6 +632,12 @@ components:
         source_system:
           type: string
           nullable: true
+        qty_on_hand:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Initial quantity of doses being added to stock
+          example: 500
         is_valid:
           type: boolean
           default: true
@@ -1349,6 +1360,192 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FacilityBrief'
+
+    # ── Dashboards & Reports ──────────────────────────────────────────────────
+
+    AdminDashboard:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        total_patients:
+          type: integer
+          example: 1240
+        total_users:
+          type: integer
+          example: 38
+        active_defaulters:
+          type: integer
+          example: 92
+        defaulter_pct:
+          type: number
+          format: float
+          example: 7.4
+        users_by_role:
+          type: array
+          items:
+            type: object
+            properties:
+              role_code:
+                type: string
+                example: HEALTH_WORKER
+              role_name:
+                type: string
+                example: Health Worker
+              count:
+                type: integer
+                example: 24
+
+    HwDashboard:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        report_date:
+          type: string
+          format: date
+        facility_id:
+          type: string
+          format: uuid
+          nullable: true
+        facility_name:
+          type: string
+          nullable: true
+          example: Bole Health Center
+        total_patients:
+          type: integer
+          example: 320
+        upcoming_today:
+          type: integer
+          example: 14
+        daily_doses_administered:
+          type: integer
+          example: 9
+        defaulter_count:
+          type: integer
+          example: 22
+        defaulter_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/DefaulterPatient'
+
+    PhoDashboard:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        total_patients:
+          type: integer
+          example: 5400
+        total_doses_administered:
+          type: integer
+          example: 18920
+        active_defaulters:
+          type: integer
+          example: 312
+        defaulter_pct:
+          type: number
+          format: float
+          example: 5.8
+        zero_dose_children:
+          type: integer
+          example: 41
+
+    DailyVaccinationReport:
+      type: object
+      properties:
+        report_date:
+          type: string
+          format: date
+        facility_id:
+          type: string
+          format: uuid
+          nullable: true
+        facility_name:
+          type: string
+          nullable: true
+        total_doses:
+          type: integer
+          example: 47
+        by_vaccine:
+          type: array
+          items:
+            type: object
+            properties:
+              vaccine_code:
+                type: string
+                example: PENTA1
+              vaccine_name:
+                type: string
+                example: Pentavalent Dose 1
+              antigen_name:
+                type: string
+                example: Diphtheria/Pertussis/Tetanus
+              doses_administered:
+                type: integer
+                example: 12
+
+    DefaulterPatient:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          format: uuid
+        uid:
+          type: string
+          example: PAT-AA001
+        full_name:
+          type: string
+          example: Liya Tesfaye
+        date_of_birth:
+          type: string
+          format: date
+        sex:
+          type: string
+          enum: [male, female, other, unknown]
+        caregiver_name:
+          type: string
+          example: Selam Tesfaye
+        caregiver_phone:
+          type: string
+          example: "+251912111001"
+        residence_unit:
+          type: string
+          nullable: true
+          example: Bole Woreda 01
+        facility:
+          type: string
+          nullable: true
+          example: Bole Health Center
+        current_status:
+          type: string
+          enum: [overdue, defaulter]
+        overdue_count:
+          type: integer
+          example: 3
+        next_due_date:
+          type: string
+          format: date
+          nullable: true
+
+    ReminderQueued:
+      type: object
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        phone_number:
+          type: string
+          example: "+251912111001"
+        message_body:
+          type: string
+          example: "Dear Selam Tesfaye, Liya has missed scheduled vaccinations..."
+        status:
+          type: string
+          enum: [queued]
 
     # ── Notifications ─────────────────────────────────────────────────────────
 
@@ -4160,6 +4357,174 @@ paths:
         '403':
           description: Forbidden (ADMIN only)
 
+  # ── Admin Dashboard ──────────────────────────────────────────────────────────
+  /api/v1/analytics/admin-dashboard/:
+    get:
+      summary: Admin role home-screen metrics
+      description: |
+        Total patients, total users, active defaulter count and percentage, and a
+        breakdown of users by role. Requires ADMIN role.
+      tags: [Analytics]
+      responses:
+        '200':
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboard'
+        '403':
+          description: Forbidden (ADMIN only)
+
+  # ── HW Dashboard ─────────────────────────────────────────────────────────────
+  /api/v1/analytics/hw-dashboard/:
+    get:
+      summary: Health Worker role home-screen metrics
+      description: |
+        Patients at assigned facility, appointments due today, today's doses
+        administered, defaulter count, and the first 20 defaulters with caregiver
+        contact details. Requires HEALTH_WORKER or ADMIN role.
+      tags: [Analytics]
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          description: Report date (default today)
+      responses:
+        '200':
+          description: Health worker dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HwDashboard'
+        '403':
+          description: Forbidden
+
+  # ── PHO Dashboard ────────────────────────────────────────────────────────────
+  /api/v1/analytics/pho-dashboard/:
+    get:
+      summary: Public Health Official role home-screen metrics
+      description: |
+        Total doses administered system-wide, active defaulters and percentage,
+        and zero-dose children count. Requires PUBLIC_HEALTH_OFFICIAL or ADMIN role.
+      tags: [Analytics]
+      responses:
+        '200':
+          description: PHO dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoDashboard'
+        '403':
+          description: Forbidden
+
+  # ── Daily Vaccination Report ─────────────────────────────────────────────────
+  /api/v1/analytics/daily-report/:
+    get:
+      summary: Daily vaccination activity report
+      description: |
+        Doses administered on a given date, grouped by vaccine. Health workers see
+        only their facility; admins may pass `facility` to scope the result.
+        Requires HEALTH_WORKER or ADMIN role.
+      tags: [Analytics]
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          description: Report date (default today)
+        - in: query
+          name: facility
+          schema:
+            type: string
+            format: uuid
+          description: Filter to a specific facility (ADMIN only)
+      responses:
+        '200':
+          description: Daily report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyVaccinationReport'
+        '403':
+          description: Forbidden
+
+  # ── Defaulter list ───────────────────────────────────────────────────────────
+  /api/v1/patients/defaulters/:
+    get:
+      summary: List patients with overdue or defaulter vaccination status
+      description: |
+        Returns patients whose immunization status is `overdue` or `defaulter`.
+        Health workers see only patients at their assigned facility unless
+        `all=true` is passed. Requires HEALTH_WORKER or ADMIN role.
+      tags: [Patients]
+      parameters:
+        - in: query
+          name: facility
+          schema:
+            type: string
+            format: uuid
+          description: Filter to a specific facility UUID
+        - in: query
+          name: all
+          schema:
+            type: string
+            enum: ['true']
+          description: Show all facilities (ADMIN only)
+      responses:
+        '200':
+          description: List of defaulter patients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DefaulterPatient'
+        '403':
+          description: Forbidden
+
+  # ── Send manual reminder ──────────────────────────────────────────────────────
+  /api/v1/patients/{id}/send-reminder:
+    post:
+      summary: Manually send an SMS reminder to a patient's caregiver
+      description: |
+        Queues an SMS notification of type `manual` to the patient's primary
+        caregiver phone number. Uses the missed-appointment template or falls back
+        to a plain message. A custom `message` body can be supplied. Requires
+        HEALTH_WORKER or ADMIN role.
+      tags: [Patients]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Optional custom SMS body; overrides template
+                  example: "Please bring your child to Bole HC for their overdue vaccines."
+      responses:
+        '201':
+          description: Notification queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderQueued'
+        '404':
+          description: Patient not found
+        '403':
+          description: Forbidden
+
 tags:
   - name: Authentication
     description: Login, token refresh, logout, and password management
@@ -4192,7 +4557,12 @@ tags:
   - name: Reports
     description: Async report generation (defaulters, coverage, AEFI)
   - name: Analytics
-    description: Vaccine coverage and performance analytics for the MoH dashboard
+    description: |
+      Vaccine coverage, performance analytics, and role-specific dashboards.
+      - **Admin Dashboard** – total patients, users, defaulter %
+      - **HW Dashboard** – facility patients, daily progress, defaulter list
+      - **PHO Dashboard** – national totals, zero-dose children
+      - **Daily Report** – doses administered today by vaccine
   - name: Offline Sync
     description: Device registration and offline data synchronisation (HEALTH_WORKER role)
   - name: Notifications
