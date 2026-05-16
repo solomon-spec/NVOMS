@@ -265,7 +265,7 @@ def clean_chapter_three(draft_path: Path) -> str:
 
 
 def extract_er_diagram() -> str:
-    db_design = read_markdown(f"{CHAPTER_FOUR_ARTIFACTS}/report-database-design.md")
+    db_design = read_markdown(f"{CHAPTER_FOUR_ARTIFACTS}/database-design.md")
     match = re.search(r"```mermaid\n(.*?)```", db_design, re.DOTALL)
     if not match:
         return ""
@@ -318,7 +318,7 @@ The database design of NVOMS is derived directly from the system requirements, t
 
 ### Database Design Artifacts
 
-- Narrative database design: [report-database-design.md]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/report-database-design.md')})
+- Narrative database design: [database-design.md]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/database-design.md')})
 - Implementation-ready PostgreSQL schema: [postgresql-schema.sql]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/postgresql-schema.sql')})
 - Diagram-oriented DBML schema: [schema.dbml]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/schema.dbml')})
 - Functional-requirements traceability: [requirements-verification.md]({rel_link(draft_path, f'{CHAPTER_FOUR_ARTIFACTS}/requirements-verification.md')})

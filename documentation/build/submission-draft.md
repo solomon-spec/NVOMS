@@ -1539,67 +1539,9 @@ The database design of NVOMS is derived directly from the system requirements, t
 
 ### High-Level ER View
 
-```mermaid
-erDiagram
-    ADMINISTRATIVE_UNITS ||--o{ ADMINISTRATIVE_UNITS : parent_of
-    ADMINISTRATIVE_UNITS ||--o{ HEALTH_FACILITIES : contains
-    ADMINISTRATIVE_UNITS ||--o{ CAREGIVERS : residence_of
-    ADMINISTRATIVE_UNITS ||--o{ PATIENTS : residence_of
-    ADMINISTRATIVE_UNITS ||--o{ ENVIRONMENTAL_OBSERVATIONS : observed_for
-    ADMINISTRATIVE_UNITS ||--o{ PREDICTION_SCORES : scored_for
-    ADMINISTRATIVE_UNITS ||--o{ OUTBREAK_ALERTS : raised_for
-
-    ROLES ||--o{ USERS : assigned_to
-    ROLES ||--o{ ROLE_PERMISSIONS : grants
-    PERMISSIONS ||--o{ ROLE_PERMISSIONS : contains
-    USERS ||--o{ USER_SESSIONS : opens
-    USERS ||--o{ AUDIT_LOGS : performs
-    USERS ||--o{ PATIENTS : registers
-    USERS ||--o{ IMMUNIZATION_EVENTS : records
-    USERS ||--o{ SURVEILLANCE_REPORTS : records
-    USERS ||--o{ GENERATED_REPORTS : requests
-
-    CAREGIVERS ||--o{ PATIENTS : primary_contact_for
-    PATIENTS ||--o{ PATIENT_DUPLICATE_CASES : reviewed_as_candidate
-    PATIENTS ||--o{ PATIENT_VACCINATION_SCHEDULES : has
-    PATIENTS ||--o{ IMMUNIZATION_EVENTS : receives
-    PATIENTS ||--o{ SURVEILLANCE_REPORTS : has
-    PATIENTS ||--|| PATIENT_IMMUNIZATION_STATUS : summarized_by
-
-    VACCINE_DEFINITIONS ||--o{ EPI_SCHEDULE_RULES : scheduled_by
-    EPI_SCHEDULE_VERSIONS ||--o{ EPI_SCHEDULE_RULES : contains
-    EPI_SCHEDULE_RULES ||--o{ PATIENT_VACCINATION_SCHEDULES : generates
-    VACCINE_DEFINITIONS ||--o{ VACCINE_BATCHES : identifies
-    VACCINE_BATCHES ||--o{ IMMUNIZATION_EVENTS : used_in
-    PATIENT_VACCINATION_SCHEDULES ||--o{ IMMUNIZATION_EVENTS : fulfilled_by
-    PATIENT_VACCINATION_SCHEDULES ||--o{ SCHEDULE_STATUS_EVENTS : changes_through
-
-    SURVEILLANCE_REPORTS ||--o{ SURVEILLANCE_SYMPTOMS : details
-    SURVEILLANCE_REPORTS ||--o{ OUTBREAK_ALERTS : may_trigger
-
-    MESSAGE_TEMPLATES ||--o{ SMS_NOTIFICATIONS : formats
-    CAREGIVERS ||--o{ SMS_NOTIFICATIONS : receives
-    PATIENTS ||--o{ SMS_NOTIFICATIONS : concerns
-    PATIENT_VACCINATION_SCHEDULES ||--o{ SMS_NOTIFICATIONS : reminds
-    SMS_NOTIFICATIONS ||--o{ NOTIFICATION_ATTEMPTS : retried_as
-
-    MODEL_REGISTRY ||--o{ PREDICTION_RUNS : executes
-    PREDICTION_RUNS ||--o{ PREDICTION_SCORES : produces
-    PREDICTION_SCORES ||--o{ OUTBREAK_ALERTS : escalates_to
-    PREDICTION_RUNS ||--o{ DEFAULTER_CLUSTERS : finds
-
-    INTEGRATION_ENDPOINTS ||--o{ INTEGRATION_JOBS : used_by
-    INTEGRATION_JOBS ||--o{ DHIS2_SYNC_BATCHES : tracks
-    DHIS2_SYNC_BATCHES ||--o{ DHIS2_SYNC_ITEMS : contains
-    INTEGRATION_JOBS ||--o{ FHIR_EXCHANGE_LOGS : logs
-
-    DEVICE_REGISTRATIONS ||--o{ SYNC_BATCHES : uploads
-    SYNC_BATCHES ||--o{ SYNC_BATCH_ITEMS : contains
-```
-
 ### Database Design Artifacts
 
-- Narrative database design: [report-database-design.md](../assets/chapter-4-design/report-database-design.md)
+- Narrative database design: [database-design.md](../assets/chapter-4-design/database-design.md)
 - Implementation-ready PostgreSQL schema: [postgresql-schema.sql](../assets/chapter-4-design/postgresql-schema.sql)
 - Diagram-oriented DBML schema: [schema.dbml](../assets/chapter-4-design/schema.dbml)
 - Functional-requirements traceability: [requirements-verification.md](../assets/chapter-4-design/requirements-verification.md)
