@@ -442,25 +442,25 @@ export function ImmunizationWorkspace() {
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-2 text-sm font-medium">
           <li>
-            <Link href="/patients" className="text-gray-400 hover:text-white">
+            <Link href="/patients" className="text-[var(--nv-muted)] hover:text-[var(--nv-heading)]">
               Patients
             </Link>
           </li>
           {selectedPatient ? (
             <>
-              <li className="text-gray-500">/</li>
+              <li className="text-[var(--nv-subtle)]">/</li>
               <li>
                 <Link
                   href={`/patients/${selectedPatient.id}`}
-                  className="text-gray-400 hover:text-white"
+                  className="text-[var(--nv-muted)] hover:text-[var(--nv-heading)]"
                 >
                   Patient Detail
                 </Link>
               </li>
             </>
           ) : null}
-          <li className="text-gray-500">/</li>
-          <li className="text-white">Immunization</li>
+          <li className="text-[var(--nv-subtle)]">/</li>
+          <li className="text-[var(--nv-heading)]">Immunization</li>
         </ol>
       </nav>
 

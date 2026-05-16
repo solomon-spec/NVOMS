@@ -227,11 +227,11 @@ export function PatientRegistrationWorkspace() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
+      <header className="flex flex-col gap-4 border-b border-[var(--nv-border)] pb-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <Link
             href="/patients"
-            className="enterprise-muted mb-3 inline-flex items-center gap-2 text-sm font-semibold transition hover:text-white"
+            className="enterprise-muted mb-3 inline-flex items-center gap-2 text-sm font-semibold transition hover:text-[var(--nv-heading)]"
           >
             <ChevronLeftIcon className="h-4 w-4 fill-current" />
             Back to registry
@@ -261,7 +261,7 @@ export function PatientRegistrationWorkspace() {
         <section className="enterprise-card-strong rounded-xl p-5">
           <WizardStepper activeStepIndex={activeStepIndex} />
 
-          <div className="mt-5 border-t border-white/10 pt-5">
+          <div className="mt-5 border-t border-[var(--nv-border)] pt-5">
             {step === "patient" ? (
               <PatientDetailsStep form={patientForm} setForm={setPatientForm} />
             ) : null}
@@ -293,7 +293,7 @@ export function PatientRegistrationWorkspace() {
           </div>
 
           {step !== "success" ? (
-          <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-between">
+          <div className="mt-8 flex flex-col gap-3 border-t border-[var(--nv-border)] pt-5 sm:flex-row sm:justify-between">
             <button
               type="button"
               onClick={goBack}
@@ -328,7 +328,7 @@ export function PatientRegistrationWorkspace() {
         <aside className="space-y-5">
           <RegistrationProgress activeStepIndex={activeStepIndex} />
           <section className="enterprise-card rounded-xl p-5">
-            <h2 className="text-lg font-semibold text-white">Quick Search</h2>
+            <h2 className="text-lg font-semibold text-[var(--nv-heading)]">Quick Search</h2>
             <div className="relative mt-4">
               <input
                 className="enterprise-input h-10 px-4 text-sm"
@@ -363,15 +363,15 @@ function WizardStepper({
                   ? "border-blue-light-400 bg-blue-light-500 text-white shadow-[0_0_22px_rgba(47,143,217,0.46)]"
                   : isComplete
                     ? "border-success-400/70 bg-success-500/20 text-success-300"
-                    : "border-white/15 bg-[#0a1424] text-gray-400"
+                    : "border-[var(--nv-border)] bg-[var(--nv-panel)] text-[var(--nv-muted)]"
               }`}
             >
               {isComplete ? "✓" : index + 1}
             </div>
             {index < steps.length - 1 ? (
-              <span className="absolute left-1/2 top-4 hidden h-px w-full bg-white/15 md:block" />
+              <span className="absolute left-1/2 top-4 hidden h-px w-full bg-[var(--nv-border)] md:block" />
             ) : null}
-            <span className={isActive ? "text-sm font-semibold text-white" : "text-sm text-gray-400"}>
+            <span className={isActive ? "text-sm font-semibold text-[var(--nv-heading)]" : "text-sm text-[var(--nv-muted)]"}>
               {item.label}
             </span>
           </li>
@@ -387,16 +387,16 @@ function RegistrationProgress({ activeStepIndex }: { activeStepIndex: number }) 
 
   return (
     <section className="enterprise-card rounded-xl p-5">
-      <h2 className="text-lg font-semibold text-white">Registration Progress</h2>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+      <h2 className="text-lg font-semibold text-[var(--nv-heading)]">Registration Progress</h2>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--nv-panel)]">
         <div
           className="h-full rounded-full bg-gradient-to-r from-blue-light-500 to-blue-light-300"
           style={{ width: `${percent}%` }}
         />
       </div>
       <p className="enterprise-muted mt-2 text-sm">{percent}% Complete</p>
-      <div className="mt-4 border-t border-white/10 pt-4">
-        <p className="text-sm font-semibold text-white">Required Fields Remaining</p>
+      <div className="mt-4 border-t border-[var(--nv-border)] pt-4">
+        <p className="text-sm font-semibold text-[var(--nv-heading)]">Required Fields Remaining</p>
         <ul className="enterprise-muted mt-3 space-y-3 text-sm">
           {remaining.length ? (
             remaining.map((item) => <li key={item.id}>• {item.label}</li>)
@@ -644,7 +644,7 @@ function DuplicateCheckStep({
         </p>
       </div>
       <div className="enterprise-card rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-white">
+        <h3 className="text-sm font-semibold text-[var(--nv-heading)]">
           Suggested backend behavior
         </h3>
         <p className="enterprise-muted mt-2 text-sm leading-6">
@@ -704,7 +704,7 @@ function SuccessStep({ patient }: { patient: Patient | null }) {
       <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-success-500/10 text-success-300">
         <CheckCircleIcon className="h-7 w-7 fill-current" />
       </div>
-      <h2 className="text-2xl font-bold text-white">
+      <h2 className="text-2xl font-bold text-[var(--nv-heading)]">
         Patient registered
       </h2>
       <p className="enterprise-muted mt-2 text-sm">
@@ -744,7 +744,7 @@ function SectionTitle({
 }) {
   return (
     <div>
-      <h2 className="text-lg font-semibold text-white">{title}</h2>
+      <h2 className="text-lg font-semibold text-[var(--nv-heading)]">{title}</h2>
       <p className="enterprise-muted mt-1 text-sm">{description}</p>
     </div>
   );
@@ -763,7 +763,7 @@ function Field({
 }) {
   return (
     <label className={`block ${className}`} htmlFor={htmlFor}>
-      <span className="mb-2 block text-sm font-medium text-gray-100">
+      <span className="mb-2 block text-sm font-medium text-[var(--nv-muted)]">
         {label}
       </span>
       {children}
@@ -775,14 +775,14 @@ function ReviewCard({ rows, title }: { title: string; rows: string[][] }) {
   return (
     <article className="enterprise-card rounded-xl p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-semibold text-white">{title}</h3>
+        <h3 className="font-semibold text-[var(--nv-heading)]">{title}</h3>
         <Badge color="info">Review</Badge>
       </div>
       <dl className="space-y-3">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4 text-sm">
             <dt className="enterprise-muted">{label}</dt>
-            <dd className="text-right font-semibold text-white/90">
+            <dd className="text-right font-semibold text-[var(--nv-text)]">
               {value || "Not provided"}
             </dd>
           </div>
