@@ -182,7 +182,7 @@ export function PatientRegistryWorkspace() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 border-b border-[#c4c6cf] pb-5 lg:flex-row lg:items-center lg:justify-between">
+      <header className="flex flex-col gap-4 border-b border-[var(--nv-border)] pb-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h1 className="enterprise-title text-2xl">
@@ -193,11 +193,11 @@ export function PatientRegistryWorkspace() {
               <span className="h-1.5 w-1.5 rounded-full bg-success-600" />
               Live Sync Active
             </span>
-            <span className="rounded border border-[#c4c6cf] bg-white px-2.5 py-1 text-xs font-medium text-[#545f72]">
+            <span className="rounded border border-[var(--nv-border)] bg-[var(--nv-surface)] px-2.5 py-1 text-xs font-medium text-[var(--nv-muted)]">
               Database: 12.4M records
             </span>
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-[#545f72]">
+          <p className="mt-1 max-w-2xl text-sm text-[var(--nv-muted)]">
             Search and filter operational records before opening identity
             management or clinical immunization workflows.
           </p>
@@ -226,7 +226,7 @@ export function PatientRegistryWorkspace() {
         <section className="enterprise-card rounded-xl p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-[#002045]">Recently opened</h2>
+              <h2 className="text-sm font-semibold text-[var(--nv-heading)]">Recently opened</h2>
               <p className="enterprise-muted mt-1 text-xs">
                 Session shortcuts use UID, age, and status only.
               </p>
@@ -236,7 +236,7 @@ export function PatientRegistryWorkspace() {
                 <Link
                   key={patient.id}
                   href={`/patients/${patient.id}`}
-                  className="rounded border border-[#c4c6cf] bg-[#f8f9fa] px-3 py-2 text-sm transition hover:border-brand-500 hover:bg-brand-50"
+                  className="rounded border border-[var(--nv-border)] bg-[var(--nv-panel)] px-3 py-2 text-sm transition hover:border-[var(--nv-primary)] hover:bg-[var(--nv-table-hover)]"
                 >
                   <span className="block font-semibold text-brand-700">
                     {maskIdentifier(patient.uid)}
@@ -252,7 +252,7 @@ export function PatientRegistryWorkspace() {
       ) : null}
 
       <section className="enterprise-card overflow-hidden rounded-xl">
-        <div className="border-b border-[#c4c6cf] p-4">
+        <div className="border-b border-[var(--nv-border)] p-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_170px_180px_180px_150px_auto]">
             <label className="sr-only" htmlFor="patient-search">
               Search patients
@@ -333,21 +333,21 @@ export function PatientRegistryWorkspace() {
           </div>
         </div>
 
-        <div className="enterprise-muted flex flex-col gap-3 border-b border-[#c4c6cf] px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
+        <div className="enterprise-muted flex flex-col gap-3 border-b border-[var(--nv-border)] px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
           <div>
             Showing{" "}
-            <span className="font-semibold text-[#002045]">
+            <span className="font-semibold text-[var(--nv-heading)]">
               {firstVisible}-{lastVisible}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-[#002045]">
+            <span className="font-semibold text-[var(--nv-heading)]">
               {result.count}
             </span>{" "}
             patients
           </div>
 
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-[#43474e]" htmlFor="page-size">
+            <label className="text-sm font-medium text-[var(--nv-muted)]" htmlFor="page-size">
               Rows
             </label>
             <select
@@ -376,7 +376,7 @@ export function PatientRegistryWorkspace() {
 
         <div className="max-h-[640px] overflow-auto" data-testid="patient-registry-table-scroll">
           <Table className="text-left">
-            <TableHeader className="sticky top-0 z-10 bg-[#e1e3e4] text-xs font-semibold uppercase text-[#43474e]">
+            <TableHeader className="sticky top-0 z-10 bg-[var(--nv-table-head)] text-xs font-semibold uppercase text-[var(--nv-muted)]">
               <TableRow>
                 <TableCell isHeader className="min-w-[8.75rem] px-5 py-3">
                   UID
@@ -405,7 +405,7 @@ export function PatientRegistryWorkspace() {
               </TableRow>
             </TableHeader>
 
-            <TableBody className="divide-y divide-[#c4c6cf] text-sm">
+            <TableBody className="divide-y divide-[var(--nv-border)] text-sm">
               {isLoading ? (
                 <PatientTableSkeleton />
               ) : visibleRows.length ? (
@@ -421,7 +421,7 @@ export function PatientRegistryWorkspace() {
                 <TableRow>
                   <TableCell colSpan={8} className="px-5 py-12 text-center">
                     <div className="mx-auto max-w-sm">
-                      <h2 className="text-base font-semibold text-[#002045]">
+                      <h2 className="text-base font-semibold text-[var(--nv-heading)]">
                         No patients found
                       </h2>
                       <p className="enterprise-muted mt-1 text-sm">
@@ -435,7 +435,7 @@ export function PatientRegistryWorkspace() {
           </Table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-[#c4c6cf] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-[var(--nv-border)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="enterprise-muted text-sm">
             Page {page} of {totalPages}
           </p>
@@ -486,16 +486,16 @@ function MetricCard({
 
   return (
     <article className="enterprise-card rounded-xl p-5">
-      <p className="text-sm font-medium text-[#545f72]">{label}</p>
+      <p className="text-sm font-medium text-[var(--nv-muted)]">{label}</p>
       <div className="mt-3 flex items-end justify-between gap-3">
-        <span className="text-2xl font-bold text-[#002045]">
+        <span className="text-2xl font-bold text-[var(--nv-heading)]">
           {value.toLocaleString()}
         </span>
         <span className={`rounded border px-2.5 py-1 text-xs font-semibold ${toneClass[tone]}`}>
           Registry
         </span>
       </div>
-      <div className="mt-4 h-px bg-[#c4c6cf]" />
+      <div className="mt-4 h-px bg-[var(--nv-border)]" />
     </article>
   );
 }
@@ -523,19 +523,19 @@ function PatientTableRow({
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
         <div className="min-w-0">
-          <p className="font-semibold text-[#191c1d]">{patientLabel}</p>
+          <p className="font-semibold text-[var(--nv-text)]">{patientLabel}</p>
           <p className="enterprise-muted mt-1 text-xs">
             {formatSex(patient.sex)} · {formatAge(patient.date_of_birth)}
           </p>
         </div>
       </TableCell>
-      <TableCell className="px-5 py-4 align-top text-[#43474e]">
+      <TableCell className="px-5 py-4 align-top text-[var(--nv-muted)]">
         {formatAge(patient.date_of_birth)}
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
         {patient.primary_caregiver ? (
           <div>
-            <p className="font-medium text-[#191c1d]">
+            <p className="font-medium text-[var(--nv-text)]">
               {caregiverLabel}
             </p>
             <p className="enterprise-muted mt-1 text-xs">
@@ -544,11 +544,11 @@ function PatientTableRow({
             </p>
           </div>
         ) : (
-          <span className="text-[#74777f]">No caregiver</span>
+          <span className="text-[var(--nv-subtle)]">No caregiver</span>
         )}
       </TableCell>
       <TableCell className="px-5 py-4 align-top">
-        <p className="font-medium text-[#191c1d]">{facilityName}</p>
+        <p className="font-medium text-[var(--nv-text)]">{facilityName}</p>
         <p className="enterprise-muted mt-1 text-xs">
           {isPrivacyMode
             ? "Residence hidden"

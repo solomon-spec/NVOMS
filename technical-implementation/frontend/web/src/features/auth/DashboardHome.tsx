@@ -186,17 +186,17 @@ export function DashboardHome() {
   return (
     <div className="space-y-8">
 
-      <section className="border border-[#c4c6cf] bg-white px-5 py-5 md:px-6">
+      <section className="border border-[var(--nv-border)] bg-[var(--nv-surface)] px-5 py-5 md:px-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#43474e]">{today}</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#002045] md:text-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--nv-muted)]">{today}</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-[var(--nv-heading)] md:text-3xl">
               Welcome back,{" "}
               <span>
                 {session?.user.displayName ?? "NVOMS User"}
               </span>
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#545f72]">
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--nv-muted)]">
               {role
                 ? `${formatRole(role)} access${session?.user.facilityCode ? ` · ${session.user.facilityCode}` : ""}`
                 : "Loading workspace..."}
@@ -214,7 +214,7 @@ export function DashboardHome() {
               <span className={`h-2 w-2 rounded-full ${onlineStatus ? "bg-success-600" : "bg-error-600"}`} />
               {onlineStatus ? "Online" : "Offline"}
             </div>
-            <div className="rounded border border-[#c4c6cf] bg-[#f3f4f5] px-3 py-2 text-sm font-semibold text-[#002045]">
+            <div className="rounded border border-[var(--nv-border)] bg-[var(--nv-panel)] px-3 py-2 text-sm font-semibold text-[var(--nv-heading)]">
               Authenticated
             </div>
           </div>
@@ -235,7 +235,7 @@ export function DashboardHome() {
       {/* ── KPI tiles ── */}
       {(["ADMIN", "PUBLIC_HEALTH_OFFICIAL"].includes(role) || ["ADMIN", "HEALTH_WORKER"].includes(role)) && (
         <section>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[var(--nv-muted)]">
             Live Statistics
           </h2>
           {isLoading ? (
@@ -246,7 +246,7 @@ export function DashboardHome() {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {/* Coverage ring — PHO/Admin only */}
               {coveragePct !== null && (
-                <div className="flex items-center gap-5 rounded border border-[#d9dadb] bg-white p-4 dark:border-[#d9dadb] dark:bg-white">
+                <div className="flex items-center gap-5 rounded border border-[var(--nv-border-soft)] bg-[var(--nv-surface)] p-4">
                   <ProgressRing
                     value={coveragePct}
                     tone={coveragePct >= 90 ? "success" : coveragePct >= 70 ? "warning" : "error"}
@@ -254,8 +254,8 @@ export function DashboardHome() {
                     strokeWidth={7}
                   />
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Overall Coverage</p>
-                    <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                    <p className="text-sm text-[var(--nv-muted)]">Overall Coverage</p>
+                    <p className="mt-1 text-xs text-[var(--nv-subtle)]">
                       {totalAdministered?.toLocaleString() ?? "—"} administered
                     </p>
                   </div>
@@ -292,7 +292,7 @@ export function DashboardHome() {
 
       {/* ── Module grid ── */}
       <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[var(--nv-muted)]">
           Your Workspace
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -300,19 +300,19 @@ export function DashboardHome() {
             <Link
               key={module.label}
               href={module.href}
-              className="group relative overflow-hidden rounded border border-[#d9dadb] bg-white p-4 transition-colors hover:border-[#455f88] hover:bg-[#f8f9fa] dark:border-[#d9dadb] dark:bg-white dark:hover:border-[#455f88]"
+              className="group relative overflow-hidden rounded border border-[var(--nv-border-soft)] bg-[var(--nv-surface)] p-4 transition-colors hover:border-[var(--nv-primary)] hover:bg-[var(--nv-table-hover)]"
             >
               <div>
-                <span className="inline-grid h-9 w-9 place-items-center rounded border border-[#c4c6cf] bg-[#f3f4f5] text-xs font-bold text-[#002045]">
+                <span className="inline-grid h-9 w-9 place-items-center rounded border border-[var(--nv-border)] bg-[var(--nv-panel)] text-xs font-bold text-[var(--nv-heading)]">
                   {module.icon}
                 </span>
-                <h3 className="mt-3 text-sm font-semibold text-gray-900 dark:text-white">
+                <h3 className="mt-3 text-sm font-semibold text-[var(--nv-heading)]">
                   {module.label}
                 </h3>
-                <p className="mt-2 min-h-10 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                <p className="mt-2 min-h-10 text-xs leading-5 text-[var(--nv-muted)]">
                   {module.description}
                 </p>
-                <span className="mt-4 inline-flex text-xs font-semibold text-brand-700 group-hover:text-brand-800 dark:text-brand-700">
+                <span className="mt-4 inline-flex text-xs font-semibold text-[var(--nv-primary)] group-hover:text-[var(--nv-primary-hover)]">
                   Open module
                 </span>
               </div>
@@ -325,7 +325,7 @@ export function DashboardHome() {
       {recentReports.length > 0 && (
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--nv-muted)]">
               Recent Open Surveillance Reports
             </h2>
             <Link
@@ -335,8 +335,8 @@ export function DashboardHome() {
               View all
             </Link>
           </div>
-          <div className="rounded border border-[#d9dadb] bg-white dark:border-[#d9dadb] dark:bg-white">
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+          <div className="rounded border border-[var(--nv-border-soft)] bg-[var(--nv-surface)]">
+            <ul className="divide-y divide-[var(--nv-border-soft)]">
               {recentReports.map((report, index) => (
                 <li key={report.id} className="flex items-center gap-4 px-5 py-4">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">

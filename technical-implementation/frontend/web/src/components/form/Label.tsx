@@ -12,7 +12,7 @@ const Label: FC<LabelProps> = ({ htmlFor, children, className }) => {
     <label
       htmlFor={htmlFor}
       className={twMerge(
-        "mb-2 block text-sm font-medium text-[#43474e]",
+        "mb-2 block text-sm font-medium text-[var(--nv-muted)]",
         className
       )}
     >

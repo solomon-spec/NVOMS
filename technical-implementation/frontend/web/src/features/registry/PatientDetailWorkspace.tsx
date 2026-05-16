@@ -125,7 +125,7 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
               <ErrorIcon className="h-5 w-5 fill-current" />
             </span>
             <div>
-              <h1 className="text-lg font-semibold text-[#002045]">
+              <h1 className="text-lg font-semibold text-[var(--nv-heading)]">
                 Patient record could not be opened
               </h1>
               <p className="enterprise-muted mt-1 text-sm">
@@ -161,7 +161,7 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
             </div>
 
             <h1 className="enterprise-title text-2xl">{displayName}</h1>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[#43474e]">
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--nv-muted)]">
               <span className="font-semibold text-brand-700">{patient.uid}</span>
               <span>{formatSex(patient.sex)}</span>
               <span>{formatAge(patient.date_of_birth)}</span>
@@ -304,11 +304,11 @@ export function PatientDetailWorkspace({ patientId }: PatientDetailWorkspaceProp
 
           <section className="enterprise-card rounded-xl p-5">
             <SectionHeader title="UID and QR" />
-            <div className="mt-4 rounded border border-[#c4c6cf] bg-[#f8f9fa] p-4">
-              <p className="text-xs font-semibold uppercase text-[#545f72]">
+            <div className="mt-4 rounded border border-[var(--nv-border)] bg-[var(--nv-panel)] p-4">
+              <p className="text-xs font-semibold uppercase text-[var(--nv-muted)]">
                 QR payload
               </p>
-              <p className="mt-2 break-all font-mono text-sm text-[#191c1d]">
+              <p className="mt-2 break-all font-mono text-sm text-[var(--nv-text)]">
                 {patient.qr_code_value ?? patient.uid}
               </p>
             </div>
@@ -354,12 +354,12 @@ function Breadcrumbs({ patientId }: { patientId: string }) {
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-2 text-sm font-medium">
           <li>
-            <Link href="/patients" className="text-[#545f72] hover:text-[#002045]">
+            <Link href="/patients" className="text-[var(--nv-muted)] hover:text-[var(--nv-heading)]">
               Patients
             </Link>
           </li>
-          <li className="text-[#74777f]">/</li>
-          <li className="text-[#002045]">Patient Detail</li>
+          <li className="text-[var(--nv-subtle)]">/</li>
+          <li className="text-[var(--nv-heading)]">Patient Detail</li>
         </ol>
       </nav>
       <div className="flex flex-wrap gap-2">
@@ -380,7 +380,7 @@ function BackToRegistry() {
   return (
     <Link
       href="/patients"
-      className="inline-flex items-center gap-2 text-sm font-semibold text-[#545f72] hover:text-[#002045]"
+      className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--nv-muted)] hover:text-[var(--nv-heading)]"
     >
       <ChevronLeftIcon className="h-4 w-4 fill-current" />
       Back to Registry
@@ -399,13 +399,13 @@ function QrModal({
 }) {
   return (
     <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded border border-[#c4c6cf] bg-white p-6 shadow-theme-xl">
+      <div className="w-full max-w-md rounded border border-[var(--nv-border)] bg-[var(--nv-surface)] p-6 shadow-theme-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#545f72]">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--nv-muted)]">
               Patient QR
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-[#002045]">{displayName}</h2>
+            <h2 className="mt-2 text-xl font-semibold text-[var(--nv-heading)]">{displayName}</h2>
             <p className="enterprise-muted mt-1 text-sm">{patient.uid}</p>
           </div>
           <button
@@ -418,11 +418,11 @@ function QrModal({
           </button>
         </div>
 
-        <div className="mt-6 rounded border border-dashed border-[#c4c6cf] bg-[#f8f9fa] p-5 text-center">
-          <div className="mx-auto grid h-40 w-40 place-items-center rounded border border-[#c4c6cf] bg-white">
+        <div className="mt-6 rounded border border-dashed border-[var(--nv-border)] bg-[var(--nv-panel)] p-5 text-center">
+          <div className="mx-auto grid h-40 w-40 place-items-center rounded border border-[var(--nv-border)] bg-[var(--nv-surface)]">
             <CopyIcon className="h-12 w-12 fill-current text-brand-700" />
           </div>
-          <p className="mt-4 break-all font-mono text-sm text-[#191c1d]">
+          <p className="mt-4 break-all font-mono text-sm text-[var(--nv-text)]">
             {patient.qr_code_value ?? patient.uid}
           </p>
         </div>
@@ -437,7 +437,7 @@ function SectionHeader({ title }: { title: string }) {
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded border border-brand-100 bg-brand-50 text-brand-700">
         <TimeIcon className="h-5 w-5 fill-current" />
       </span>
-      <h2 className="text-base font-semibold text-[#002045]">{title}</h2>
+      <h2 className="text-base font-semibold text-[var(--nv-heading)]">{title}</h2>
     </div>
   );
 }
@@ -460,9 +460,9 @@ function MetricCard({
 
   return (
     <article className="enterprise-card rounded-xl p-5">
-      <p className="text-sm font-medium text-[#545f72]">{label}</p>
+      <p className="text-sm font-medium text-[var(--nv-muted)]">{label}</p>
       <div className="mt-3 flex items-end justify-between gap-3">
-        <span className="text-2xl font-bold text-[#002045]">
+        <span className="text-2xl font-bold text-[var(--nv-heading)]">
           {typeof value === "number" ? value.toLocaleString() : value}
         </span>
         <span className={`rounded border px-2.5 py-1 text-xs font-semibold ${toneClass[tone]}`}>
@@ -483,9 +483,9 @@ function DetailItem({
   value: string;
 }) {
   return (
-    <div className="rounded border border-[#c4c6cf] bg-[#f8f9fa] p-4">
-      <p className="text-xs font-semibold uppercase text-[#545f72]">{label}</p>
-      <p className={`mt-2 break-words text-sm ${strong ? "font-semibold text-[#191c1d]" : "text-[#43474e]"}`}>
+    <div className="rounded border border-[var(--nv-border)] bg-[var(--nv-panel)] p-4">
+      <p className="text-xs font-semibold uppercase text-[var(--nv-muted)]">{label}</p>
+      <p className={`mt-2 break-words text-sm ${strong ? "font-semibold text-[var(--nv-text)]" : "text-[var(--nv-muted)]"}`}>
         {value}
       </p>
     </div>

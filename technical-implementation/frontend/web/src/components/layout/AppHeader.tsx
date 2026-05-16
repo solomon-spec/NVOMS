@@ -42,9 +42,9 @@ const AppHeader: React.FC = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-99999 flex w-full border-b border-[#c4c6cf] bg-[#f8f9fa] text-[#191c1d] dark:border-[#c4c6cf] dark:bg-[#f8f9fa] dark:text-[#191c1d]">
+    <header className="sticky top-0 z-99999 flex w-full border-b border-[var(--nv-border)] bg-[var(--nv-bg)] text-[var(--nv-text)]">
       <div className="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
-        <div className="flex w-full items-center justify-between gap-2 border-b border-[#c4c6cf] px-3 py-3 dark:border-[#c4c6cf] sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-3">
+        <div className="flex w-full items-center justify-between gap-2 border-b border-[var(--nv-border)] px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-3">
           <button
             className="enterprise-button-secondary z-99999 flex h-9 w-9 items-center justify-center rounded transition-colors lg:h-9 lg:w-9"
             onClick={handleToggle}
@@ -103,7 +103,7 @@ const AppHeader: React.FC = () => {
 
           <button
             onClick={toggleApplicationMenu}
-            className="z-99999 flex h-10 w-10 items-center justify-center rounded border border-transparent text-[#43474e] transition-colors hover:border-[#c4c6cf] hover:bg-[#e1e3e4] hover:text-[#002045] dark:text-[#43474e] dark:hover:border-[#c4c6cf] dark:hover:bg-[#e1e3e4] dark:hover:text-[#002045] lg:hidden"
+            className="z-99999 flex h-10 w-10 items-center justify-center rounded border border-transparent text-[var(--nv-muted)] transition-colors hover:border-[var(--nv-border)] hover:bg-[var(--nv-nav-hover)] hover:text-[var(--nv-heading)] lg:hidden"
           >
             <svg
               width="24"
@@ -126,7 +126,7 @@ const AppHeader: React.FC = () => {
               <div className="relative">
                 <span className="absolute -translate-y-1/2 left-4 top-1/2 pointer-events-none">
                   <svg
-                    className="fill-[#545f72]"
+                    className="fill-[var(--nv-muted)]"
                     width="20"
                     height="20"
                     viewBox="0 0 20 20"
@@ -150,7 +150,7 @@ const AppHeader: React.FC = () => {
 
                 <button
                   type="button"
-                  className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded border border-[#c4c6cf] bg-[#f3f4f5] px-[7px] py-[4.5px] text-xs text-[#545f72] dark:border-[#c4c6cf] dark:bg-[#f3f4f5] dark:text-[#545f72]"
+                  className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded border border-[var(--nv-border)] bg-[var(--nv-panel)] px-[7px] py-[4.5px] text-xs text-[var(--nv-muted)]"
                 >
                   <span> ⌘ </span>
                   <span> K </span>
@@ -162,7 +162,7 @@ const AppHeader: React.FC = () => {
         <div
           className={`${
             isApplicationMenuOpen ? "flex" : "hidden"
-          } w-full items-center justify-between gap-4 border-t border-[#c4c6cf] px-5 py-4 lg:flex lg:justify-end lg:border-t-0 lg:px-0 lg:py-0`}
+          } w-full items-center justify-between gap-4 border-t border-[var(--nv-border)] px-5 py-4 lg:flex lg:justify-end lg:border-t-0 lg:px-0 lg:py-0`}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
             <PrivacyModeToggle />

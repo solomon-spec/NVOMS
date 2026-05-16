@@ -44,7 +44,7 @@ const Input: FC<InputProps> = ({
   } else if (success) {
     inputClasses += ` enterprise-input-success text-success-700`;
   } else {
-    inputClasses += ` text-[#191c1d]`;
+    inputClasses += ` text-[var(--nv-text)]`;
   }
 
   return (

@@ -2,12 +2,14 @@ import React from "react";
 import { useTheme } from "../../context/ThemeContext";
 
 export const ThemeToggleButton: React.FC = () => {
-  const { toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <button
       onClick={toggleTheme}
-      className="enterprise-button-secondary relative flex h-9 w-9 items-center justify-center rounded-lg text-gray-300 shadow-theme-xs transition-colors hover:text-white focus:outline-hidden focus:ring-3 focus:ring-brand-500/10"
+      className="enterprise-button-secondary relative flex h-9 w-9 items-center justify-center rounded transition-colors focus:outline-hidden focus:ring-3 focus:ring-brand-500/10"
+      aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
     >
       <svg
         className="hidden dark:block"

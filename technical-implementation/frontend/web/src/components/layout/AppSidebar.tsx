@@ -189,7 +189,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-[#c4c6cf] bg-[#f3f4f5] px-5 text-[#191c1d] transition-all duration-300 ease-in-out dark:border-[#c4c6cf] dark:bg-[#f3f4f5] dark:text-[#191c1d] lg:mt-0
+      className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-[var(--nv-border)] bg-[var(--nv-panel)] px-5 text-[var(--nv-text)] transition-all duration-300 ease-in-out lg:mt-0
         ${
           isExpanded || isMobileOpen
             ? "w-[220px]"
@@ -210,13 +210,13 @@ const AppSidebar: React.FC = () => {
         <Link href="/" className="flex items-center gap-3">
           {isExpanded || isHovered || isMobileOpen ? (
               <span className="flex items-center gap-3">
-              <span className="grid h-8 w-8 place-items-center rounded border border-[#c4c6cf] bg-white text-[#002045]">
+              <span className="grid h-8 w-8 place-items-center rounded border border-[var(--nv-border)] bg-[var(--nv-surface)] text-[var(--nv-heading)]">
                 <GroupIcon className="h-4 w-4" />
               </span>
-              <span className="text-xl font-bold tracking-tight text-[#002045] dark:text-[#002045]">NVOMS</span>
+              <span className="text-xl font-bold tracking-tight text-[var(--nv-heading)]">NVOMS</span>
             </span>
           ) : (
-            <span className="grid h-8 w-8 place-items-center rounded border border-[#c4c6cf] bg-white text-[#002045]">
+            <span className="grid h-8 w-8 place-items-center rounded border border-[var(--nv-border)] bg-[var(--nv-surface)] text-[var(--nv-heading)]">
               <GroupIcon className="h-4 w-4" />
             </span>
           )}
@@ -225,7 +225,7 @@ const AppSidebar: React.FC = () => {
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <h2
-            className={`mb-4 flex text-[11px] font-semibold uppercase tracking-[0.16em] leading-[20px] text-[#43474e] ${
+            className={`mb-4 flex text-[11px] font-semibold uppercase tracking-[0.16em] leading-[20px] text-[var(--nv-muted)] ${
               !isExpanded && !isHovered
                 ? "lg:justify-center"
                 : "justify-start"

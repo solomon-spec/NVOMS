@@ -1063,7 +1063,7 @@ function ActionPill({ href, label }: { href: string; label: string }) {
 
 function StatusPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex shrink-0 rounded border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:border-brand-100 dark:bg-brand-50 dark:text-brand-700">
+    <span className="inline-flex shrink-0 rounded border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-100">
       {label}
     </span>
   );

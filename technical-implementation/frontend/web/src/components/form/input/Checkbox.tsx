@@ -27,7 +27,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
         <input
           id={id}
           type="checkbox"
-          className={`w-5 h-5 appearance-none cursor-pointer border border-[#c4c6cf] bg-white checked:border-brand-700 rounded checked:bg-brand-700 disabled:opacity-60 
+          className={`w-5 h-5 appearance-none cursor-pointer border border-[var(--nv-border)] bg-[var(--nv-surface)] checked:border-[var(--nv-primary)] rounded checked:bg-[var(--nv-primary)] disabled:opacity-60 
           ${className}`}
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
@@ -35,7 +35,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
         />
         {checked && (
           <svg
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none text-[var(--nv-primary-contrast)]"
             xmlns="http://www.w3.org/2000/svg"
             width="14"
             height="14"
@@ -44,7 +44,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
           >
             <path
               d="M11.6666 3.5L5.24992 9.91667L2.33325 7"
-              stroke="white"
+              stroke="currentColor"
               strokeWidth="1.94437"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -71,7 +71,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
         )}
       </div>
       {label && (
-        <span className="text-sm font-medium text-[#43474e]">
+        <span className="text-sm font-medium text-[var(--nv-muted)]">
           {label}
         </span>
       )}

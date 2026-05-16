@@ -124,14 +124,14 @@ export function ConfirmModal({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 z-50 m-auto max-w-md rounded border border-[#c4c6cf] bg-white p-6 shadow-theme-xl backdrop:bg-black/40 dark:border-[#c4c6cf] dark:bg-white"
+      className="fixed inset-0 z-50 m-auto max-w-md rounded border border-[var(--nv-border)] bg-[var(--nv-surface)] p-6 shadow-theme-xl backdrop:bg-[var(--nv-overlay)]"
       onCancel={onCancel}
     >
-      <h2 className="text-lg font-semibold text-[#002045] dark:text-[#002045]">{title}</h2>
-      <div className="mt-3 text-sm leading-6 text-[#43474e] dark:text-[#43474e]">{message}</div>
+      <h2 className="text-lg font-semibold text-[var(--nv-heading)]">{title}</h2>
+      <div className="mt-3 text-sm leading-6 text-[var(--nv-muted)]">{message}</div>
       <div className="mt-6 flex justify-end gap-3">
         <button
-          className="inline-flex min-h-10 items-center rounded border border-[#c4c6cf] bg-white px-4 text-sm font-semibold text-[#002045] hover:bg-[#f3f4f5] dark:border-[#c4c6cf] dark:bg-white dark:text-[#002045]"
+          className="inline-flex min-h-10 items-center rounded border border-[var(--nv-border)] bg-[var(--nv-surface)] px-4 text-sm font-semibold text-[var(--nv-heading)] hover:bg-[var(--nv-panel)]"
           disabled={isLoading}
           type="button"
           onClick={onCancel}
@@ -299,13 +299,13 @@ export function TimelineItem({
 
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
-    <div className="animate-pulse rounded border border-gray-200 bg-white p-5 dark:border-gray-200 dark:bg-white">
-      <div className="h-3 w-1/3 rounded bg-gray-200 dark:bg-gray-700" />
+    <div className="animate-pulse rounded border border-[var(--nv-border-soft)] bg-[var(--nv-surface)] p-5">
+      <div className="h-3 w-1/3 rounded bg-[var(--nv-panel-strong)]" />
       <div className="mt-4 space-y-2">
         {Array.from({ length: lines }).map((_, i) => (
           <div
             key={i}
-            className="h-3 rounded bg-gray-100 dark:bg-gray-800"
+            className="h-3 rounded bg-[var(--nv-panel)]"
             style={{ width: `${100 - i * 15}%` }}
           />
         ))}
@@ -336,19 +336,19 @@ export function MetricCard({ detail, icon, label, tone, trend, value }: MetricCa
     : "";
 
   return (
-    <div className="rounded border border-gray-200 bg-white p-5 dark:border-gray-200 dark:bg-white">
+    <div className="rounded border border-[var(--nv-border-soft)] bg-[var(--nv-surface)] p-5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-[#545f72] dark:text-[#545f72]">{label}</p>
+        <p className="text-sm text-[var(--nv-muted)]">{label}</p>
         {icon && (
           <span className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg ${toneBg}`}>
             {icon}
           </span>
         )}
       </div>
-      <p className="mt-2 text-2xl font-semibold text-[#002045] dark:text-[#002045]">{value}</p>
+      <p className="mt-2 text-2xl font-semibold text-[var(--nv-heading)]">{value}</p>
       <div className="mt-2 flex items-center gap-2">
         {trend !== undefined && <TrendBadge value={trend} />}
-        {detail && <p className="text-xs text-[#545f72] dark:text-[#545f72]">{detail}</p>}
+        {detail && <p className="text-xs text-[var(--nv-muted)]">{detail}</p>}
       </div>
     </div>
   );
@@ -363,14 +363,14 @@ export function StatusPill({
 }) {
   const tones = {
     brand:
-      "border-brand-100 bg-brand-50 text-brand-700 dark:border-brand-100 dark:bg-brand-50 dark:text-brand-700",
+      "border-brand-100 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-100",
     success:
-      "border-success-200 bg-success-50 text-success-700 dark:border-success-200 dark:bg-success-50 dark:text-success-700",
+      "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-200",
     warning:
-      "border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-200 dark:bg-warning-50 dark:text-warning-700",
+      "border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/15 dark:text-warning-200",
     error:
-      "border-error-200 bg-error-50 text-error-700 dark:border-error-200 dark:bg-error-50 dark:text-error-700",
-    gray: "border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-200 dark:bg-gray-100 dark:text-gray-700",
+      "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-200",
+    gray: "border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200",
   };
 
   return (

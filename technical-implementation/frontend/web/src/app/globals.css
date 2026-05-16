@@ -169,6 +169,54 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+  :root {
+    color-scheme: light;
+    --nv-bg: #f8f9fa;
+    --nv-surface: #ffffff;
+    --nv-panel: #f3f4f5;
+    --nv-panel-strong: #e1e3e4;
+    --nv-border: #c4c6cf;
+    --nv-border-soft: #d9dadb;
+    --nv-text: #191c1d;
+    --nv-muted: #545f72;
+    --nv-subtle: #74777f;
+    --nv-heading: #002045;
+    --nv-primary: #002045;
+    --nv-primary-hover: #1a365d;
+    --nv-primary-contrast: #ffffff;
+    --nv-focus: rgba(69, 95, 136, 0.18);
+    --nv-nav-active: #d5e0f7;
+    --nv-nav-hover: #e1e3e4;
+    --nv-table-head: #e1e3e4;
+    --nv-table-alt: #f8f9fa;
+    --nv-table-hover: #eef2f7;
+    --nv-overlay: rgba(0, 0, 0, 0.4);
+  }
+
+  .dark {
+    color-scheme: dark;
+    --nv-bg: #071321;
+    --nv-surface: #0f1b2d;
+    --nv-panel: #111f33;
+    --nv-panel-strong: #18283f;
+    --nv-border: #344054;
+    --nv-border-soft: #24354f;
+    --nv-text: #e6edf7;
+    --nv-muted: #a6b3c5;
+    --nv-subtle: #8796aa;
+    --nv-heading: #f4f7fb;
+    --nv-primary: #adc7f7;
+    --nv-primary-hover: #d5e0f7;
+    --nv-primary-contrast: #071321;
+    --nv-focus: rgba(173, 199, 247, 0.22);
+    --nv-nav-active: #1a365d;
+    --nv-nav-hover: #18283f;
+    --nv-table-head: #18283f;
+    --nv-table-alt: #0b1728;
+    --nv-table-hover: #14253b;
+    --nv-overlay: rgba(0, 0, 0, 0.62);
+  }
+
   *,
   ::after,
   ::before,
@@ -181,64 +229,66 @@
     cursor: pointer;
   }
   body {
-    @apply relative z-1 bg-[#f8f9fa] font-normal font-outfit text-[#191c1d] antialiased dark:bg-[#f8f9fa] dark:text-[#191c1d];
+    background: var(--nv-bg);
+    color: var(--nv-text);
+    @apply relative z-1 font-normal font-outfit antialiased;
   }
 }
 
 @layer components {
   .enterprise-shell {
     min-height: 100vh;
-    background: #f8f9fa;
-    color: #191c1d;
+    background: var(--nv-bg);
+    color: var(--nv-text);
   }
 
   .enterprise-surface {
-    border: 1px solid #c4c6cf;
-    background: #ffffff;
+    border: 1px solid var(--nv-border);
+    background: var(--nv-surface);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
   .enterprise-card {
-    border: 1px solid #d9dadb;
-    background: #ffffff;
+    border: 1px solid var(--nv-border-soft);
+    background: var(--nv-surface);
     box-shadow: none;
   }
 
   .enterprise-card-strong {
-    border: 1px solid #c4c6cf;
-    background: #f3f4f5;
+    border: 1px solid var(--nv-border);
+    background: var(--nv-panel);
     box-shadow: none;
   }
 
   .enterprise-muted {
-    color: #545f72;
+    color: var(--nv-muted);
   }
 
   .enterprise-title {
-    color: #002045;
+    color: var(--nv-heading);
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   .enterprise-input {
     min-height: 2.75rem;
     width: 100%;
     border-radius: 0.25rem;
-    border: 1px solid #c4c6cf;
-    background: #ffffff;
-    color: #191c1d;
+    border: 1px solid var(--nv-border);
+    background: var(--nv-surface);
+    color: var(--nv-text);
     box-shadow: none;
     outline: none;
     transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
   }
 
   .enterprise-input::placeholder {
-    color: #74777f;
+    color: var(--nv-subtle);
   }
 
   .enterprise-input:focus {
-    border-color: #455f88;
-    box-shadow: 0 0 0 2px rgba(69, 95, 136, 0.18);
+    border-color: var(--nv-primary);
+    box-shadow: 0 0 0 2px var(--nv-focus);
   }
 
   .enterprise-input-success {
@@ -247,49 +297,49 @@
   }
 
   .enterprise-button-primary {
-    border: 1px solid #002045;
+    border: 1px solid var(--nv-primary);
     border-radius: 0.25rem;
-    background: #002045;
-    color: #ffffff;
+    background: var(--nv-primary);
+    color: var(--nv-primary-contrast);
     box-shadow: none;
   }
 
   .enterprise-button-primary:hover {
-    background: #1a365d;
+    background: var(--nv-primary-hover);
   }
 
   .enterprise-button-secondary {
-    border: 1px solid #c4c6cf;
+    border: 1px solid var(--nv-border);
     border-radius: 0.25rem;
-    background: #ffffff;
-    color: #002045;
+    background: var(--nv-surface);
+    color: var(--nv-heading);
     box-shadow: none;
   }
 
   .enterprise-button-secondary:hover {
-    background: #f3f4f5;
-    color: #001b3c;
+    background: var(--nv-panel);
+    color: var(--nv-heading);
   }
 
   .enterprise-divider {
-    border-color: #c4c6cf;
+    border-color: var(--nv-border);
   }
 
   .enterprise-table-row {
-    background: #ffffff;
+    background: var(--nv-surface);
   }
 
   .enterprise-table-row:nth-child(even) {
-    background: #f8f9fa;
+    background: var(--nv-table-alt);
   }
 
   .enterprise-table-row:hover {
-    background: #eef2f7;
+    background: var(--nv-table-hover);
   }
 
   .auth-medical-bg {
     min-height: 100vh;
-    background: #f8f9fa;
+    background: var(--nv-bg);
   }
 }
 
@@ -298,11 +348,16 @@
 }
 
 @utility menu-item-active {
-  @apply bg-[#d5e0f7] text-[#1a365d] dark:bg-[#d5e0f7] dark:text-[#1a365d];
+  background: var(--nv-nav-active);
+  color: var(--nv-heading);
 }
 
 @utility menu-item-inactive {
-  @apply text-[#43474e] hover:bg-[#e1e3e4] hover:text-[#002045] dark:text-[#43474e] dark:hover:bg-[#e1e3e4] dark:hover:text-[#002045];
+  color: var(--nv-muted);
+  &:hover {
+    background: var(--nv-nav-hover);
+    color: var(--nv-heading);
+  }
 }
 
 @utility menu-item-icon {
@@ -310,11 +365,13 @@
 }
 
 @utility menu-item-icon-active {
-  @apply grid h-5 w-5 shrink-0 place-items-center text-[#1a365d] dark:text-[#1a365d];
+  color: var(--nv-heading);
+  @apply grid h-5 w-5 shrink-0 place-items-center;
 }
 
 @utility menu-item-icon-inactive {
-  @apply grid h-5 w-5 shrink-0 place-items-center text-gray-400 group-hover:text-gray-700 dark:text-gray-500 dark:group-hover:text-white;
+  color: var(--nv-subtle);
+  @apply grid h-5 w-5 shrink-0 place-items-center group-hover:text-[var(--nv-heading)];
 }
 
 @utility menu-item-arrow {
@@ -861,97 +918,6 @@ span.flatpickr-weekday,
     0 1px 2px 0 rgba(16, 24, 40, 0.06);
   opacity: 0.8;
   cursor: grabbing; /* Changes the cursor to indicate dragging */
-}
-
-html:not(.dark) .enterprise-shell {
-  background:
-    radial-gradient(circle at 18% 12%, rgba(48, 115, 204, 0.08), transparent 28rem),
-    radial-gradient(circle at 88% 0%, rgba(63, 91, 137, 0.08), transparent 26rem),
-    linear-gradient(135deg, #f6f8fb 0%, #eef3f8 48%, #f8fafc 100%);
-  color: #344054;
-}
-
-html:not(.dark) .enterprise-surface,
-html:not(.dark) .enterprise-card,
-html:not(.dark) .enterprise-card-strong {
-  border-color: rgba(208, 213, 221, 0.95);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
-}
-
-html:not(.dark) .enterprise-muted {
-  color: #667085;
-}
-
-html:not(.dark) .enterprise-title {
-  color: #101828;
-}
-
-html:not(.dark) .enterprise-input {
-  border-color: #d0d5dd;
-  background: #ffffff;
-  color: #101828;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
-}
-
-html:not(.dark) .enterprise-input::placeholder {
-  color: #98a2b3;
-}
-
-html:not(.dark) .enterprise-button-secondary {
-  border-color: #d0d5dd;
-  background: #ffffff;
-  color: #344054;
-}
-
-html:not(.dark) .enterprise-button-secondary:hover {
-  background: #f9fafb;
-  color: #101828;
-}
-
-html:not(.dark) .enterprise-divider {
-  border-color: #eaecf0;
-}
-
-html:not(.dark) .enterprise-table-row {
-  background: #ffffff;
-}
-
-html:not(.dark) .enterprise-table-row:hover {
-  background: #f9fafb;
-}
-
-html:not(.dark) .enterprise-shell :where(
-  [class~="text-white"],
-  [class~="text-white/90"],
-  [class~="text-white/80"],
-  [class~="text-gray-100"],
-  [class~="text-gray-200"],
-  [class~="text-gray-300"]
-) {
-  color: #101828 !important;
-}
-
-html:not(.dark) .enterprise-shell :where(
-  [class~="text-gray-400"],
-  [class~="text-gray-500"]
-) {
-  color: #667085 !important;
-}
-
-html:not(.dark) .enterprise-shell :where(
-  [class~="border-white/10"],
-  [class~="border-white/15"]
-) {
-  border-color: #eaecf0 !important;
-}
-
-html:not(.dark) .enterprise-shell :where(
-  [class~="bg-white/[0.02]"],
-  [class~="bg-white/[0.03]"],
-  [class~="bg-white/[0.04]"]
-) {
-  background-color: #f9fafb !important;
 }
 
 button svg,
