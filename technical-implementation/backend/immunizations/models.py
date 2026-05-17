@@ -54,6 +54,62 @@ class PatientVaccinationSchedule(models.Model):
         return f'{self.patient_id} – {self.vaccine} – {self.due_date}'
 
 
+class SupportedDisease(models.TextChoices):
+    MEASLES = 'measles', 'Measles'
+    POLIO = 'polio', 'Polio'
+    CHOLERA = 'cholera', 'Cholera'
+
+
+class PatientDiseaseSchedule(models.Model):
+    class DiseaseStatus(models.TextChoices):
+        NOT_STARTED = 'not_started', 'Not Started'
+        SCHEDULED = 'scheduled', 'Scheduled'
+        DUE_SOON = 'due_soon', 'Due Soon'
+        DUE_TODAY = 'due_today', 'Due Today'
+        OVERDUE = 'overdue', 'Overdue'
+        PROTECTED = 'protected', 'Protected'
+        COMPLETED = 'completed', 'Completed'
+        REFUSED = 'refused', 'Refused'
+        CONTRAINDICATED = 'contraindicated', 'Contraindicated'
+
+    id = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False, db_column='patient_disease_schedule_id'
+    )
+    patient = models.ForeignKey(
+        'patients.Patient',
+        on_delete=models.CASCADE,
+        related_name='disease_schedules',
+        db_column='patient_id',
+    )
+    disease = models.CharField(max_length=20, choices=SupportedDisease.choices)
+    current_due_date = models.DateField(null=True, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=DiseaseStatus.choices,
+        default=DiseaseStatus.NOT_STARTED,
+    )
+    is_complete = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    last_outcome_event = models.ForeignKey(
+        'immunizations.ImmunizationEvent',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resulting_disease_schedules',
+        db_column='last_outcome_event_id',
+    )
+    status_reason = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'patient_disease_schedules'
+        unique_together = [('patient', 'disease')]
+
+    def __str__(self):
+        return f'{self.patient_id} – {self.disease} – {self.current_due_date}'
+
+
 class ScheduleStatusEvent(models.Model):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False, db_column='status_event_id'
@@ -120,6 +176,12 @@ class ImmunizationEvent(models.Model):
         related_name='immunization_events',
         db_column='vaccine_id',
     )
+    disease = models.CharField(
+        max_length=20,
+        choices=SupportedDisease.choices,
+        null=True,
+        blank=True,
+    )
     vaccine_batch = models.ForeignKey(
         'vaccines.VaccineBatch',
         on_delete=models.SET_NULL,
@@ -150,6 +212,8 @@ class ImmunizationEvent(models.Model):
     event_status = models.CharField(
         max_length=20, choices=EventStatus.choices, default=EventStatus.ADMINISTERED
     )
+    next_due_date = models.DateField(null=True, blank=True)
+    disease_completed = models.BooleanField(default=False)
     source_channel = models.CharField(
         max_length=10, choices=SourceChannel.choices, default=SourceChannel.ONLINE
     )

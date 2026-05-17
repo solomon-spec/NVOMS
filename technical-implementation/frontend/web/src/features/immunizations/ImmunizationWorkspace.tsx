@@ -9,8 +9,10 @@ import type {
   CreateDosePayload,
   HealthFacility,
   ImmunizationEvent,
+  ImmunizationHistorySummary,
   ImmunizationEventStatus,
   Patient,
+  PatientDiseaseSchedule,
   PatientScheduleSlot,
   PatientStatus,
   ScheduleSlotStatus,
@@ -20,10 +22,11 @@ import type {
 } from "@/features/registry/types";
 import { ApiError } from "@/services/api";
 import {
-  createPatientDose,
+  createPatientOutcome,
   getPatientSummary,
   listFacilities,
-  listPatientDoses,
+  listPatientDiseaseSchedules,
+  listPatientVaccinationHistory,
   listPatients,
   listPatientSchedule,
   listVaccineBatches,
@@ -74,6 +77,48 @@ const sourceChannels: Array<{ label: string; value: SourceChannel }> = [
   { label: "Synced", value: "synced" },
 ];
 
+const supportedDiseases = [
+  {
+    key: "measles",
+    label: "Measles",
+    keywords: ["measles", "mr", "mcv"],
+  },
+  {
+    key: "polio",
+    label: "Polio",
+    keywords: ["polio", "opv", "ipv"],
+  },
+  {
+    key: "cholera",
+    label: "Cholera",
+    keywords: ["cholera", "ocv"],
+  },
+] as const;
+
+type SupportedDiseaseKey = (typeof supportedDiseases)[number]["key"];
+type DiseaseStatus =
+  | "protected"
+  | "completed"
+  | "refused"
+  | "contraindicated"
+  | "due_today"
+  | "due_soon"
+  | "overdue"
+  | "scheduled"
+  | "not_started";
+
+type DiseaseCardData = {
+  key: SupportedDiseaseKey;
+  label: string;
+  administeredCount: number;
+  lastDose: ImmunizationEvent | null;
+  diseaseSchedule: PatientDiseaseSchedule | null;
+  nextActionSlot: PatientScheduleSlot | null;
+  status: DiseaseStatus;
+  currentDueDate: string | null;
+  isComplete: boolean;
+};
+
 const actionableSlotStatuses = new Set<ScheduleSlotStatus>([
   "scheduled",
   "pending",
@@ -84,6 +129,7 @@ const actionableSlotStatuses = new Set<ScheduleSlotStatus>([
 ]);
 
 const emptyDoseForm: CreateDosePayload = {
+  disease: null,
   vaccine_id: "",
   vaccine_batch_id: "",
   schedule_slot_id: "",
@@ -92,6 +138,8 @@ const emptyDoseForm: CreateDosePayload = {
   administration_route: "",
   administration_site: "",
   event_status: "administered",
+  next_due_date: "",
+  disease_completed: false,
   source_channel: "online",
   local_client_record_id: "",
   notes: "",
@@ -116,6 +164,9 @@ export function ImmunizationWorkspace() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [schedule, setSchedule] = useState<PatientScheduleSlot[]>([]);
   const [doses, setDoses] = useState<ImmunizationEvent[]>([]);
+  const [diseaseSchedules, setDiseaseSchedules] = useState<PatientDiseaseSchedule[]>([]);
+  const [historySummary, setHistorySummary] = useState<ImmunizationHistorySummary[]>([]);
+  const [selectedHistoryId, setSelectedHistoryId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [doseForm, setDoseForm] = useState<CreateDosePayload>({
     ...emptyDoseForm,
@@ -208,6 +259,8 @@ export function ImmunizationWorkspace() {
         setSelectedPatient(null);
         setSchedule([]);
         setDoses([]);
+        setDiseaseSchedules([]);
+        setHistorySummary([]);
         setSelectedSlotId("");
         return;
       }
@@ -215,20 +268,40 @@ export function ImmunizationWorkspace() {
       setIsPatientLoading(true);
       try {
         const listedPatient = patients.find((row) => row.id === selectedPatientId) ?? null;
-        const [scheduleRows, doseRows, summaryResponse] = await Promise.all([
+        const [
+          scheduleRows,
+          diseaseScheduleRows,
+          historySummaryRows,
+          historyDetailRows,
+          summaryResponse,
+        ] = await Promise.all([
           listPatientSchedule(token, selectedPatientId),
-          listPatientDoses(token, selectedPatientId),
+          listPatientDiseaseSchedules(token, selectedPatientId),
+          listPatientVaccinationHistory(token, selectedPatientId, false),
+          listPatientVaccinationHistory(token, selectedPatientId, true),
           listedPatient ? Promise.resolve(null) : getPatientSummary(token, selectedPatientId),
         ]);
 
         if (isActive) {
           setSelectedPatient(listedPatient ?? summaryResponse?.patient ?? null);
           setSchedule(scheduleRows);
-          setDoses(doseRows);
+          setDiseaseSchedules(diseaseScheduleRows);
+          setHistorySummary(historySummaryRows as ImmunizationHistorySummary[]);
+          const detailRows = historyDetailRows as ImmunizationEvent[];
+          setDoses(detailRows);
+          setSelectedHistoryId((current) =>
+            current && detailRows.some((dose) => dose.id === current)
+              ? current
+              : detailRows[0]?.id ?? "",
+          );
           setPatientError("");
           const nextSlot =
-            scheduleRows.find((slot) => actionableSlotStatuses.has(slot.status)) ??
-            scheduleRows[0] ??
+            scheduleRows.find(
+              (slot) =>
+                getDiseaseKey(slot.vaccine) &&
+                actionableSlotStatuses.has(slot.status),
+            ) ??
+            scheduleRows.find((slot) => getDiseaseKey(slot.vaccine)) ??
             null;
           selectSlot(nextSlot);
         }
@@ -256,34 +329,101 @@ export function ImmunizationWorkspace() {
     }
   }, [selectedPatient]);
 
-  const queueSlots = useMemo(
+  const diseaseCards = useMemo(
     () =>
-      schedule
-        .filter((slot) => actionableSlotStatuses.has(slot.status))
-        .sort(compareScheduleSlots),
-    [schedule],
+      supportedDiseases.map((disease) => {
+        const diseaseSchedule =
+          diseaseSchedules.find((row) => row.disease === disease.key) ?? null;
+        const diseaseSlots = schedule
+          .filter((slot) => getDiseaseKey(slot.vaccine) === disease.key)
+          .sort(compareScheduleSlots);
+        const diseaseDoses = doses
+          .filter((dose) => dose.disease === disease.key || getDiseaseKey(dose.vaccine) === disease.key)
+          .sort(
+            (left, right) =>
+              new Date(right.administered_at).getTime() -
+              new Date(left.administered_at).getTime(),
+          );
+        const nextActionSlot =
+          diseaseSlots.find((slot) => actionableSlotStatuses.has(slot.status)) ??
+          diseaseSlots[0] ??
+          null;
+        const status = deriveDiseaseStatus(diseaseSchedule, diseaseSlots, diseaseDoses);
+
+        return {
+          ...disease,
+          administeredCount: diseaseDoses.filter(
+            (dose) => dose.event_status === "administered",
+          ).length,
+          lastDose: diseaseDoses[0] ?? null,
+          diseaseSchedule,
+          nextActionSlot,
+          status,
+          currentDueDate: diseaseSchedule?.current_due_date ?? nextActionSlot?.due_date ?? null,
+          isComplete: Boolean(diseaseSchedule?.is_complete),
+        };
+      }),
+    [diseaseSchedules, doses, schedule],
   );
 
-  const reviewSlots = queueSlots.length ? queueSlots : [...schedule].sort(compareScheduleSlots);
+  const selectedDisease =
+    doseForm.disease ??
+    getDiseaseKey(selectedSlot?.vaccine ?? null) ??
+    getDiseaseKey(vaccines.find((vaccine) => vaccine.id === doseForm.vaccine_id) ?? null);
 
   const metrics = useMemo(() => {
     const dueToday = schedule.filter((slot) => slot.status === "due_today").length;
     const overdue = schedule.filter((slot) =>
       ["overdue", "defaulter"].includes(slot.status),
     ).length;
-    const administered = schedule.filter(
-      (slot) => slot.status === "administered",
-    ).length;
 
     return [
       { label: "Patients loaded", value: String(patients.length) },
-      { label: "Action queue", value: String(queueSlots.length) },
+      { label: "Diseases tracked", value: String(supportedDiseases.length) },
       { label: "Due today", value: String(dueToday) },
       { label: "Overdue", value: String(overdue) },
-      { label: "Administered slots", value: String(administered) },
+      { label: "Complete/protected", value: `${diseaseCards.filter((card) => card.isComplete || card.status === "protected").length}/3` },
       { label: "Dose records", value: String(doses.length) },
     ];
-  }, [doses.length, patients.length, queueSlots.length, schedule]);
+  }, [diseaseCards, doses.length, patients.length, schedule]);
+
+  const latestDose = useMemo(
+    () =>
+      [...doses].sort(
+        (left, right) =>
+          new Date(right.administered_at).getTime() -
+          new Date(left.administered_at).getTime(),
+      )[0] ?? null,
+    [doses],
+  );
+
+  const selectedHistoryDose = useMemo(
+    () => doses.find((dose) => dose.id === selectedHistoryId) ?? doses[0] ?? null,
+    [doses, selectedHistoryId],
+  );
+
+  const historyByDisease = useMemo(
+    () =>
+      supportedDiseases.map((disease) => {
+        const compactRecords = historySummary
+          .filter((record) => record.disease === disease.key)
+          .sort(
+            (left, right) =>
+              new Date(right.administered_at).getTime() -
+              new Date(left.administered_at).getTime(),
+          );
+        const detailRecords = doses.filter(
+          (dose) => dose.disease === disease.key || getDiseaseKey(dose.vaccine) === disease.key,
+        );
+        return {
+          ...disease,
+          compactRecords,
+          detailRecords,
+          latestRecord: compactRecords[0] ?? null,
+        };
+      }),
+    [doses, historySummary],
+  );
 
   const filteredBatches = useMemo(
     () =>
@@ -312,8 +452,31 @@ export function ImmunizationWorkspace() {
     });
     setDoseForm((current) => ({
       ...current,
+      disease: getDiseaseKey(slot?.vaccine ?? null) ?? current.disease,
       schedule_slot_id: slot?.id ?? "",
       vaccine_id: slot?.vaccine.id ?? current.vaccine_id,
+    }));
+  }
+
+  function selectDisease(diseaseKey: SupportedDiseaseKey) {
+    const slot =
+      diseaseCards.find((card) => card.key === diseaseKey)?.nextActionSlot ?? null;
+    const vaccine =
+      vaccines.find((candidate) => getDiseaseKey(candidate) === diseaseKey) ?? null;
+
+    if (slot) {
+      selectSlot(slot);
+      return;
+    }
+
+    setSelectedSlotId("");
+    setSlotForm(emptySlotForm);
+    setDoseForm((current) => ({
+      ...current,
+      disease: diseaseKey,
+      schedule_slot_id: "",
+      vaccine_id: vaccine?.id ?? "",
+      vaccine_batch_id: "",
     }));
   }
 
@@ -324,12 +487,22 @@ export function ImmunizationWorkspace() {
 
     setIsPatientLoading(true);
     try {
-      const [scheduleRows, doseRows] = await Promise.all([
+      const [scheduleRows, diseaseScheduleRows, historySummaryRows, historyDetailRows] = await Promise.all([
         listPatientSchedule(token, patientId),
-        listPatientDoses(token, patientId),
+        listPatientDiseaseSchedules(token, patientId),
+        listPatientVaccinationHistory(token, patientId, false),
+        listPatientVaccinationHistory(token, patientId, true),
       ]);
       setSchedule(scheduleRows);
-      setDoses(doseRows);
+      setDiseaseSchedules(diseaseScheduleRows);
+      setHistorySummary(historySummaryRows as ImmunizationHistorySummary[]);
+      const detailRows = historyDetailRows as ImmunizationEvent[];
+      setDoses(detailRows);
+      setSelectedHistoryId((current) =>
+        current && detailRows.some((dose) => dose.id === current)
+          ? current
+          : detailRows[0]?.id ?? "",
+      );
       setPatientError("");
     } catch (caughtError) {
       setPatientError(readApiError(caughtError));
@@ -350,8 +523,11 @@ export function ImmunizationWorkspace() {
       const response = await regeneratePatientSchedule(token, selectedPatientId);
       setSchedule(response.schedule);
       selectSlot(
-        response.schedule.find((slot) => actionableSlotStatuses.has(slot.status)) ??
-          response.schedule[0] ??
+        response.schedule.find(
+          (slot) =>
+            getDiseaseKey(slot.vaccine) && actionableSlotStatuses.has(slot.status),
+        ) ??
+          response.schedule.find((slot) => getDiseaseKey(slot.vaccine)) ??
           null,
       );
       setNotice(
@@ -402,8 +578,16 @@ export function ImmunizationWorkspace() {
     if (!selectedPatientId) return;
     setDoseError("");
     setNotice("");
+    if (!selectedDisease) {
+      setDoseError("Select one of the three supported diseases before recording the outcome.");
+      return;
+    }
     if (!doseForm.vaccine_id) {
-      setDoseError("Select a vaccine before recording the dose.");
+      setDoseError("Select a product/dose before recording the outcome.");
+      return;
+    }
+    if (!doseForm.disease_completed && !doseForm.next_due_date) {
+      setDoseError("Enter the next due date, or mark this vaccination as completed.");
       return;
     }
     if (isBatchExpired) {
@@ -418,12 +602,13 @@ export function ImmunizationWorkspace() {
     if (!selectedPatientId) return;
     setIsRecordingDose(true);
     try {
-      const dose = await createPatientDose(
+      const dose = await createPatientOutcome(
         token,
         selectedPatientId,
-        normalizeDosePayload(doseForm),
+        normalizeDosePayload({ ...doseForm, disease: selectedDisease }),
       );
       setDoses((current) => [dose, ...current]);
+      setSelectedHistoryId(dose.id);
       setDoseForm({
         ...emptyDoseForm,
         administered_at: toDatetimeLocalValue(new Date()),
@@ -467,35 +652,40 @@ export function ImmunizationWorkspace() {
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-600 dark:text-brand-400">
-            Immunization
+            Immunization workflow
           </p>
           <PrivacyBoundaryBadge />
         </div>
-        <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mt-4 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-              Due and overdue vaccination work
+              Manage Measles, Polio, and Cholera vaccinations
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500 dark:text-gray-400">
-              Select a patient, review today&apos;s clinical queue, update schedule
-              outcomes, and record doses through the patient dose API.
+              Focused vaccination work for the three supported diseases: Measles,
+              Polio, and Cholera.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <PrivacyModeToggle />
             <div className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${isOnline ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-300" : "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-300"}`}>
               <span className={`h-2 w-2 rounded-full ${isOnline ? "bg-success-500" : "bg-warning-500 animate-pulse"}`} />
-              {isOnline ? "Online" : "Offline - doses will be queued"}
+              {isOnline ? "Online and ready to save" : "Offline - save for later sync"}
             </div>
             <button
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
               disabled={!selectedPatientId || isPatientLoading}
               type="button"
               onClick={() => reloadPatientWork()}
             >
-              Refresh selected patient
+              Refresh
             </button>
           </div>
+        </div>
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          <WorkflowStep index="1" label="Select patient" active />
+          <WorkflowStep index="2" label="Check due dates" active={Boolean(selectedPatientId)} />
+          <WorkflowStep index="3" label="Add vaccination" active={Boolean(selectedSlotId || doseForm.vaccine_id)} />
         </div>
       </section>
 
@@ -520,15 +710,17 @@ export function ImmunizationWorkspace() {
       {/* Confirm dose modal */}
       <ConfirmModal
         isOpen={showDoseConfirm}
-        title="Confirm dose before submission"
+        title="Confirm official record"
         message={
           <div className="space-y-2">
-            <p className="mb-4">This action will update the patient&apos;s official vaccination record.</p>
-            <div className="grid grid-cols-[110px_1fr] gap-1 text-sm">
+            <p className="mb-4">Review these details before saving to the patient&apos;s vaccination record.</p>
+            <div className="grid grid-cols-[110px_1fr] gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm dark:border-gray-800 dark:bg-white/[0.03]">
               <span className="font-semibold text-gray-500 dark:text-gray-400">Patient:</span>
               <span>{selectedPatient?.full_name} / {selectedPatient?.uid}</span>
-              <span className="font-semibold text-gray-500 dark:text-gray-400">Vaccine:</span>
-              <span>{vaccines.find((v) => v.id === doseForm.vaccine_id)?.vaccine_name}</span>
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Disease:</span>
+              <span>{selectedDisease ? diseaseLabel(selectedDisease) : "Not selected"}</span>
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Product:</span>
+              <span>{vaccines.find((v) => v.id === doseForm.vaccine_id)?.vaccine_name ?? "Not selected"}</span>
               <span className="font-semibold text-gray-500 dark:text-gray-400">Dose:</span>
               <span>{selectedSlot ? `${selectedSlot.vaccine.vaccine_code} due ${selectedSlot.due_date}` : formatRole(doseForm.event_status ?? "administered")}</span>
               <span className="font-semibold text-gray-500 dark:text-gray-400">Date:</span>
@@ -539,21 +731,27 @@ export function ImmunizationWorkspace() {
               <span>{doseForm.administration_route || "N/A"} / {doseForm.administration_site || "N/A"}</span>
               <span className="font-semibold text-gray-500 dark:text-gray-400">Facility:</span>
               <span>{facilities.find((f) => f.id === doseForm.facility_id)?.facility_name ?? "Not selected"}</span>
+              <span className="font-semibold text-gray-500 dark:text-gray-400">Next:</span>
+              <span>{doseForm.disease_completed ? "Vaccination completed" : doseForm.next_due_date || "Not set"}</span>
             </div>
           </div>
         }
-        confirmLabel="Confirm and Record"
+        confirmLabel="Save vaccination record"
+        cancelLabel="Go back"
         isLoading={isRecordingDose}
         onConfirm={() => { setShowDoseConfirm(false); confirmAndRecordDose(); }}
         onCancel={() => setShowDoseConfirm(false)}
       />
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,0.82fr)_minmax(560px,1.18fr)]">
+      <section className="space-y-6">
         <div className="rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
           <div className="border-b border-gray-200 p-5 dark:border-gray-800">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Patient queue
+              1. Select patient
             </h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Search by patient, caregiver, or UID.
+            </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
               <input
                 className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-800 shadow-theme-xs outline-none transition placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
@@ -579,16 +777,16 @@ export function ImmunizationWorkspace() {
 
           {error ? <InlineError className="m-5" message={error} /> : null}
 
-          <div className="max-h-[760px] overflow-y-auto p-3">
+          <div className="max-h-[320px] overflow-y-auto p-4">
             {isLoading ? (
               <p className="p-3 text-sm text-gray-500 dark:text-gray-400">
                 Loading patients...
               </p>
             ) : patients.length ? (
-              <div className="space-y-2">
+              <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                 {patients.map((patient) => (
                   <button
-                    className={`w-full rounded-xl border p-4 text-left transition hover:border-brand-200 hover:bg-brand-25 dark:hover:bg-brand-500/10 ${
+                    className={`min-h-[120px] w-full rounded-xl border p-4 text-left transition hover:border-brand-200 hover:bg-brand-25 dark:hover:bg-brand-500/10 ${
                       selectedPatientId === patient.id
                         ? "border-brand-300 bg-brand-25 dark:border-brand-500/40 dark:bg-brand-500/10"
                         : "border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.02]"
@@ -606,7 +804,7 @@ export function ImmunizationWorkspace() {
                           {maskIdentifier(patient.uid)} · {formatAge(patient.date_of_birth)}
                         </p>
                       </div>
-                      <StatusPill label={formatRole(patient.status)} />
+                      <StatusPill label={formatRole(patient.status)} status={patient.status} />
                     </div>
                     <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
                       {patient.primary_caregiver
@@ -628,66 +826,44 @@ export function ImmunizationWorkspace() {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <SelectedPatientHeader
-            patient={selectedPatient}
-            isLoading={isPatientLoading}
-            onRegenerate={handleRegenerateSchedule}
-            isRegenerating={isRegenerating}
-            isPrivacyMode={isPrivacyMode}
-            dueCount={schedule.filter((slot) => slot.status === "due_today").length}
-            overdueCount={schedule.filter((slot) =>
-              ["overdue", "defaulter"].includes(slot.status),
-            ).length}
-          />
+        <SelectedPatientHeader
+          patient={selectedPatient}
+          isLoading={isPatientLoading}
+          onRegenerate={handleRegenerateSchedule}
+          isRegenerating={isRegenerating}
+          isPrivacyMode={isPrivacyMode}
+          latestDose={latestDose}
+          diseaseCards={diseaseCards}
+          dueCount={schedule.filter((slot) => slot.status === "due_today").length}
+          overdueCount={schedule.filter((slot) =>
+            ["overdue", "defaulter"].includes(slot.status),
+          ).length}
+        />
 
-          {patientError ? <InlineError message={patientError} /> : null}
+        {patientError ? <InlineError message={patientError} /> : null}
 
-          <div className="grid gap-6 2xl:grid-cols-[minmax(0,0.9fr)_minmax(430px,1.1fr)]">
-            <section
-              id="immunization-schedule-review"
-              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
-            >
+        <section
+          id="immunization-schedule-review"
+          className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
+        >
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Due and overdue review
+                2. Disease due dates
               </h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Choose a clinical slot to prefill the dose form, review the schedule,
-                or mark an exemption, contraindication, refusal, or cancellation.
+                Review each disease schedule and choose one to prefill the vaccination form.
               </p>
 
               {slotError ? <InlineError className="mt-4" message={slotError} /> : null}
 
-              <div className="mt-5 max-h-[420px] space-y-3 overflow-y-auto pr-1">
-                {reviewSlots.length ? (
-                  reviewSlots.map((slot) => (
-                    <button
-                      className={`flex w-full items-center justify-between gap-3 rounded-xl border p-4 text-left transition hover:border-brand-200 hover:bg-brand-25 dark:hover:bg-brand-500/10 ${
-                        selectedSlotId === slot.id
-                          ? "border-brand-300 bg-brand-25 dark:border-brand-500/40 dark:bg-brand-500/10"
-                          : "border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.02]"
-                      }`}
-                      key={slot.id}
-                      type="button"
-                      onClick={() => selectSlot(slot)}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                          {slot.vaccine.vaccine_name}
-                        </p>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          Due {slot.due_date}
-                        </p>
-                      </div>
-                      <StatusPill label={formatRole(slot.status)} />
-                    </button>
-                  ))
-                ) : (
-                  <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
-                    No schedule slots yet. Regenerate the selected patient&apos;s
-                    schedule once vaccine schedule rules exist.
-                  </p>
-                )}
+              <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                {diseaseCards.map((card) => (
+                  <DiseaseCard
+                    key={card.key}
+                    disease={card}
+                    isSelected={selectedDisease === card.key}
+                    onSelect={() => selectDisease(card.key)}
+                  />
+                ))}
               </div>
 
               {selectedSlot ? (
@@ -696,7 +872,7 @@ export function ImmunizationWorkspace() {
                   onSubmit={handleUpdateSlot}
                 >
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Update slot status
+                    Update disease schedule status
                   </h3>
                   <div className="mt-4 grid gap-4">
                     <SelectInput
@@ -726,7 +902,7 @@ export function ImmunizationWorkspace() {
                     disabled={isUpdatingSlot}
                     type="submit"
                   >
-                    {isUpdatingSlot ? "Updating slot" : "Update slot"}
+                    {isUpdatingSlot ? "Updating status" : "Update status"}
                   </button>
                 </form>
               ) : null}
@@ -737,79 +913,96 @@ export function ImmunizationWorkspace() {
               className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
             >
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Record dose
+                3. Add vaccination record
               </h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Dose submission opens a confirmation step with patient, vaccine,
-                dose, date/time, batch, and facility.
+                Save the administered vaccine or document refusal, contraindication, or wastage.
               </p>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <ActionPill href="#immunization-schedule-review" label="Review schedule" />
-                <ActionPill href="#dose-history" label="Dose history" />
-                <ActionPill href="#record-dose" label="Exemption/refusal" />
+                <ActionPill href="#immunization-schedule-review" label="Due dates" />
+                <ActionPill href="#dose-history" label="Vaccination history" />
+                <ActionPill href="#record-dose" label="Add record" />
               </div>
 
               <form className="mt-5 grid gap-4" onSubmit={handleRecordDose}>
-                <SelectInput
-                  label="Schedule slot"
-                  value={doseForm.schedule_slot_id ?? ""}
-                  onChange={(value) => {
-                    const slot = schedule.find((item) => item.id === value);
-                    setDoseForm((current) => ({
-                      ...current,
-                      schedule_slot_id: value,
-                      vaccine_id: slot?.vaccine.id ?? current.vaccine_id,
-                    }));
-                    if (slot) {
-                      selectSlot(slot);
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <SelectInput
+                    label="Disease"
+                    value={selectedDisease ?? ""}
+                    onChange={(value) => {
+                      if (isSupportedDiseaseKey(value)) {
+                        selectDisease(value);
+                      }
+                    }}
+                    options={[
+                      { label: "Select disease", value: "" },
+                      ...supportedDiseases.map((disease) => ({
+                        label: disease.label,
+                        value: disease.key,
+                      })),
+                    ]}
+                  />
+                  <SelectInput
+                    label="Product / dose"
+                    value={doseForm.vaccine_id}
+                    onChange={(value) => {
+                      const matchingSlot = schedule.find((slot) => slot.vaccine.id === value);
+                      const diseaseKey = getDiseaseKey(vaccines.find((vaccine) => vaccine.id === value) ?? matchingSlot?.vaccine ?? null);
+                      if (matchingSlot) {
+                        selectSlot(matchingSlot);
+                      }
+                      setDoseForm((current) => ({
+                        ...current,
+                        disease: diseaseKey ?? current.disease,
+                        vaccine_id: value,
+                        vaccine_batch_id: "",
+                        schedule_slot_id: matchingSlot?.id ?? current.schedule_slot_id,
+                      }));
+                    }}
+                    options={[
+                      { label: "Select product/dose", value: "" },
+                      ...vaccines.filter((vaccine) => {
+                        const key = getDiseaseKey(vaccine);
+                        return selectedDisease ? key === selectedDisease : Boolean(key);
+                      }).map((vaccine) => ({
+                        label: `${vaccine.vaccine_name} (${vaccine.vaccine_code})`,
+                        value: vaccine.id,
+                      })),
+                    ]}
+                  />
+                  <TextInput
+                    label="Date and time"
+                    type="datetime-local"
+                    value={doseForm.administered_at}
+                    onChange={(value) =>
+                      setDoseForm((current) => ({
+                        ...current,
+                        administered_at: value,
+                      }))
                     }
-                  }}
-                  options={[
-                    { label: "No schedule slot", value: "" },
-                    ...schedule.map((slot) => ({
-                      label: `${slot.vaccine.vaccine_name} · due ${slot.due_date}`,
-                      value: slot.id,
-                    })),
-                  ]}
-                />
-                <SelectInput
-                  label="Vaccine"
-                  value={doseForm.vaccine_id}
-                  onChange={(value) =>
-                    setDoseForm((current) => ({
-                      ...current,
-                      vaccine_id: value,
-                      vaccine_batch_id: "",
-                    }))
-                  }
-                  options={[
-                    { label: "Select vaccine", value: "" },
-                    ...vaccines.map((vaccine) => ({
-                      label: `${vaccine.vaccine_name} (${vaccine.vaccine_code})`,
-                      value: vaccine.id,
-                    })),
-                  ]}
-                />
-                <SelectInput
-                  label="Vaccine batch"
-                  value={doseForm.vaccine_batch_id ?? ""}
-                  onChange={(value) =>
-                    setDoseForm((current) => ({
-                      ...current,
-                      vaccine_batch_id: value,
-                    }))
-                  }
-                  options={[
-                    { label: "No batch selected", value: "" },
-                    ...filteredBatches.map((batch) => ({
-                      label: `${batch.batch_number} · expires ${
-                        batch.expiry_date ?? "unknown"
-                      }`,
-                      value: batch.id,
-                    })),
-                  ]}
-                />
+                    required
+                  />
+                  <SelectInput
+                    label="Outcome"
+                    value={doseForm.event_status ?? "administered"}
+                    onChange={(value) =>
+                      setDoseForm((current) => ({
+                        ...current,
+                        event_status: value as ImmunizationEventStatus,
+                      }))
+                    }
+                    options={doseStatuses}
+                  />
+                </div>
+                {selectedDisease &&
+                !vaccines.some((vaccine) => getDiseaseKey(vaccine) === selectedDisease) ? (
+                  <AlertBanner tone="warning">
+                    No product is configured for {diseaseLabel(selectedDisease)}. Run{" "}
+                    <code>python manage.py seed_supported_vaccines</code> or add the
+                    product in the vaccine registry.
+                  </AlertBanner>
+                ) : null}
                 {/* Batch expiry warning */}
                 {(() => {
                   if (selectedBatch?.expiry_date) {
@@ -834,18 +1027,6 @@ export function ImmunizationWorkspace() {
                   return null;
                 })()}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <TextInput
-                    label="Administered at"
-                    type="datetime-local"
-                    value={doseForm.administered_at}
-                    onChange={(value) =>
-                      setDoseForm((current) => ({
-                        ...current,
-                        administered_at: value,
-                      }))
-                    }
-                    required
-                  />
                   <SelectInput
                     label="Facility"
                     value={doseForm.facility_id ?? ""}
@@ -858,65 +1039,108 @@ export function ImmunizationWorkspace() {
                     options={facilityOptions(facilities)}
                   />
                   <TextInput
-                    label="Route"
-                    value={doseForm.administration_route ?? ""}
+                    label="Next due date"
+                    type="date"
+                    value={doseForm.next_due_date ?? ""}
                     onChange={(value) =>
                       setDoseForm((current) => ({
                         ...current,
-                        administration_route: value,
+                        next_due_date: value,
                       }))
                     }
+                    disabled={Boolean(doseForm.disease_completed)}
                   />
-                  <TextInput
-                    label="Site"
-                    value={doseForm.administration_site ?? ""}
+                  <label className="flex min-h-11 items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 text-sm font-semibold text-gray-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-200">
+                    <input
+                      className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                      checked={Boolean(doseForm.disease_completed)}
+                      type="checkbox"
+                      onChange={(event) =>
+                        setDoseForm((current) => ({
+                          ...current,
+                          disease_completed: event.target.checked,
+                          next_due_date: event.target.checked ? "" : current.next_due_date,
+                        }))
+                      }
+                    />
+                    Vaccination completed
+                  </label>
+                  <TextAreaInput
+                    label="Clinical note"
+                    value={doseForm.notes ?? ""}
                     onChange={(value) =>
-                      setDoseForm((current) => ({
-                        ...current,
-                        administration_site: value,
-                      }))
+                      setDoseForm((current) => ({ ...current, notes: value }))
                     }
-                  />
-                  <SelectInput
-                    label="Event status"
-                    value={doseForm.event_status ?? "administered"}
-                    onChange={(value) =>
-                      setDoseForm((current) => ({
-                        ...current,
-                        event_status: value as ImmunizationEventStatus,
-                      }))
-                    }
-                    options={doseStatuses}
-                  />
-                  <SelectInput
-                    label="Source"
-                    value={doseForm.source_channel ?? "online"}
-                    onChange={(value) =>
-                      setDoseForm((current) => ({
-                        ...current,
-                        source_channel: value as SourceChannel,
-                      }))
-                    }
-                    options={sourceChannels}
                   />
                 </div>
-                <TextInput
-                  label="Local client record ID"
-                  value={doseForm.local_client_record_id ?? ""}
-                  onChange={(value) =>
-                    setDoseForm((current) => ({
-                      ...current,
-                      local_client_record_id: value,
-                    }))
-                  }
-                />
-                <TextAreaInput
-                  label="Notes"
-                  value={doseForm.notes ?? ""}
-                  onChange={(value) =>
-                    setDoseForm((current) => ({ ...current, notes: value }))
-                  }
-                />
+
+                <details className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                  <summary className="cursor-pointer text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    More details
+                  </summary>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <SelectInput
+                      label="Batch"
+                      value={doseForm.vaccine_batch_id ?? ""}
+                      onChange={(value) =>
+                        setDoseForm((current) => ({
+                          ...current,
+                          vaccine_batch_id: value,
+                        }))
+                      }
+                      options={[
+                        { label: "No batch selected", value: "" },
+                        ...filteredBatches.map((batch) => ({
+                          label: `${batch.batch_number} · expires ${
+                            batch.expiry_date ?? "unknown"
+                          }`,
+                          value: batch.id,
+                        })),
+                      ]}
+                    />
+                    <TextInput
+                      label="Route"
+                      value={doseForm.administration_route ?? ""}
+                      onChange={(value) =>
+                        setDoseForm((current) => ({
+                          ...current,
+                          administration_route: value,
+                        }))
+                      }
+                    />
+                    <TextInput
+                      label="Site"
+                      value={doseForm.administration_site ?? ""}
+                      onChange={(value) =>
+                        setDoseForm((current) => ({
+                          ...current,
+                          administration_site: value,
+                        }))
+                      }
+                    />
+                    <SelectInput
+                      label="Recording mode"
+                      value={doseForm.source_channel ?? "online"}
+                      onChange={(value) =>
+                        setDoseForm((current) => ({
+                          ...current,
+                          source_channel: value as SourceChannel,
+                        }))
+                      }
+                      options={sourceChannels}
+                    />
+                    <TextInput
+                      label="Offline reference ID"
+                      value={doseForm.local_client_record_id ?? ""}
+                      onChange={(value) =>
+                        setDoseForm((current) => ({
+                          ...current,
+                          local_client_record_id: value,
+                        }))
+                      }
+                    />
+                  </div>
+                </details>
 
                 {doseError ? <InlineError message={doseError} /> : null}
 
@@ -925,71 +1149,61 @@ export function ImmunizationWorkspace() {
                   disabled={!selectedPatientId || isRecordingDose || isBatchExpired}
                   type="submit"
                 >
-                  {isRecordingDose ? "Recording dose" : "Record dose"}
+                  {isRecordingDose ? "Saving record" : "Save vaccination record"}
                 </button>
               </form>
             </section>
-          </div>
 
           <section
             id="dose-history"
             className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]"
           >
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Dose history
-            </h2>
-            <div className="mt-4 grid gap-3 lg:grid-cols-2">
-              {doses.length ? (
-                doses.map((dose) => (
-                  <div
-                    className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]"
-                    key={dose.id}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {dose.vaccine.vaccine_name}
-                        </p>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          {formatDateTime(dose.administered_at)}
-                        </p>
-                      </div>
-                      <StatusPill label={formatRole(dose.event_status)} />
-                    </div>
-                    <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                      {dose.vaccine_batch
-                        ? `Batch ${dose.vaccine_batch.batch_number}`
-                        : "No batch recorded"}
-                      {dose.notes ? ` · ${dose.notes}` : ""}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
-                  No doses recorded for the selected patient.
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Vaccination history
+                </h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  History is grouped by disease. Select any administration to review the full record.
                 </p>
-              )}
+              </div>
+            </div>
+            <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+              <div className="grid gap-3 lg:grid-cols-3">
+                {historyByDisease.map((group) => (
+                  <DiseaseHistorySummary
+                    key={group.key}
+                    group={group}
+                    selectedHistoryId={selectedHistoryId}
+                    onSelect={setSelectedHistoryId}
+                  />
+                ))}
+              </div>
+              <AdministrationDetailPanel dose={selectedHistoryDose} />
             </div>
           </section>
-        </div>
       </section>
     </div>
   );
 }
 
 function SelectedPatientHeader({
+  diseaseCards,
   dueCount,
   isLoading,
   isRegenerating,
   isPrivacyMode,
+  latestDose,
   onRegenerate,
   overdueCount,
   patient,
 }: {
+  diseaseCards: DiseaseCardData[];
   dueCount: number;
   isLoading: boolean;
   isRegenerating: boolean;
   isPrivacyMode: boolean;
+  latestDose: ImmunizationEvent | null;
   onRegenerate: () => void;
   overdueCount: number;
   patient: Patient | null;
@@ -1000,7 +1214,7 @@ function SelectedPatientHeader({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-600 dark:text-brand-400">
-              Patient context
+              Selected patient
             </p>
             <h2 className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">
               {isPrivacyMode ? "Name hidden" : patient.full_name}
@@ -1008,9 +1222,27 @@ function SelectedPatientHeader({
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {patient.uid} · {formatAge(patient.date_of_birth)} · {formatRole(patient.status)}
             </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <PatientContextTile
+                label="Complete/protected"
+                value={`${diseaseCards.filter((card) => card.isComplete || card.status === "protected").length}/3 diseases`}
+                tone="success"
+              />
+              <PatientContextTile label="Needs action" value={String(dueCount + overdueCount)} tone={dueCount || overdueCount ? "warning" : "neutral"} />
+              <PatientContextTile
+                label="Last dose"
+                value={latestDose ? latestDose.vaccine.vaccine_name : "None"}
+                tone={latestDose ? "success" : "neutral"}
+              />
+            </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <StatusPill label={`${dueCount} due today`} />
-              <StatusPill label={`${overdueCount} overdue`} />
+              {diseaseCards.map((card) => (
+                <StatusPill
+                  key={card.key}
+                  label={`${card.label}: ${diseaseStatusLabel(card.status)}`}
+                  status={diseaseStatusToStatus(card.status)}
+                />
+              ))}
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -1018,7 +1250,7 @@ function SelectedPatientHeader({
               href={`/patients/${patient.id}`}
               className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
             >
-              Back to Patient
+              Patient detail
             </Link>
             <button
               className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
@@ -1026,7 +1258,7 @@ function SelectedPatientHeader({
               type="button"
               onClick={onRegenerate}
             >
-              {isRegenerating ? "Regenerating" : "Regenerate schedule"}
+              {isRegenerating ? "Recalculating" : "Recalculate"}
             </button>
           </div>
         </div>
@@ -1050,6 +1282,285 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function WorkflowStep({
+  active,
+  index,
+  label,
+}: {
+  active: boolean;
+  index: string;
+  label: string;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+        active
+          ? "border-brand-200 bg-brand-25 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-100"
+          : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-800 dark:bg-white/[0.02] dark:text-gray-400"
+      }`}
+    >
+      <span
+        className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+          active
+            ? "bg-brand-600 text-white"
+            : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+        }`}
+      >
+        {index}
+      </span>
+      <span className="text-sm font-semibold">{label}</span>
+    </div>
+  );
+}
+
+type ContextTone = "neutral" | "success" | "warning" | "error";
+
+function PatientContextTile({
+  label,
+  tone = "neutral",
+  value,
+}: {
+  label: string;
+  tone?: ContextTone;
+  value: string;
+}) {
+  const toneClass: Record<ContextTone, string> = {
+    neutral: "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300",
+    success: "border-success-200 bg-success-50 text-success-800 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-200",
+    warning: "border-warning-200 bg-warning-50 text-warning-800 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-200",
+    error: "border-error-200 bg-error-50 text-error-800 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-200",
+  };
+
+  return (
+    <div className={`rounded-xl border px-3 py-2 ${toneClass[tone]}`}>
+      <p className="text-xs font-medium opacity-75">{label}</p>
+      <p className="mt-1 truncate text-sm font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function DiseaseCard({
+  disease,
+  isSelected,
+  onSelect,
+}: {
+  disease: DiseaseCardData;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      className={`min-h-[178px] rounded-xl border p-4 text-left transition hover:border-brand-200 hover:bg-brand-25 dark:hover:bg-brand-500/10 ${
+        isSelected
+          ? "border-brand-300 bg-brand-25 dark:border-brand-500/40 dark:bg-brand-500/10"
+          : "border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.02]"
+      }`}
+      type="button"
+      onClick={onSelect}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-base font-semibold text-gray-900 dark:text-white">
+            {disease.label}
+          </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {disease.administeredCount
+              ? `${disease.administeredCount} administered record${disease.administeredCount > 1 ? "s" : ""}`
+              : "No administered record"}
+          </p>
+        </div>
+        <StatusPill
+          label={diseaseStatusLabel(disease.status)}
+          status={diseaseStatusToStatus(disease.status)}
+        />
+      </div>
+
+      <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+        <p>
+          <span className="font-semibold text-gray-800 dark:text-gray-100">
+            Next:
+          </span>{" "}
+          {disease.isComplete
+            ? "Vaccination completed"
+            : disease.currentDueDate
+              ? `Due ${disease.currentDueDate}`
+              : disease.nextActionSlot
+                ? `${disease.nextActionSlot.vaccine.vaccine_name} due ${disease.nextActionSlot.due_date}`
+                : "No due date set"}
+        </p>
+        <p>
+          <span className="font-semibold text-gray-800 dark:text-gray-100">
+            Last:
+          </span>{" "}
+          {disease.lastDose
+            ? `${disease.lastDose.vaccine.vaccine_name} on ${formatDateTime(disease.lastDose.administered_at)}`
+            : "None"}
+        </p>
+      </div>
+
+      <span className="mt-4 inline-flex rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        Add vaccination
+      </span>
+    </button>
+  );
+}
+
+type DiseaseHistoryGroup = {
+  key: SupportedDiseaseKey;
+  label: string;
+  compactRecords: ImmunizationHistorySummary[];
+  detailRecords: ImmunizationEvent[];
+  latestRecord: ImmunizationHistorySummary | null;
+};
+
+function DiseaseHistorySummary({
+  group,
+  onSelect,
+  selectedHistoryId,
+}: {
+  group: DiseaseHistoryGroup;
+  onSelect: (id: string) => void;
+  selectedHistoryId: string;
+}) {
+  return (
+    <article className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            {group.label}
+          </h3>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {group.compactRecords.length
+              ? `${group.compactRecords.length} administration${group.compactRecords.length > 1 ? "s" : ""}`
+              : "No administration yet"}
+          </p>
+        </div>
+        {group.latestRecord ? (
+          <StatusPill
+            label={formatRole(group.latestRecord.event_status)}
+            status={group.latestRecord.event_status}
+          />
+        ) : null}
+      </div>
+
+      {group.latestRecord ? (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-950/30 dark:text-gray-300">
+          <p className="font-semibold text-gray-800 dark:text-gray-100">
+            Latest: {group.latestRecord.vaccine_name}
+          </p>
+          <p className="mt-1">{formatDateTime(group.latestRecord.administered_at)}</p>
+          <p className="mt-1">
+            {group.latestRecord.disease_completed
+              ? "Vaccination completed"
+              : group.latestRecord.next_due_date
+                ? `Next due ${group.latestRecord.next_due_date}`
+                : "Next due date not set"}
+          </p>
+        </div>
+      ) : null}
+
+      <div className="mt-4 space-y-2">
+        {group.compactRecords.length ? (
+          group.compactRecords.map((record) => (
+            <button
+              className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition ${
+                selectedHistoryId === record.id
+                  ? "border-brand-300 bg-brand-25 text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-100"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-brand-200 hover:bg-brand-25 dark:border-gray-800 dark:bg-white/[0.02] dark:text-gray-300 dark:hover:bg-brand-500/10"
+              }`}
+              key={record.id}
+              type="button"
+              onClick={() => onSelect(record.id)}
+            >
+              <span className="block font-semibold">{record.vaccine_name}</span>
+              <span className="mt-1 block">
+                {formatDateTime(record.administered_at)}
+                {record.batch_number ? ` · ${record.batch_number}` : ""}
+              </span>
+            </button>
+          ))
+        ) : (
+          <p className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+            No records for this disease.
+          </p>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function AdministrationDetailPanel({ dose }: { dose: ImmunizationEvent | null }) {
+  if (!dose) {
+    return (
+      <aside className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+          Administration details
+        </h3>
+        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+          Select a summary record to view the administration details.
+        </p>
+      </aside>
+    );
+  }
+
+  const disease = dose.disease ?? getDiseaseKey(dose.vaccine);
+
+  return (
+    <aside className="rounded-xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-600 dark:text-brand-400">
+            Selected administration
+          </p>
+          <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
+            {dose.vaccine.vaccine_name}
+          </h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {diseaseLabelOrOther(disease)} · {formatDateTime(dose.administered_at)}
+          </p>
+        </div>
+        <StatusPill label={formatRole(dose.event_status)} status={dose.event_status} />
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        <DetailRow label="Product code" value={dose.vaccine.vaccine_code} />
+        <DetailRow
+          label="Batch"
+          value={
+            dose.vaccine_batch
+              ? `${dose.vaccine_batch.batch_number} · expires ${dose.vaccine_batch.expiry_date}`
+              : "No batch recorded"
+          }
+        />
+        <DetailRow
+          label="Next due"
+          value={
+            dose.disease_completed
+              ? "Vaccination completed"
+              : dose.next_due_date ?? "Not set"
+          }
+        />
+        <DetailRow label="Route" value={dose.administration_route || "Not recorded"} />
+        <DetailRow label="Site" value={dose.administration_site || "Not recorded"} />
+        <DetailRow label="Facility" value={dose.facility || "Not recorded"} />
+        <DetailRow label="Source" value={formatRole(dose.source_channel)} />
+        <DetailRow label="Notes" value={dose.notes || "No notes"} />
+      </div>
+    </aside>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-white/[0.03]">
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-gray-800 dark:text-gray-100">
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function ActionPill({ href, label }: { href: string; label: string }) {
   return (
     <a
@@ -1061,12 +1572,39 @@ function ActionPill({ href, label }: { href: string; label: string }) {
   );
 }
 
-function StatusPill({ label }: { label: string }) {
+function StatusPill({
+  label,
+  status,
+}: {
+  label: string;
+  status?: ScheduleSlotStatus | ImmunizationEventStatus | PatientStatus;
+}) {
+  const toneClass = statusToneClass(status);
+
   return (
-    <span className="inline-flex shrink-0 rounded border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-100">
+    <span className={`inline-flex shrink-0 rounded border px-3 py-1 text-xs font-semibold ${toneClass}`}>
       {label}
     </span>
   );
+}
+
+function statusToneClass(status?: ScheduleSlotStatus | ImmunizationEventStatus | PatientStatus) {
+  if (status === "overdue" || status === "defaulter") {
+    return "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-200";
+  }
+  if (status === "due_today" || status === "due_soon" || status === "pending") {
+    return "border-warning-200 bg-warning-50 text-warning-800 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-200";
+  }
+  if (status === "administered" || status === "registered") {
+    return "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-200";
+  }
+  if (status === "exempt" || status === "cancelled" || status === "inactive" || status === "deceased") {
+    return "border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300";
+  }
+  if (status === "refused" || status === "contraindicated" || status === "wasted") {
+    return "border-warning-200 bg-warning-50 text-warning-800 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-200";
+  }
+  return "border-brand-100 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-100";
 }
 
 function compareScheduleSlots(left: PatientScheduleSlot, right: PatientScheduleSlot) {
@@ -1092,6 +1630,109 @@ function compareScheduleSlots(left: PatientScheduleSlot, right: PatientScheduleS
   return new Date(left.due_date).getTime() - new Date(right.due_date).getTime();
 }
 
+function getDiseaseKey(
+  vaccine: (VaccineBriefLike & { antigen?: { name?: string | null; code?: string | null } | null }) | null,
+): SupportedDiseaseKey | null {
+  if (!vaccine) {
+    return null;
+  }
+
+  const searchable = [
+    vaccine.vaccine_name,
+    vaccine.vaccine_code,
+    vaccine.antigen?.name,
+    vaccine.antigen?.code,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    supportedDiseases.find((disease) =>
+      disease.keywords.some((keyword) => searchable.includes(keyword)),
+    )?.key ?? null
+  );
+}
+
+type VaccineBriefLike = {
+  vaccine_code: string;
+  vaccine_name: string;
+};
+
+function deriveDiseaseStatus(
+  diseaseSchedule: PatientDiseaseSchedule | null,
+  slots: PatientScheduleSlot[],
+  doses: ImmunizationEvent[],
+): DiseaseStatus {
+  if (diseaseSchedule?.is_complete) {
+    return "completed";
+  }
+  if (diseaseSchedule?.status) {
+    return diseaseSchedule.status;
+  }
+  if (slots.some((slot) => slot.status === "overdue" || slot.status === "defaulter")) {
+    return "overdue";
+  }
+  if (slots.some((slot) => slot.status === "due_today")) {
+    return "due_today";
+  }
+  if (slots.some((slot) => slot.status === "due_soon" || slot.status === "pending")) {
+    return "due_soon";
+  }
+  if (doses.some((dose) => dose.event_status === "administered")) {
+    return "protected";
+  }
+  if (slots.some((slot) => slot.status === "scheduled")) {
+    return "scheduled";
+  }
+
+  return "not_started";
+}
+
+function diseaseStatusLabel(status: DiseaseStatus) {
+  const labels: Record<DiseaseStatus, string> = {
+    protected: "Protected",
+    completed: "Completed",
+    refused: "Refused",
+    contraindicated: "Contraindicated",
+    due_today: "Due today",
+    due_soon: "Due soon",
+    overdue: "Overdue",
+    scheduled: "Scheduled",
+    not_started: "Not started",
+  };
+
+  return labels[status];
+}
+
+function diseaseStatusToStatus(status: DiseaseStatus): ScheduleSlotStatus {
+  const statusMap: Record<DiseaseStatus, ScheduleSlotStatus> = {
+    protected: "administered",
+    completed: "administered",
+    refused: "exempt",
+    contraindicated: "exempt",
+    due_today: "due_today",
+    due_soon: "due_soon",
+    overdue: "overdue",
+    scheduled: "scheduled",
+    not_started: "pending",
+  };
+
+  return statusMap[status];
+}
+
+function diseaseLabel(key: SupportedDiseaseKey) {
+  return supportedDiseases.find((disease) => disease.key === key)?.label ?? key;
+}
+
+function diseaseLabelOrOther(key: SupportedDiseaseKey | null) {
+  return key ? diseaseLabel(key) : "Other";
+}
+
+function isSupportedDiseaseKey(value: string): value is SupportedDiseaseKey {
+  return supportedDiseases.some((disease) => disease.key === value);
+}
+
 function rememberRecentPatient(patientId: string) {
   if (typeof window === "undefined") {
     return;
@@ -1115,6 +1756,7 @@ type TextInputProps = {
   value: string;
   type?: string;
   required?: boolean;
+  disabled?: boolean;
   onChange: (value: string) => void;
 };
 
@@ -1123,6 +1765,7 @@ function TextInput({
   value,
   type = "text",
   required,
+  disabled,
   onChange,
 }: TextInputProps) {
   return (
@@ -1133,6 +1776,7 @@ function TextInput({
       <input
         aria-label={label}
         className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-800 shadow-theme-xs outline-none transition placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+        disabled={disabled}
         required={required}
         type={type}
         value={value}
@@ -1211,6 +1855,7 @@ function InlineError({
 
 function normalizeDosePayload(payload: CreateDosePayload): CreateDosePayload {
   return {
+    disease: payload.disease ?? null,
     vaccine_id: payload.vaccine_id,
     vaccine_batch_id: payload.vaccine_batch_id || null,
     schedule_slot_id: payload.schedule_slot_id || null,
@@ -1219,6 +1864,8 @@ function normalizeDosePayload(payload: CreateDosePayload): CreateDosePayload {
     administration_route: payload.administration_route?.trim() || null,
     administration_site: payload.administration_site?.trim() || null,
     event_status: payload.event_status ?? "administered",
+    next_due_date: payload.disease_completed ? null : payload.next_due_date || null,
+    disease_completed: Boolean(payload.disease_completed),
     source_channel: payload.source_channel ?? "online",
     local_client_record_id: payload.local_client_record_id?.trim() || null,
     notes: payload.notes?.trim() || null,

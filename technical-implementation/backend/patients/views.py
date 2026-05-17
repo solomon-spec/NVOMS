@@ -6,6 +6,8 @@ from rest_framework.views import APIView
 
 from core.audit import write_audit_log
 from core.models import AuditLog
+from immunizations.serializers import PatientDiseaseScheduleSerializer
+from immunizations.services import ensure_patient_disease_schedules
 from patients.models import Caregiver, Patient, PatientImmunizationStatus
 from patients.serializers import (
     CaregiverSerializer,
@@ -53,6 +55,7 @@ class PatientListView(APIView):
 
         patient = serializer.save(registered_by=request.user)
         PatientImmunizationStatus.objects.get_or_create(patient=patient)
+        ensure_patient_disease_schedules(patient)
         write_audit_log(
             actor_user=request.user,
             action=AuditLog.Action.PATIENT_CREATE,
@@ -123,12 +126,17 @@ class PatientSummaryView(APIView):
             pk=pk,
         )
         immunization = getattr(patient, 'immunization_status', None)
+        ensure_patient_disease_schedules(patient)
         return Response({
             'patient': PatientSerializer(patient).data,
             'immunization_summary': (
                 PatientImmunizationStatusSerializer(immunization).data
                 if immunization else None
             ),
+            'disease_schedules': PatientDiseaseScheduleSerializer(
+                patient.disease_schedules.order_by('disease'),
+                many=True,
+            ).data,
         })
 
 

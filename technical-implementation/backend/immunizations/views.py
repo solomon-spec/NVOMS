@@ -6,13 +6,22 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from immunizations.models import ImmunizationEvent, PatientVaccinationSchedule, ScheduleStatusEvent
+from immunizations.models import (
+    ImmunizationEvent,
+    PatientDiseaseSchedule,
+    PatientVaccinationSchedule,
+    ScheduleStatusEvent,
+)
 from immunizations.serializers import (
+    DiseaseDueDateInputSerializer,
+    ImmunizationHistorySummarySerializer,
     ImmunizationEventCreateSerializer,
     ImmunizationEventSerializer,
+    PatientDiseaseScheduleSerializer,
     ScheduleSlotSerializer,
     ScheduleSlotStatusUpdateSerializer,
 )
+from immunizations.services import apply_outcome_to_disease_schedule, ensure_patient_disease_schedules
 from notifications.services import send_overdue_vaccination_alert
 from patients.models import Patient
 from users.permissions import IsHealthWorker
@@ -31,6 +40,43 @@ class PatientScheduleListView(APIView):
             .order_by('due_date')
         )
         return Response(ScheduleSlotSerializer(slots, many=True).data)
+
+
+class PatientDiseaseScheduleListView(APIView):
+    permission_classes = [IsHealthWorker]
+
+    def get(self, request, pk):
+        patient = get_object_or_404(Patient, pk=pk)
+        ensure_patient_disease_schedules(patient)
+        schedules = patient.disease_schedules.order_by('disease')
+        return Response(PatientDiseaseScheduleSerializer(schedules, many=True).data)
+
+    def put(self, request, pk):
+        patient = get_object_or_404(Patient, pk=pk)
+        payload = request.data
+        if isinstance(payload, list):
+            payload = {'disease_due_dates': payload}
+        serializer = DiseaseDueDateInputSerializer(data=payload.get('disease_due_dates', []), many=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        ensure_patient_disease_schedules(patient)
+        for item in serializer.validated_data:
+            schedule = patient.disease_schedules.get(disease=item['disease'])
+            is_complete = item.get('is_complete', False)
+            schedule.current_due_date = None if is_complete else item.get('due_date')
+            schedule.is_complete = is_complete
+            schedule.completed_at = timezone.now() if is_complete else None
+            schedule.status = (
+                PatientDiseaseSchedule.DiseaseStatus.COMPLETED
+                if is_complete
+                else item.get('status', PatientDiseaseSchedule.DiseaseStatus.SCHEDULED)
+            )
+            schedule.status_reason = item.get('status_reason')
+            schedule.save()
+
+        schedules = patient.disease_schedules.order_by('disease')
+        return Response(PatientDiseaseScheduleSerializer(schedules, many=True).data)
 
 
 class PatientScheduleRegenerateView(APIView):
@@ -129,7 +175,35 @@ class PatientDoseListView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         event = serializer.save(patient=patient, administered_by=request.user)
+        self._apply_outcome(event)
         return Response(
             ImmunizationEventSerializer(event).data,
             status=status.HTTP_201_CREATED,
         )
+
+    def _apply_outcome(self, event):
+        if event.schedule_slot and event.event_status == ImmunizationEvent.EventStatus.ADMINISTERED:
+            event.schedule_slot.status = PatientVaccinationSchedule.SlotStatus.ADMINISTERED
+            event.schedule_slot.status_changed_at = timezone.now()
+            event.schedule_slot.save(update_fields=['status', 'status_changed_at'])
+        apply_outcome_to_disease_schedule(event)
+
+
+class PatientOutcomeListView(PatientDoseListView):
+    """Disease-focused alias for recording vaccination outcomes."""
+
+
+class PatientVaccinationHistoryView(APIView):
+    permission_classes = [IsHealthWorker]
+
+    def get(self, request, pk):
+        patient = get_object_or_404(Patient, pk=pk)
+        detail = request.query_params.get('detail') in {'1', 'true', 'yes'}
+        events = (
+            ImmunizationEvent.objects
+            .filter(patient=patient)
+            .select_related('vaccine', 'vaccine_batch', 'facility', 'administered_by')
+            .order_by('-administered_at')
+        )
+        serializer_class = ImmunizationEventSerializer if detail else ImmunizationHistorySummarySerializer
+        return Response(serializer_class(events, many=True).data)

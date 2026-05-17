@@ -1,6 +1,8 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from geography.models import AdministrativeUnit
+from immunizations.serializers import DiseaseDueDateInputSerializer
 from patients.models import Caregiver, Patient, PatientImmunizationStatus
 from users.models import HealthFacility
 
@@ -86,9 +88,11 @@ class PatientCreateSerializer(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=Patient.Status.choices, default=Patient.Status.REGISTERED, required=False
     )
+    disease_due_dates = DiseaseDueDateInputSerializer(many=True, required=False)
 
     def create(self, validated_data):
-        return Patient.objects.create(
+        disease_due_dates = validated_data.pop('disease_due_dates', [])
+        patient = Patient.objects.create(
             first_name=validated_data['first_name'],
             middle_name=validated_data.get('middle_name'),
             last_name=validated_data.get('last_name'),
@@ -101,6 +105,31 @@ class PatientCreateSerializer(serializers.Serializer):
             medical_exception_flag=validated_data.get('medical_exception_flag', False),
             status=validated_data.get('status', Patient.Status.REGISTERED),
         )
+        self._create_disease_due_dates(patient, disease_due_dates)
+        return patient
+
+    def _create_disease_due_dates(self, patient, disease_due_dates):
+        from immunizations.models import PatientDiseaseSchedule, SupportedDisease
+
+        by_disease = {item['disease']: item for item in disease_due_dates}
+        for disease, _ in SupportedDisease.choices:
+            item = by_disease.get(disease, {})
+            is_complete = item.get('is_complete', False)
+            PatientDiseaseSchedule.objects.update_or_create(
+                patient=patient,
+                disease=disease,
+                defaults={
+                    'current_due_date': None if is_complete else item.get('due_date'),
+                    'status': (
+                        PatientDiseaseSchedule.DiseaseStatus.COMPLETED
+                        if is_complete
+                        else item.get('status', PatientDiseaseSchedule.DiseaseStatus.SCHEDULED)
+                    ),
+                    'is_complete': is_complete,
+                    'completed_at': timezone.now() if is_complete else None,
+                    'status_reason': item.get('status_reason'),
+                },
+            )
 
 
 class PatientUpdateSerializer(serializers.ModelSerializer):

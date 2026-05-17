@@ -34,6 +34,18 @@ export type ImmunizationEventStatus =
   | "contraindicated";
 
 export type SourceChannel = "online" | "offline" | "synced";
+export type SupportedDisease = "measles" | "polio" | "cholera";
+
+export type DiseaseScheduleStatus =
+  | "not_started"
+  | "scheduled"
+  | "due_soon"
+  | "due_today"
+  | "overdue"
+  | "protected"
+  | "completed"
+  | "refused"
+  | "contraindicated";
 
 export type CaregiverBrief = {
   id: string;
@@ -118,6 +130,21 @@ export type PatientImmunizationSummary = {
 export type PatientSummary = {
   patient: Patient;
   immunization_summary: PatientImmunizationSummary | null;
+  disease_schedules?: PatientDiseaseSchedule[];
+};
+
+export type PatientDiseaseSchedule = {
+  id: string;
+  disease: SupportedDisease;
+  disease_label: string;
+  current_due_date: string | null;
+  status: DiseaseScheduleStatus;
+  is_complete: boolean;
+  completed_at: string | null;
+  last_outcome_event_id: string | null;
+  status_reason: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type PatientScheduleSlot = {
@@ -137,6 +164,7 @@ export type RegenerateScheduleResponse = {
 
 export type ImmunizationEvent = {
   id: string;
+  disease: SupportedDisease | null;
   vaccine: VaccineBrief;
   vaccine_batch: {
     id: string;
@@ -150,9 +178,24 @@ export type ImmunizationEvent = {
   administration_route: string | null;
   administration_site: string | null;
   event_status: ImmunizationEventStatus;
+  next_due_date: string | null;
+  disease_completed: boolean;
   source_channel: SourceChannel;
   local_client_record_id: string | null;
   notes: string | null;
+  created_at: string;
+};
+
+export type ImmunizationHistorySummary = {
+  id: string;
+  disease: SupportedDisease | null;
+  vaccine_name: string;
+  vaccine_code: string;
+  batch_number: string | null;
+  administered_at: string;
+  event_status: ImmunizationEventStatus;
+  next_due_date: string | null;
+  disease_completed: boolean;
   created_at: string;
 };
 
@@ -187,6 +230,15 @@ export type CreatePatientPayload = {
   registered_facility_id?: string;
   medical_exception_flag: boolean;
   status: PatientStatus;
+  disease_due_dates?: DiseaseDueDateInput[];
+};
+
+export type DiseaseDueDateInput = {
+  disease: SupportedDisease;
+  due_date?: string | null;
+  status?: DiseaseScheduleStatus;
+  is_complete?: boolean;
+  status_reason?: string | null;
 };
 
 export type UpdatePatientPayload = {
@@ -205,6 +257,7 @@ export type UpdatePatientPayload = {
 export type PatchPatientPayload = Partial<UpdatePatientPayload>;
 
 export type CreateDosePayload = {
+  disease?: SupportedDisease | null;
   vaccine_id: string;
   vaccine_batch_id?: string | null;
   schedule_slot_id?: string | null;
@@ -213,6 +266,8 @@ export type CreateDosePayload = {
   administration_route?: string | null;
   administration_site?: string | null;
   event_status?: ImmunizationEventStatus;
+  next_due_date?: string | null;
+  disease_completed?: boolean;
   source_channel?: SourceChannel;
   local_client_record_id?: string | null;
   notes?: string | null;

@@ -2,9 +2,12 @@
 
 from immunizations.views import (
     PatientDoseListView,
+    PatientDiseaseScheduleListView,
+    PatientOutcomeListView,
     PatientScheduleListView,
     PatientScheduleRegenerateView,
     PatientScheduleSlotDetailView,
+    PatientVaccinationHistoryView,
 )
 from patients.me_views import PatientMeDosesView, PatientMeScheduleView, PatientMeView
 from patients.views import PatientDetailView, PatientListView, PatientSummaryView
@@ -24,6 +27,9 @@ urlpatterns = [
     path('<uuid:pk>/schedule', PatientScheduleListView.as_view(), name='patient-schedule-list'),
     path('<uuid:pk>/schedule/regenerate', PatientScheduleRegenerateView.as_view(), name='patient-schedule-regenerate'),
     path('<uuid:pk>/schedule/<uuid:slot_id>', PatientScheduleSlotDetailView.as_view(), name='patient-schedule-slot'),
+    path('<uuid:pk>/disease-schedules', PatientDiseaseScheduleListView.as_view(), name='patient-disease-schedule-list'),
     # doses
     path('<uuid:pk>/doses', PatientDoseListView.as_view(), name='patient-dose-list'),
+    path('<uuid:pk>/outcomes', PatientOutcomeListView.as_view(), name='patient-outcome-list'),
+    path('<uuid:pk>/vaccination-history', PatientVaccinationHistoryView.as_view(), name='patient-vaccination-history'),
 ]

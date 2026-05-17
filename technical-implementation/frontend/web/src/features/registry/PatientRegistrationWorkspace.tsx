@@ -13,6 +13,8 @@ import type {
   HealthFacility,
   Patient,
   PatientSex,
+  SupportedDisease,
+  DiseaseDueDateInput,
 } from "@/features/registry/types";
 import { useAuthSession } from "@/features/auth/useAuthSession";
 import { ArrowRightIcon, CheckCircleIcon, ChevronLeftIcon } from "@/icons";
@@ -24,7 +26,7 @@ import {
   listFacilities,
 } from "@/services/patients";
 
-type StepId = "patient" | "caregiver" | "duplicate" | "review" | "success";
+type StepId = "patient" | "caregiver" | "diseases" | "duplicate" | "review" | "success";
 
 type PatientFormState = {
   first_name: string;
@@ -48,10 +50,25 @@ type CaregiverFormState = {
 const steps: Array<{ id: StepId; label: string }> = [
   { id: "patient", label: "Patient" },
   { id: "caregiver", label: "Caregiver" },
+  { id: "diseases", label: "Disease due dates" },
   { id: "duplicate", label: "Duplicate check" },
   { id: "review", label: "Review" },
   { id: "success", label: "Success" },
 ];
+
+const supportedDiseases: Array<{ key: SupportedDisease; label: string }> = [
+  { key: "measles", label: "Measles" },
+  { key: "polio", label: "Polio" },
+  { key: "cholera", label: "Cholera" },
+];
+
+const initialDiseaseDueDates: DiseaseDueDateInput[] = supportedDiseases.map((disease) => ({
+  disease: disease.key,
+  due_date: "",
+  status: "scheduled",
+  is_complete: false,
+  status_reason: "",
+}));
 
 const initialPatientForm: PatientFormState = {
   first_name: "",
@@ -78,6 +95,7 @@ export function PatientRegistrationWorkspace() {
   const [step, setStep] = useState<StepId>("patient");
   const [patientForm, setPatientForm] = useState(initialPatientForm);
   const [caregiverForm, setCaregiverForm] = useState(initialCaregiverForm);
+  const [diseaseDueDates, setDiseaseDueDates] = useState<DiseaseDueDateInput[]>(initialDiseaseDueDates);
   const [facilities, setFacilities] = useState<HealthFacility[]>([]);
   const [units, setUnits] = useState<AdministrativeUnitBrief[]>([]);
   const [isLoadingReference, setIsLoadingReference] = useState(true);
@@ -158,6 +176,16 @@ export function PatientRegistrationWorkspace() {
         setValidationError(message);
         return;
       }
+      setStep("diseases");
+      return;
+    }
+
+    if (step === "diseases") {
+      const message = validateDiseaseDueDates(diseaseDueDates);
+      if (message) {
+        setValidationError(message);
+        return;
+      }
       setStep("duplicate");
       return;
     }
@@ -171,8 +199,10 @@ export function PatientRegistrationWorkspace() {
     setValidationError("");
     if (step === "caregiver") {
       setStep("patient");
-    } else if (step === "duplicate") {
+    } else if (step === "diseases") {
       setStep("caregiver");
+    } else if (step === "duplicate") {
+      setStep("diseases");
     } else if (step === "review") {
       setStep("duplicate");
     }
@@ -184,8 +214,9 @@ export function PatientRegistrationWorkspace() {
 
     const patientMessage = validatePatientStep(patientForm);
     const caregiverMessage = validateCaregiverStep(caregiverForm);
-    if (patientMessage || caregiverMessage) {
-      setValidationError(patientMessage || caregiverMessage);
+    const diseaseMessage = validateDiseaseDueDates(diseaseDueDates);
+    if (patientMessage || caregiverMessage || diseaseMessage) {
+      setValidationError(patientMessage || caregiverMessage || diseaseMessage);
       return;
     }
 
@@ -213,6 +244,7 @@ export function PatientRegistrationWorkspace() {
         registered_facility_id: caregiverForm.registered_facility_id || undefined,
         medical_exception_flag: patientForm.medical_exception_flag,
         status: "registered",
+        disease_due_dates: normalizeDiseaseDueDates(diseaseDueDates),
       };
       const patient = await createPatient(token, patientPayload);
 
@@ -276,6 +308,13 @@ export function PatientRegistrationWorkspace() {
               />
             ) : null}
 
+            {step === "diseases" ? (
+              <DiseaseDueDatesStep
+                dueDates={diseaseDueDates}
+                setDueDates={setDiseaseDueDates}
+              />
+            ) : null}
+
             {step === "duplicate" ? (
               <DuplicateCheckStep patientForm={patientForm} caregiverForm={caregiverForm} />
             ) : null}
@@ -283,6 +322,7 @@ export function PatientRegistrationWorkspace() {
             {step === "review" ? (
               <ReviewStep
                 caregiverForm={caregiverForm}
+                diseaseDueDates={diseaseDueDates}
                 patientForm={patientForm}
                 selectedFacility={selectedFacility}
                 selectedUnit={selectedUnit}
@@ -618,6 +658,82 @@ function CaregiverDetailsStep({
   );
 }
 
+function DiseaseDueDatesStep({
+  dueDates,
+  setDueDates,
+}: {
+  dueDates: DiseaseDueDateInput[];
+  setDueDates: (dueDates: DiseaseDueDateInput[]) => void;
+}) {
+  function updateDisease(disease: SupportedDisease, patch: Partial<DiseaseDueDateInput>) {
+    setDueDates(
+      dueDates.map((item) =>
+        item.disease === disease
+          ? {
+              ...item,
+              ...patch,
+              due_date: patch.is_complete ? "" : patch.due_date ?? item.due_date,
+            }
+          : item,
+      ),
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <SectionTitle
+        title="Disease due dates"
+        description="Set the initial next administration date for each supported disease, or mark it complete."
+      />
+      <div className="grid gap-4 lg:grid-cols-3">
+        {supportedDiseases.map((disease) => {
+          const item = dueDates.find((row) => row.disease === disease.key);
+          return (
+            <article key={disease.key} className="enterprise-card rounded-xl p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-semibold text-[var(--nv-heading)]">{disease.label}</h3>
+                <label className="flex items-center gap-2 text-xs font-semibold text-[var(--nv-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(item?.is_complete)}
+                    onChange={(event) =>
+                      updateDisease(disease.key, { is_complete: event.target.checked })
+                    }
+                    className="h-4 w-4 rounded border-white/20 bg-white/[0.04] text-brand-500 focus:ring-brand-500"
+                  />
+                  Complete
+                </label>
+              </div>
+              <Field label="Next due date" htmlFor={`${disease.key}_due_date`} className="mt-4">
+                <input
+                  id={`${disease.key}_due_date`}
+                  type="date"
+                  value={item?.due_date ?? ""}
+                  disabled={Boolean(item?.is_complete)}
+                  onChange={(event) =>
+                    updateDisease(disease.key, { due_date: event.target.value })
+                  }
+                  className={inputClassFor(item?.due_date ?? "")}
+                />
+              </Field>
+              <Field label="Reason or note" htmlFor={`${disease.key}_reason`} className="mt-4">
+                <input
+                  id={`${disease.key}_reason`}
+                  value={item?.status_reason ?? ""}
+                  onChange={(event) =>
+                    updateDisease(disease.key, { status_reason: event.target.value })
+                  }
+                  className={inputClassFor(item?.status_reason ?? "")}
+                />
+              </Field>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function DuplicateCheckStep({
   caregiverForm,
   patientForm,
@@ -658,12 +774,14 @@ function DuplicateCheckStep({
 
 function ReviewStep({
   caregiverForm,
+  diseaseDueDates,
   patientForm,
   selectedFacility,
   selectedUnit,
 }: {
   patientForm: PatientFormState;
   caregiverForm: CaregiverFormState;
+  diseaseDueDates: DiseaseDueDateInput[];
   selectedFacility: HealthFacility | null;
   selectedUnit: AdministrativeUnitBrief | null;
 }) {
@@ -692,6 +810,16 @@ function ReviewStep({
             ["Facility", selectedFacility?.facility_name ?? "Not selected"],
             ["Residence", selectedUnit?.name ?? "Not selected"],
           ]}
+        />
+        <ReviewCard
+          title="Disease schedule"
+          rows={supportedDiseases.map((disease) => {
+            const item = diseaseDueDates.find((row) => row.disease === disease.key);
+            return [
+              disease.label,
+              item?.is_complete ? "Complete" : item?.due_date || "No due date",
+            ];
+          })}
         />
       </div>
     </div>
@@ -825,6 +953,29 @@ function validateCaregiverStep(form: CaregiverFormState) {
     return "Select the residence unit.";
   }
   return "";
+}
+
+function validateDiseaseDueDates(dueDates: DiseaseDueDateInput[]) {
+  for (const disease of supportedDiseases) {
+    const item = dueDates.find((row) => row.disease === disease.key);
+    if (!item?.is_complete && !item?.due_date) {
+      return `Set the next due date for ${disease.label} or mark it complete.`;
+    }
+  }
+  return "";
+}
+
+function normalizeDiseaseDueDates(dueDates: DiseaseDueDateInput[]): DiseaseDueDateInput[] {
+  return supportedDiseases.map((disease) => {
+    const item = dueDates.find((row) => row.disease === disease.key);
+    return {
+      disease: disease.key,
+      due_date: item?.is_complete ? null : item?.due_date || null,
+      status: item?.is_complete ? "completed" : "scheduled",
+      is_complete: Boolean(item?.is_complete),
+      status_reason: item?.status_reason?.trim() || null,
+    };
+  });
 }
 
 function readApiError(error: unknown) {

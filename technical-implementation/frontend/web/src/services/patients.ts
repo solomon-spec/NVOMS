@@ -8,12 +8,15 @@ import type {
   CreatePatientPayload,
   CreateVaccineBatchPayload,
   CreateVaccinePayload,
+  DiseaseDueDateInput,
   EpiScheduleRule,
   EpiScheduleVersion,
   HealthFacility,
+  ImmunizationHistorySummary,
   ImmunizationEvent,
   PatchPatientPayload,
   Patient,
+  PatientDiseaseSchedule,
   PatientScheduleSlot,
   PatientSummary,
   PatientStatus,
@@ -193,6 +196,53 @@ export function createPatientDose(
     token,
     body: JSON.stringify(payload),
   });
+}
+
+export function createPatientOutcome(
+  token: string,
+  patientId: string,
+  payload: CreateDosePayload,
+) {
+  return apiRequest<ImmunizationEvent>(`/patients/${patientId}/outcomes`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listPatientDiseaseSchedules(token: string, patientId: string) {
+  return apiRequest<PatientDiseaseSchedule[]>(`/patients/${patientId}/disease-schedules`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function updatePatientDiseaseSchedules(
+  token: string,
+  patientId: string,
+  diseaseDueDates: DiseaseDueDateInput[],
+) {
+  return apiRequest<PatientDiseaseSchedule[]>(`/patients/${patientId}/disease-schedules`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify({ disease_due_dates: diseaseDueDates }),
+  });
+}
+
+export function listPatientVaccinationHistory(
+  token: string,
+  patientId: string,
+  detail = false,
+) {
+  return apiRequest<ImmunizationEvent[] | ImmunizationHistorySummary[]>(
+    withQuery(`/patients/${patientId}/vaccination-history`, {
+      detail: detail ? "true" : undefined,
+    }),
+    {
+      method: "GET",
+      token,
+    },
+  );
 }
 
 export function listPatientSchedule(token: string, patientId: string) {
