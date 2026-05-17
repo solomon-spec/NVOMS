@@ -35,15 +35,18 @@ class AdministrativeUnitListView(APIView):
         if active_only == 'true':
             qs = qs.filter(is_active=True)
 
-        serializer = AdministrativeUnitSerializer(qs, many=True)
+        serializer = AdministrativeUnitSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = AdministrativeUnitSerializer(data=request.data)
+        serializer = AdministrativeUnitSerializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         unit = serializer.save()
-        return Response(AdministrativeUnitSerializer(unit).data, status=status.HTTP_201_CREATED)
+        return Response(
+            AdministrativeUnitSerializer(unit, context={'request': request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class AdministrativeUnitDetailView(APIView):
@@ -56,11 +59,11 @@ class AdministrativeUnitDetailView(APIView):
         return get_object_or_404(AdministrativeUnit.objects.select_related('parent'), pk=pk)
 
     def get(self, request, pk):
-        return Response(AdministrativeUnitSerializer(self._get_unit(pk)).data)
+        return Response(AdministrativeUnitSerializer(self._get_unit(pk), context={'request': request}).data)
 
     def put(self, request, pk):
         unit = self._get_unit(pk)
-        serializer = AdministrativeUnitSerializer(unit, data=request.data)
+        serializer = AdministrativeUnitSerializer(unit, data=request.data, context={'request': request})
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
@@ -68,7 +71,12 @@ class AdministrativeUnitDetailView(APIView):
 
     def patch(self, request, pk):
         unit = self._get_unit(pk)
-        serializer = AdministrativeUnitSerializer(unit, data=request.data, partial=True)
+        serializer = AdministrativeUnitSerializer(
+            unit,
+            data=request.data,
+            partial=True,
+            context={'request': request},
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()

@@ -167,12 +167,43 @@ export async function deleteFacility(id: number, token: string): Promise<void> {
 // ── Geography endpoints ─────────────────────────────────────────────────────
 
 export interface GeographyNode {
-  id: number;
+  id: string;
+  code: string;
   name: string;
+  name_alt: string;
   level: string;
-  parent_id: number | null;
+  parent: { id: string; code: string; name: string } | null;
+  source: string;
+  source_dataset: string;
+  area_sqkm: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  bbox: [number, number, number, number] | null;
+  boundary_geojson?: Record<string, unknown> | null;
+  valid_on: string | null;
+  valid_to: string | null;
+  data_version: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-export async function getGeography(token: string): Promise<GeographyNode[]> {
-  return apiRequest<GeographyNode[]>("/geography", { token });
+export interface GeographyFilters {
+  search?: string;
+  level?: string;
+  parent?: string;
+  active?: boolean;
+  includeGeometry?: boolean;
+}
+
+export async function getGeography(token: string, filters: GeographyFilters = {}): Promise<GeographyNode[]> {
+  const params = new URLSearchParams();
+  if (filters.search) params.set("search", filters.search);
+  if (filters.level) params.set("level", filters.level);
+  if (filters.parent) params.set("parent", filters.parent);
+  if (filters.active !== undefined) params.set("active", String(filters.active));
+  if (filters.includeGeometry) params.set("include_geometry", "true");
+
+  const query = params.toString();
+  return apiRequest<GeographyNode[]>(`/geography${query ? `?${query}` : ""}`, { token });
 }

@@ -12,9 +12,11 @@ import type {
   RiskScoreRow,
 } from "@/features/analytics/types";
 import type { AdministrativeUnitBrief } from "@/features/registry/types";
+import type { GeographyNode } from "@/services/admin";
 import type { OutbreakAlert } from "@/features/surveillance/types";
 import { useAuthSession } from "@/features/auth/useAuthSession";
-import { AlertIcon, ArrowRightIcon, CheckCircleIcon, GroupIcon, PieChartIcon, TaskIcon } from "@/icons";
+import { AlertIcon, ArrowRightIcon, CheckCircleIcon, ChevronLeftIcon, GroupIcon, PieChartIcon, TaskIcon } from "@/icons";
+import { getGeography } from "@/services/admin";
 import { getDefaulterClusters, getReportingGaps, getRiskScores, runPrediction } from "@/services/analytics";
 import { listAdministrativeUnits } from "@/services/patients";
 import { listOutbreakAlerts } from "@/services/surveillance";
@@ -42,6 +44,15 @@ type RiskFilters = {
   unit_id: string;
   disease: string;
   threshold_days: string;
+};
+
+type DrillLevel = "region" | "zone" | "woreda";
+
+type MapPoint = {
+  unit: GeographyNode;
+  x: number;
+  y: number;
+  path?: string;
 };
 
 type DefaulterFilters = {
@@ -118,6 +129,448 @@ function ButtonIcon({ children }: { children: ReactNode }) {
       {children}
     </span>
   );
+}
+
+function AdministrativeDrilldownMap({
+  onSelectUnit,
+  riskScores,
+  token,
+}: {
+  onSelectUnit: (unit: GeographyNode) => void;
+  riskScores: RiskScoreRow[];
+  token: string;
+}) {
+  const [units, setUnits] = useState<GeographyNode[]>([]);
+  const [drillPath, setDrillPath] = useState<GeographyNode[]>([]);
+  const [isMapLoading, setIsMapLoading] = useState(true);
+  const [mapError, setMapError] = useState("");
+
+  const currentParent = drillPath.at(-1) ?? null;
+  const currentLevel = nextDrillLevel(currentParent?.level);
+  const canGoDeeper = currentLevel !== "woreda";
+
+  useEffect(() => {
+    if (!token) return;
+
+    let active = true;
+    setIsMapLoading(true);
+    setMapError("");
+
+    getGeography(token, {
+      active: true,
+      includeGeometry: true,
+      level: currentLevel,
+      parent: currentParent?.id,
+    })
+      .then((result) => {
+        if (!active) return;
+        setUnits(preferSourcedUnits(result));
+      })
+      .catch(() => {
+        if (!active) return;
+        setMapError("Administrative map data could not be loaded.");
+      })
+      .finally(() => {
+        if (active) setIsMapLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [currentLevel, currentParent?.id, token]);
+
+  const riskByUnit = useMemo(() => {
+    const map = new Map<string, RiskScoreRow>();
+    riskScores.forEach((row) => {
+      const existing = map.get(row.unit_id);
+      if (!existing || row.risk_score > existing.risk_score) {
+        map.set(row.unit_id, row);
+      }
+    });
+    return map;
+  }, [riskScores]);
+
+  const mapPoints = useMemo(() => projectUnits(units, currentLevel), [currentLevel, units]);
+
+  function handleUnitClick(unit: GeographyNode) {
+    onSelectUnit(unit);
+    if (canGoDeeper) {
+      setDrillPath((current) => [...current, unit]);
+    }
+  }
+
+  function handleBack() {
+    setDrillPath((current) => current.slice(0, -1));
+  }
+
+  function handleResetMap() {
+    setDrillPath([]);
+  }
+
+  return (
+    <div>
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Administrative drilldown map</h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {drillPath.length ? currentParent?.name : "National boundary view"} - {units.length} {formatRole(currentLevel).toLowerCase()} areas
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {drillPath.length ? (
+            <button
+              className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+              type="button"
+              onClick={handleBack}
+            >
+              <ChevronLeftIcon className="h-4 w-4 fill-current" />
+              Back
+            </button>
+          ) : null}
+          <button
+            className="inline-flex min-h-9 items-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+            disabled={drillPath.length === 0}
+            type="button"
+            onClick={handleResetMap}
+          >
+            National
+          </button>
+          <StatusPill label={formatRole(currentLevel)} tone="brand" />
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
+        <button
+          className="font-semibold text-brand-600 hover:text-brand-700 disabled:text-gray-500 disabled:hover:text-gray-500 dark:text-brand-400 dark:disabled:text-gray-400"
+          disabled={drillPath.length === 0}
+          type="button"
+          onClick={handleResetMap}
+        >
+          National
+        </button>
+        {drillPath.map((unit) => (
+          <span key={unit.id} className="inline-flex items-center gap-2">
+            <span>/</span>
+            <button
+              className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+              type="button"
+              onClick={() => setDrillPath((current) => current.slice(0, current.findIndex((item) => item.id === unit.id) + 1))}
+            >
+              {unit.name}
+            </button>
+          </span>
+        ))}
+      </div>
+
+      {mapError ? <InlineError message={mapError} /> : null}
+
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-h-[500px] overflow-hidden rounded-lg border border-gray-200 bg-[#F8FBFD] shadow-sm dark:border-gray-800 dark:bg-gray-950">
+          {isMapLoading ? (
+            <div className="p-5">
+              <SkeletonCard lines={8} />
+            </div>
+          ) : mapPoints.length === 0 ? (
+            <EmptyState icon="!">No {formatRole(currentLevel).toLowerCase()} map locations are available for this scope.</EmptyState>
+          ) : (
+            <svg
+              aria-label={`${formatRole(currentLevel)} map`}
+              className="h-[500px] w-full"
+              role="img"
+              viewBox="0 0 1000 560"
+            >
+              <rect fill="#F8FBFD" height="560" width="1000" />
+              {mapPoints.map((point) => {
+                const risk = riskByUnit.get(point.unit.id);
+                const tone = risk ? riskTone(risk.risk_score) : "success";
+                const fill = mapFill(tone);
+                const radius = currentLevel === "region" ? 30 : currentLevel === "zone" ? 23 : 16;
+                const showLabel = currentLevel !== "woreda" || units.length <= 16;
+                return (
+                  <g key={point.unit.id}>
+                    <g
+                      aria-label={`Open ${point.unit.name}`}
+                      className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleUnitClick(point.unit)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          handleUnitClick(point.unit);
+                        }
+                      }}
+                    >
+                      {point.path ? (
+                        <path
+                          className="transition duration-150 hover:brightness-95"
+                          d={point.path}
+                          fill={fill}
+                          fillOpacity="0.36"
+                          stroke="#ffffff"
+                          strokeLinejoin="round"
+                          strokeWidth="2.4"
+                        />
+                      ) : (
+                        <>
+                          <circle
+                            cx={point.x}
+                            cy={point.y}
+                            fill={fill}
+                            opacity="0.24"
+                            r={radius + 16}
+                          />
+                          <circle
+                            cx={point.x}
+                            cy={point.y}
+                            fill={fill}
+                            r={radius}
+                            stroke="#ffffff"
+                            strokeWidth="4"
+                          />
+                        </>
+                      )}
+                    </g>
+                    {showLabel ? (
+                      <text
+                        fill="#1E293B"
+                        fontSize={currentLevel === "woreda" ? 12 : 15}
+                        fontWeight="700"
+                        paintOrder="stroke"
+                        pointerEvents="none"
+                        stroke="#FFFFFF"
+                        strokeWidth="4"
+                        textAnchor="middle"
+                        x={point.x}
+                        y={point.y + (point.path ? 4 : radius + 21)}
+                      >
+                        {shortUnitName(point.unit.name)}
+                      </text>
+                    ) : null}
+                  </g>
+                );
+              })}
+            </svg>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-white/[0.02]">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              {formatRole(currentLevel)} list
+            </h3>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{units.length} areas</span>
+          </div>
+          <div className="max-h-[440px] space-y-2 overflow-y-auto pr-1">
+            {units.map((unit) => {
+              const risk = riskByUnit.get(unit.id);
+              return (
+                <button
+                  key={unit.id}
+                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-brand-300 hover:bg-brand-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-brand-500/60 dark:hover:bg-brand-500/10"
+                  type="button"
+                  onClick={() => handleUnitClick(unit)}
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-gray-900 dark:text-white">{unit.name}</span>
+                    <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">{unit.code}</span>
+                  </span>
+                  <StatusPill
+                    label={risk ? `${scorePercent(risk.risk_score)}%` : "No score"}
+                    tone={risk ? riskTone(risk.risk_score) : "gray"}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function nextDrillLevel(parentLevel?: string): DrillLevel {
+  if (parentLevel === "region") return "zone";
+  if (parentLevel === "zone") return "woreda";
+  return "region";
+}
+
+function preferSourcedUnits(units: GeographyNode[]) {
+  const sourcedUnits = units.filter((unit) => unit.source);
+  return sourcedUnits.length > 0 ? sourcedUnits : units;
+}
+
+function projectUnits(units: GeographyNode[], level: DrillLevel): MapPoint[] {
+  const geometryCoordinates = units.flatMap((unit) => geometryPairs(unit.boundary_geojson));
+  if (geometryCoordinates.length > 0) {
+    const minLat = Math.min(...geometryCoordinates.map((point) => point[1]));
+    const maxLat = Math.max(...geometryCoordinates.map((point) => point[1]));
+    const minLon = Math.min(...geometryCoordinates.map((point) => point[0]));
+    const maxLon = Math.max(...geometryCoordinates.map((point) => point[0]));
+    const project = createProjector(minLat, maxLat, minLon, maxLon);
+
+    return units.map((unit, index) => {
+      const path = geometryPath(unit.boundary_geojson, project, level);
+      const center = geometryCenter(unit.boundary_geojson);
+      const projectedCenter = center
+        ? project(center[0], center[1])
+        : fallbackPoint(index, units.length);
+
+      return {
+        unit,
+        path,
+        x: projectedCenter.x,
+        y: projectedCenter.y,
+      };
+    });
+  }
+
+  const located = units.map((unit, index) => ({
+    unit,
+    index,
+    lat: Number(unit.latitude),
+    lon: Number(unit.longitude),
+  }));
+
+  const usable = located.filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon));
+  if (usable.length === 0) {
+    return located.map((point) => ({ unit: point.unit, ...fallbackPoint(point.index, located.length) }));
+  }
+
+  const minLat = Math.min(...usable.map((point) => point.lat));
+  const maxLat = Math.max(...usable.map((point) => point.lat));
+  const minLon = Math.min(...usable.map((point) => point.lon));
+  const maxLon = Math.max(...usable.map((point) => point.lon));
+  const lonSpan = maxLon - minLon || 1;
+  const latSpan = maxLat - minLat || 1;
+
+  return located.map((point) => {
+    if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)) {
+      return { unit: point.unit, ...fallbackPoint(point.index, located.length) };
+    }
+
+    return {
+      unit: point.unit,
+      x: 90 + ((point.lon - minLon) / lonSpan) * 820,
+      y: 70 + ((maxLat - point.lat) / latSpan) * 420,
+    };
+  });
+}
+
+function createProjector(minLat: number, maxLat: number, minLon: number, maxLon: number) {
+  const lonSpan = maxLon - minLon || 1;
+  const latSpan = maxLat - minLat || 1;
+  const width = 860;
+  const height = 460;
+  const scale = Math.min(width / lonSpan, height / latSpan);
+  const projectedWidth = lonSpan * scale;
+  const projectedHeight = latSpan * scale;
+  const offsetX = 70 + (width - projectedWidth) / 2;
+  const offsetY = 50 + (height - projectedHeight) / 2;
+
+  return (lon: number, lat: number) => ({
+    x: offsetX + (lon - minLon) * scale,
+    y: offsetY + (maxLat - lat) * scale,
+  });
+}
+
+function fallbackPoint(index: number, total: number) {
+  const columns = Math.ceil(Math.sqrt(total || 1));
+  const row = Math.floor(index / columns);
+  const column = index % columns;
+  return {
+    x: 120 + column * (760 / Math.max(columns - 1, 1)),
+    y: 100 + row * 95,
+  };
+}
+
+function geometryPairs(geometry: Record<string, unknown> | null | undefined): number[][] {
+  if (!geometry || !("coordinates" in geometry)) return [];
+  return coordinatePairs(geometry.coordinates);
+}
+
+function coordinatePairs(value: unknown): number[][] {
+  if (
+    Array.isArray(value)
+    && value.length >= 2
+    && typeof value[0] === "number"
+    && typeof value[1] === "number"
+  ) {
+    return [[value[0], value[1]]];
+  }
+
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => coordinatePairs(item));
+}
+
+function geometryCenter(geometry: Record<string, unknown> | null | undefined) {
+  const pairs = geometryPairs(geometry);
+  if (pairs.length === 0) return null;
+
+  const lon = pairs.reduce((sum, point) => sum + point[0], 0) / pairs.length;
+  const lat = pairs.reduce((sum, point) => sum + point[1], 0) / pairs.length;
+  return [lon, lat] as const;
+}
+
+function geometryPath(
+  geometry: Record<string, unknown> | null | undefined,
+  project: (lon: number, lat: number) => { x: number; y: number },
+  level: DrillLevel,
+) {
+  if (!geometry || typeof geometry.type !== "string" || !("coordinates" in geometry)) return "";
+
+  if (geometry.type === "Polygon") {
+    return polygonPath(geometry.coordinates, project, level);
+  }
+  if (geometry.type === "MultiPolygon" && Array.isArray(geometry.coordinates)) {
+    return geometry.coordinates.map((polygon) => polygonPath(polygon, project, level)).join(" ");
+  }
+  return "";
+}
+
+function polygonPath(
+  coordinates: unknown,
+  project: (lon: number, lat: number) => { x: number; y: number },
+  level: DrillLevel,
+) {
+  if (!Array.isArray(coordinates)) return "";
+
+  return coordinates
+    .map((ring) => {
+      if (!Array.isArray(ring)) return "";
+      const commands = ring
+        .filter((point): point is number[] => (
+          Array.isArray(point)
+          && point.length >= 2
+          && typeof point[0] === "number"
+          && typeof point[1] === "number"
+        ))
+        .filter((_, index, points) => shouldRenderBoundaryPoint(index, points.length, level))
+        .map((point, index) => {
+          const projected = project(point[0], point[1]);
+          return `${index === 0 ? "M" : "L"}${projected.x.toFixed(1)} ${projected.y.toFixed(1)}`;
+        });
+      return commands.length ? `${commands.join(" ")} Z` : "";
+    })
+    .join(" ");
+}
+
+function shouldRenderBoundaryPoint(index: number, total: number, level: DrillLevel) {
+  const maxPoints = level === "region" ? 360 : level === "zone" ? 260 : 180;
+  if (total <= maxPoints) return true;
+  const step = Math.ceil(total / maxPoints);
+  return index === 0 || index === total - 1 || index % step === 0;
+}
+
+function mapFill(tone: "success" | "warning" | "error") {
+  if (tone === "error") return "#F04438";
+  if (tone === "warning") return "#F79009";
+  return "#12B76A";
+}
+
+function shortUnitName(name: string) {
+  const normalized = name.replace(/\b(region|zone|woreda|special)\b/gi, "").trim();
+  return normalized.length > 18 ? `${normalized.slice(0, 16)}...` : normalized;
 }
 
 export function RiskMapWorkspace() {
@@ -360,6 +813,19 @@ export function RiskMapWorkspace() {
             ))}
           </div>
         )}
+
+        <section>
+          <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+            <AdministrativeDrilldownMap
+              riskScores={data.riskScores}
+              token={token}
+              onSelectUnit={(unit) => {
+                setFilters((current) => ({ ...current, unit_id: unit.id }));
+                setAppliedFilters((current) => ({ ...current, unit_id: unit.id }));
+              }}
+            />
+          </div>
+        </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
           <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
