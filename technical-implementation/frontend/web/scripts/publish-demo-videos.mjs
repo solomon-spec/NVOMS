@@ -13,11 +13,10 @@ const sections = [
   { key: "patient-detail", label: "Patient detail", spec: "patient-detail.demo.ts" },
   { key: "registration", label: "Patient registration", spec: "patient-registration.demo.ts" },
   { key: "immunizations", label: "Immunizations", spec: "immunizations.demo.ts" },
-  { key: "surveillance", label: "Surveillance", spec: "surveillance.demo.ts" },
+  { key: "case-reports", label: "Case reports", spec: "case-reports.demo.ts" },
+  { key: "public-health", label: "Public health hub", spec: "public-health.demo.ts" },
   { key: "self-service", label: "Patient self-service", spec: "self-service.demo.ts" },
   { key: "caregiver", label: "Caregiver portal", spec: "caregiver-portal.demo.ts" },
-  { key: "risk-map", label: "Risk map", spec: "risk-map.demo.ts" },
-  { key: "defaulters", label: "Defaulter clusters", spec: "defaulters.demo.ts" },
 ];
 
 function walk(dir) {

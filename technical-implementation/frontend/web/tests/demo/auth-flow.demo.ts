@@ -28,13 +28,13 @@ const seededRoles: RoleDemo[] = [
     label: "Health Worker",
     role: "HEALTH_WORKER",
     landingLink: "Offline Queue",
-    visibleLinks: ["Today", "Patients", "Immunizations", "Surveillance", "Offline Queue"],
+    visibleLinks: ["Today", "Patients", "Immunizations", "Case Reports", "Offline Queue"],
   },
   {
     label: "Public Health Official",
     role: "PUBLIC_HEALTH_OFFICIAL",
-    landingLink: "Risk Map",
-    visibleLinks: ["Dashboard", "Risk Map", "Surveillance", "Defaulter Clusters", "Reports"],
+    landingLink: "Public Health Hub",
+    visibleLinks: ["Dashboard", "Public Health Hub", "Case Reports", "Reports"],
   },
   {
     label: "Patient",

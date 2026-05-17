@@ -15,6 +15,32 @@ It is now organized around the actual app workspaces instead of duplicated top-l
 - `ml/`
   model training, inference, feature engineering, and evaluation
 
+## One-command Demo Setup
+
+For a fresh clone, run:
+
+```bash
+cd technical-implementation
+./setup_demo_environment.sh
+```
+
+This installs backend/frontend dependencies, applies migrations, creates demo
+accounts, imports the required HDX geography files, and loads demo data.
+
+If the full generated demo file exists at:
+
+```text
+data/demo/demo-data-huge-no-geography.json
+```
+
+the setup script loads it. Otherwise it falls back to the small bundled backend
+sample at `backend/demo_data.example.json`.
+
+Required geography files are already in the repo:
+
+- `data/datasets/eth_admin_boundaries.xlsx`
+- `data/datasets/eth_admin_boundaries.shp.zip`
+
 ## Run the App Locally
 
 Run the backend and frontend in two separate terminal windows.
@@ -35,10 +61,18 @@ The backend API will be available at:
 - Swagger docs: `http://127.0.0.1:8000/api/docs/`
 - ReDoc: `http://127.0.0.1:8000/api/redoc/`
 
-If you want the patient registry and public health monitoring demos to look realistic, seed demo patient and monitoring data before starting or while the backend environment is active:
+If you want the patient registry and public health monitoring demos to look realistic, import geography and load demo data before starting or while the backend environment is active:
 
 ```bash
-python setup_demo_patients.py
+python manage.py import_hdx_admin_boundaries \
+  --source ../data/datasets/eth_admin_boundaries.xlsx \
+  --geojson-source ../data/datasets/eth_admin_boundaries.shp.zip
+
+python manage.py load_demo_data \
+  ../data/demo/demo-data-huge-no-geography.json \
+  --namespace quality-demo \
+  --reset \
+  --auto-geography
 ```
 
 ### 2. Start the frontend
@@ -84,8 +118,8 @@ npm run demo:auth
 npm run demo:patients
 npm run demo:patient-detail
 npm run demo:registration
-npm run demo:risk-map
-npm run demo:defaulters
+npm run demo:case-reports
+npm run demo:public-health
 ```
 
 Generated raw videos are written under:
@@ -109,8 +143,8 @@ frontend/web/demo-videos/
 Example published paths:
 
 - `frontend/web/demo-videos/auth.webm`
-- `frontend/web/demo-videos/risk-map.webm`
-- `frontend/web/demo-videos/defaulters.webm`
+- `frontend/web/demo-videos/case-reports.webm`
+- `frontend/web/demo-videos/public-health.webm`
 
 Playwright starts its own frontend server for demos. If a manual `npm run dev` server is already running and Next.js reports a dev-server lock, stop the manual frontend server first, run the demo command, then restart the frontend.
 

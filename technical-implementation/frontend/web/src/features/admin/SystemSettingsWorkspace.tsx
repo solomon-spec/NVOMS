@@ -142,7 +142,7 @@ export function SystemSettingsWorkspace() {
               Import geography first, then load generated demo data with automatic geography mapping.
             </p>
             <CodeBlock value="./nvoms_env/bin/python manage.py import_hdx_admin_boundaries --source ../data/datasets/eth_admin_boundaries.xlsx --geojson-source ../data/datasets/eth_admin_boundaries.shp.zip" />
-            <CodeBlock value="./nvoms_env/bin/python manage.py load_demo_data /Users/tikursew/Downloads/demo-data-huge-no-geography.json --namespace quality-demo --reset --auto-geography" />
+            <CodeBlock value="./nvoms_env/bin/python manage.py load_demo_data ../data/demo/demo-data-huge-no-geography.json --namespace quality-demo --reset --auto-geography" />
           </div>
 
           <div className="rounded border border-[var(--nv-border-soft)] bg-[var(--nv-surface)] p-5">

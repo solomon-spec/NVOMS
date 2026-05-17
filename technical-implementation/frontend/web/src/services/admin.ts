@@ -60,7 +60,7 @@ export interface CreateFacilityPayload {
 // ── User endpoints ──────────────────────────────────────────────────────────
 
 export async function getUsers(token: string): Promise<AdminUser[]> {
-  return apiRequest<AdminUser[]>("/users", { token });
+  return apiRequest<AdminUser[]>("/users/", { token });
 }
 
 export async function getUser(id: string, token: string): Promise<AdminUser> {
@@ -68,7 +68,7 @@ export async function getUser(id: string, token: string): Promise<AdminUser> {
 }
 
 export async function createUser(data: CreateUserPayload, token: string): Promise<AdminUser> {
-  return apiRequest<AdminUser>("/users", {
+  return apiRequest<AdminUser>("/users/", {
     method: "POST",
     token,
     body: JSON.stringify(data),
@@ -109,11 +109,11 @@ export async function updateUserRoles(id: string, role_id: string, token: string
 // ── Role endpoints ──────────────────────────────────────────────────────────
 
 export async function getRoles(token: string): Promise<Role[]> {
-  return apiRequest<Role[]>("/roles", { token });
+  return apiRequest<Role[]>("/roles/", { token });
 }
 
 export async function createRole(data: CreateRolePayload, token: string): Promise<Role> {
-  return apiRequest<Role>("/roles", {
+  return apiRequest<Role>("/roles/", {
     method: "POST",
     token,
     body: JSON.stringify(data),
@@ -138,11 +138,11 @@ export async function deleteRole(id: string, token: string): Promise<void> {
 // ── Facility endpoints ──────────────────────────────────────────────────────
 
 export async function getFacilities(token: string): Promise<Facility[]> {
-  return apiRequest<Facility[]>("/facilities", { token });
+  return apiRequest<Facility[]>("/facilities/", { token });
 }
 
 export async function createFacility(data: CreateFacilityPayload, token: string): Promise<Facility> {
-  return apiRequest<Facility>("/facilities", {
+  return apiRequest<Facility>("/facilities/", {
     method: "POST",
     token,
     body: JSON.stringify(data),
@@ -205,7 +205,7 @@ export async function getGeography(token: string, filters: GeographyFilters = {}
   if (filters.includeGeometry) params.set("include_geometry", "true");
 
   const query = params.toString();
-  return apiRequest<GeographyNode[]>(`/geography${query ? `?${query}` : ""}`, { token });
+  return apiRequest<GeographyNode[]>(`/geography/${query ? `?${query}` : ""}`, { token });
 }
 
 export interface AuditLogEntry {

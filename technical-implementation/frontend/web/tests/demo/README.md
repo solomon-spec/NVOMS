@@ -10,9 +10,8 @@ Playwright is used here for reviewable demo videos, not fast CI checks.
 - `npm run demo:patient-detail` records the patient detail workspace walkthrough.
 - `npm run demo:registration` records the patient registration walkthrough.
 - `npm run demo:immunizations` records the immunization walkthrough.
-- `npm run demo:surveillance` records the surveillance walkthrough.
-- `npm run demo:risk-map` records the public health risk map walkthrough.
-- `npm run demo:defaulters` records the defaulter cluster walkthrough.
+- `npm run demo:case-reports` records the case report queue and creation walkthrough.
+- `npm run demo:public-health` records the Public Health Hub risk and missed dose walkthrough.
 - `npm run demo:self-service` records the patient self-service walkthrough.
 - `npm run demo:caregiver` records the caregiver gap/fallback walkthrough.
 - `npm run demo:videos` prints generated raw Playwright `.webm` video paths.
@@ -37,11 +36,10 @@ demo-videos/patients.webm
 demo-videos/patient-detail.webm
 demo-videos/registration.webm
 demo-videos/immunizations.webm
-demo-videos/surveillance.webm
+demo-videos/case-reports.webm
+demo-videos/public-health.webm
 demo-videos/self-service.webm
 demo-videos/caregiver.webm
-demo-videos/risk-map.webm
-demo-videos/defaulters.webm
 ```
 
 To inspect the raw Playwright output instead, run:
@@ -55,5 +53,5 @@ For patient registry and public health monitoring demos, seed local backend data
 ```bash
 cd ../../backend
 source nvoms_env/bin/activate
-python setup_demo_patients.py
+python manage.py load_demo_data demo_data.example.json --namespace quality-demo --reset --auto-geography
 ```
