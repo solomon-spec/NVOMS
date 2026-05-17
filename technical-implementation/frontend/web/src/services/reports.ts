@@ -8,7 +8,7 @@ import { apiRequest } from "@/services/api";
 export const reportTemplates: ReportTemplate[] = [
   {
     code: "DEFAULTER_LIST",
-    title: "Defaulter List",
+    title: "Missed Follow-ups",
     description: "Patients who missed one or more scheduled vaccinations.",
     endpoint: "defaulters",
   },
@@ -20,7 +20,7 @@ export const reportTemplates: ReportTemplate[] = [
   },
   {
     code: "AEFI_SURVEILLANCE",
-    title: "AEFI Surveillance",
+    title: "AEFI Case Review",
     description: "Adverse events following immunization for review.",
     endpoint: "aefi",
   },

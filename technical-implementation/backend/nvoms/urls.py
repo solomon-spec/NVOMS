@@ -31,7 +31,7 @@ urlpatterns = [
     path("api/v1/vaccines/", include("vaccines.urls")),
     path("api/v1/antigens/", include("vaccines.antigen_urls")),
     path("api/v1/immunizations/", include("immunizations.urls")),
-    path("api/v1/surveillance/", include("surveillance.urls")),
+    path("api/v1/outbreaks/", include("surveillance.urls")),
     path("api/v1/alerts/", include("surveillance.alert_urls")),
     path("api/v1/notifications/", include("notifications.urls")),
     path("api/v1/sms-logs/", include("notifications.sms_urls")),

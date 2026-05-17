@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useAuthSession } from "@/features/auth/useAuthSession";
 import { getVaccineCoverage } from "@/services/analytics";
 import { listPatients } from "@/services/patients";
-import { listSurveillanceReports, listOutbreakAlerts } from "@/services/surveillance";
+import { listSurveillanceReports, listOutbreakAlerts } from "@/services/outbreaks";
 import { MetricCard, ProgressRing, SkeletonCard, AlertBanner, StatusPill } from "@/shared/workspace-ui";
 import { formatRole } from "@/shared/format";
 
@@ -30,10 +30,10 @@ const allModules = [
     color: "from-success-500 to-success-700",
   },
   {
-    label: "Surveillance",
-    href: "/surveillance",
-    description: "Submit surveillance reports, manage follow-up actions, and verify outbreak alerts.",
-    icon: "SV",
+    label: "Case Reports",
+    href: "/outbreaks",
+    description: "Submit case reports, manage follow-up actions, and verify outbreak alerts.",
+    icon: "OR",
     access: ["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"],
     color: "from-warning-500 to-warning-700",
   },
@@ -226,8 +226,8 @@ export function DashboardHome() {
         <AlertBanner tone="error" count={confirmedAlertCount}>
           <strong>{confirmedAlertCount} confirmed outbreak alert{confirmedAlertCount > 1 ? "s" : ""}</strong>{" "}
           require immediate attention.{" "}
-          <Link href="/surveillance" className="underline underline-offset-2 hover:no-underline">
-            Review in Surveillance
+          <Link href="/outbreaks" className="underline underline-offset-2 hover:no-underline">
+            Review in Case Reports
           </Link>
         </AlertBanner>
       )}
@@ -326,10 +326,10 @@ export function DashboardHome() {
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--nv-muted)]">
-              Recent Open Surveillance Reports
+              Recent Open Case Reports
             </h2>
             <Link
-              href="/surveillance"
+              href="/outbreaks"
               className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
             >
               View all

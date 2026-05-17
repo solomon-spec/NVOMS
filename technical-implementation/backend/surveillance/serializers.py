@@ -1,7 +1,19 @@
 from rest_framework import serializers
 
 from surveillance.models import FollowUpAction, OutbreakAlert, SurveillanceReport, SurveillanceSymptom
+from vaccines.models import VaccineBatch, VaccineDefinition
 
+
+from patients.serializers import PatientSerializer
+from vaccines.serializers import VaccineBatchBriefSerializer, VaccineBriefSerializer
+
+
+class ImmunizationEventCaseLinkSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    administered_at = serializers.DateTimeField(read_only=True)
+    event_status = serializers.CharField(read_only=True)
+    vaccine = VaccineBriefSerializer(read_only=True)
+    vaccine_batch = VaccineBatchBriefSerializer(read_only=True)
 
 class SurveillanceSymptomSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,6 +24,24 @@ class SurveillanceSymptomSerializer(serializers.ModelSerializer):
 
 class SurveillanceReportSerializer(serializers.ModelSerializer):
     symptoms = SurveillanceSymptomSerializer(many=True, read_only=True)
+    patient_details = PatientSerializer(source='patient', read_only=True)
+    aefi_vaccine = VaccineBriefSerializer(read_only=True)
+    aefi_vaccine_batch = VaccineBatchBriefSerializer(read_only=True)
+    aefi_immunization_event = ImmunizationEventCaseLinkSerializer(read_only=True)
+    aefi_vaccine_id = serializers.PrimaryKeyRelatedField(
+        queryset=VaccineDefinition.objects.all(),
+        source='aefi_vaccine',
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+    aefi_vaccine_batch_id = serializers.PrimaryKeyRelatedField(
+        queryset=VaccineBatch.objects.all(),
+        source='aefi_vaccine_batch',
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
 
     class Meta:
         model = SurveillanceReport
@@ -20,9 +50,17 @@ class SurveillanceReportSerializer(serializers.ModelSerializer):
             'surveillance_category', 'condition_type', 'disease_suspected',
             'onset_date', 'body_temperature_c', 'severity',
             'follow_up_required', 'status',
+            'aefi_immunization_event', 'aefi_vaccine', 'aefi_vaccine_batch',
+            'aefi_vaccine_id', 'aefi_vaccine_batch_id',
+            'vaccine_dose_label', 'vaccination_date',
+            'lab_sample_taken', 'specimen_status', 'specimen_type',
+            'specimen_collection_date', 'lab_test_type',
+            'lab_result_status', 'lab_result_date', 'lab_result_notes',
+            'clinical_outcome', 'clinical_outcome_date',
+            'outcome_notes', 'next_follow_up_date',
             'fhir_observation_id', 'fhir_resource_id',
             'local_client_record_id', 'notes',
-            'symptoms', 'created_at', 'updated_at',
+            'symptoms', 'patient_details', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'reported_by', 'created_at', 'updated_at']
 
@@ -36,7 +74,15 @@ class SurveillanceReportCreateSerializer(serializers.ModelSerializer):
             'patient', 'facility',
             'surveillance_category', 'condition_type', 'disease_suspected',
             'onset_date', 'body_temperature_c', 'severity',
-            'follow_up_required', 'notes', 'symptoms',
+            'follow_up_required',
+            'aefi_immunization_event', 'aefi_vaccine', 'aefi_vaccine_batch',
+            'vaccine_dose_label', 'vaccination_date',
+            'lab_sample_taken', 'specimen_status', 'specimen_type',
+            'specimen_collection_date', 'lab_test_type',
+            'lab_result_status', 'lab_result_date', 'lab_result_notes',
+            'clinical_outcome', 'clinical_outcome_date',
+            'outcome_notes', 'next_follow_up_date',
+            'notes', 'symptoms',
         ]
 
     def create(self, validated_data):
@@ -53,7 +99,13 @@ class SurveillanceReportUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'condition_type', 'disease_suspected',
             'onset_date', 'body_temperature_c', 'severity',
-            'follow_up_required', 'status', 'notes',
+            'follow_up_required', 'status', 'lab_sample_taken', 
+            'aefi_immunization_event', 'aefi_vaccine', 'aefi_vaccine_batch',
+            'vaccine_dose_label', 'vaccination_date',
+            'specimen_status', 'specimen_type', 'specimen_collection_date',
+            'lab_test_type', 'lab_result_status', 'lab_result_date',
+            'lab_result_notes', 'clinical_outcome', 'clinical_outcome_date',
+            'outcome_notes', 'next_follow_up_date', 'notes',
         ]
 
 

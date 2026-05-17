@@ -23,6 +23,29 @@ class SurveillanceReport(models.Model):
         UNDER_FOLLOW_UP = 'under_follow_up', 'Under Follow-Up'
         CLOSED = 'closed', 'Closed'
 
+    class LabResultStatus(models.TextChoices):
+        NOT_SENT = 'not_sent', 'Not Sent'
+        PENDING = 'pending', 'Pending'
+        POSITIVE = 'positive', 'Positive'
+        NEGATIVE = 'negative', 'Negative'
+        INCONCLUSIVE = 'inconclusive', 'Inconclusive'
+
+    class SpecimenStatus(models.TextChoices):
+        NOT_COLLECTED = 'not_collected', 'Not Collected'
+        PENDING = 'pending', 'Pending'
+        COLLECTED = 'collected', 'Collected'
+        SENT = 'sent', 'Sent'
+        RECEIVED = 'received', 'Received'
+
+    class ClinicalOutcome(models.TextChoices):
+        UNKNOWN = 'unknown', 'Unknown'
+        RECOVERING = 'recovering', 'Recovering'
+        RECOVERED = 'recovered', 'Recovered'
+        HOSPITALIZED = 'hospitalized', 'Hospitalized'
+        REFERRED = 'referred', 'Referred'
+        TRANSFERRED = 'transferred', 'Transferred'
+        DECEASED = 'deceased', 'Deceased'
+
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False, db_column='surveillance_report_id'
     )
@@ -63,6 +86,55 @@ class SurveillanceReport(models.Model):
     fhir_observation_id = models.CharField(max_length=120, null=True, blank=True)
     fhir_resource_id = models.CharField(max_length=120, null=True, blank=True)
     local_client_record_id = models.CharField(max_length=120, unique=True, null=True, blank=True)
+
+    aefi_immunization_event = models.ForeignKey(
+        'immunizations.ImmunizationEvent',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='aefi_case_reports',
+        db_column='aefi_immunization_event_id',
+    )
+    aefi_vaccine = models.ForeignKey(
+        'vaccines.VaccineDefinition',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='aefi_case_reports',
+        db_column='aefi_vaccine_id',
+    )
+    aefi_vaccine_batch = models.ForeignKey(
+        'vaccines.VaccineBatch',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='aefi_case_reports',
+        db_column='aefi_vaccine_batch_id',
+    )
+    vaccine_dose_label = models.CharField(max_length=80, null=True, blank=True)
+    vaccination_date = models.DateField(null=True, blank=True)
+    
+    lab_sample_taken = models.BooleanField(default=False)
+    specimen_status = models.CharField(
+        max_length=20,
+        choices=SpecimenStatus.choices,
+        default=SpecimenStatus.NOT_COLLECTED,
+    )
+    specimen_type = models.CharField(max_length=100, null=True, blank=True)
+    specimen_collection_date = models.DateField(null=True, blank=True)
+    lab_test_type = models.CharField(max_length=100, null=True, blank=True)
+    lab_result_status = models.CharField(
+        max_length=20, choices=LabResultStatus.choices, null=True, blank=True
+    )
+    lab_result_date = models.DateField(null=True, blank=True)
+    lab_result_notes = models.TextField(null=True, blank=True)
+    clinical_outcome = models.CharField(
+        max_length=20, choices=ClinicalOutcome.choices, null=True, blank=True
+    )
+    clinical_outcome_date = models.DateField(null=True, blank=True)
+    outcome_notes = models.TextField(null=True, blank=True)
+    next_follow_up_date = models.DateField(null=True, blank=True)
+
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)

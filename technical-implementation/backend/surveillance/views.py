@@ -34,7 +34,17 @@ class SurveillanceReportListView(APIView):
 
     def get(self, request):
         qs = SurveillanceReport.objects.select_related(
-            'patient', 'facility', 'reported_by'
+            'patient',
+            'patient__primary_caregiver',
+            'patient__residence_unit',
+            'patient__registered_facility',
+            'facility',
+            'reported_by',
+            'aefi_vaccine',
+            'aefi_vaccine_batch',
+            'aefi_immunization_event',
+            'aefi_immunization_event__vaccine',
+            'aefi_immunization_event__vaccine_batch',
         ).prefetch_related('symptoms').order_by('-created_at')
 
         search = request.query_params.get('search')
@@ -83,7 +93,17 @@ class SurveillanceReportDetailView(APIView):
     def _get_report(self, pk):
         return get_object_or_404(
             SurveillanceReport.objects.select_related(
-                'patient', 'facility', 'reported_by'
+                'patient',
+                'patient__primary_caregiver',
+                'patient__residence_unit',
+                'patient__registered_facility',
+                'facility',
+                'reported_by',
+                'aefi_vaccine',
+                'aefi_vaccine_batch',
+                'aefi_immunization_event',
+                'aefi_immunization_event__vaccine',
+                'aefi_immunization_event__vaccine_batch',
             ).prefetch_related('symptoms'),
             pk=pk,
         )

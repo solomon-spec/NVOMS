@@ -1,0 +1,288 @@
+{
+  "metadata": {
+    "namespace": "quality-demo",
+    "description": "Small example shape for NVOMS JSON demo data using imported Ethiopia HDX geography."
+  },
+  "facilities": [
+    {
+      "code": "DEMO-HC-001",
+      "name": "Addis Ketema Health Center"
+    }
+  ],
+  "users": [
+    {
+      "email": "demo.healthworker@nvoms.local",
+      "password": "DemoPass123!",
+      "full_name": "Marta Alemu",
+      "role": "HEALTH_WORKER",
+      "facility_code": "DEMO-HC-001",
+      "phone_number": "+251911000101",
+      "preferred_language": "am"
+    }
+  ],
+  "vaccines": [
+    {
+      "code": "MCV1",
+      "name": "Measles-Rubella Vaccine Dose 1",
+      "antigen_code": "measles",
+      "antigen_name": "Measles",
+      "dose_sequence": 1,
+      "route": "SC",
+      "site": "Left upper arm",
+      "batches": [
+        {
+          "batch_number": "MR-ADD-2026-041",
+          "manufacturer": "Bio Farma",
+          "expiry_date": "2027-12-31",
+          "is_valid": true
+        }
+      ],
+      "schedule_rules": [
+        {
+          "dose_label": "MCV1",
+          "recommended_age_days": 270,
+          "grace_period_days": 7,
+          "defaulter_threshold_days": 14
+        }
+      ]
+    },
+    {
+      "code": "OPV3",
+      "name": "Bivalent Oral Polio Vaccine Dose 3",
+      "antigen_code": "polio",
+      "antigen_name": "Polio",
+      "dose_sequence": 3,
+      "route": "Oral",
+      "site": "Mouth",
+      "batches": [
+        {
+          "batch_number": "BOPV-ADD-2026-118",
+          "manufacturer": "PT Bio Farma",
+          "expiry_date": "2027-10-30",
+          "is_valid": true
+        }
+      ],
+      "schedule_rules": [
+        {
+          "dose_label": "OPV3",
+          "recommended_age_days": 98,
+          "grace_period_days": 7,
+          "defaulter_threshold_days": 14
+        }
+      ]
+    },
+    {
+      "code": "OCV1",
+      "name": "Oral Cholera Vaccine Dose 1",
+      "antigen_code": "cholera",
+      "antigen_name": "Cholera",
+      "dose_sequence": 1,
+      "route": "Oral",
+      "site": "Mouth",
+      "batches": [
+        {
+          "batch_number": "OCV-ADD-2026-015",
+          "manufacturer": "EuBiologics",
+          "expiry_date": "2027-09-30",
+          "is_valid": true
+        }
+      ],
+      "schedule_rules": [
+        {
+          "dose_label": "OCV1",
+          "recommended_age_days": 365,
+          "grace_period_days": 7,
+          "defaulter_threshold_days": 21
+        }
+      ]
+    }
+  ],
+  "caregivers": [
+    {
+      "key": "cg-001",
+      "full_name": "Hirut Tesfaye",
+      "phone_number": "+251911220001",
+      "relationship_to_patient": "mother",
+      "preferred_language": "am",
+      "residence_unit_code": "ET140108",
+      "address_line": "Near Kebele 04 health post"
+    }
+  ],
+  "patients": [
+    {
+      "key": "pat-001",
+      "caregiver_key": "cg-001",
+      "first_name": "Liya",
+      "middle_name": "Marta",
+      "last_name": "Tesfaye",
+      "sex": "female",
+      "date_of_birth": "2025-02-14",
+      "facility_code": "DEMO-HC-001",
+      "residence_unit_code": "ET140108",
+      "status": "registered",
+      "immunization_summary": {
+        "current_status": "due_soon",
+        "next_due_date": "2026-05-25",
+        "due_count": 1,
+        "overdue_count": 0,
+        "administered_count": 2,
+        "is_zero_dose": false
+      },
+      "disease_schedules": [
+        {
+          "disease": "measles",
+          "current_due_date": "2026-05-25",
+          "status": "due_soon",
+          "is_complete": false,
+          "status_reason": "MCV follow-up due soon"
+        },
+        {
+          "disease": "polio",
+          "current_due_date": null,
+          "status": "completed",
+          "is_complete": true,
+          "status_reason": "OPV course complete"
+        },
+        {
+          "disease": "cholera",
+          "current_due_date": "2026-08-10",
+          "status": "scheduled",
+          "is_complete": false,
+          "status_reason": "Routine OCV dose scheduled"
+        }
+      ],
+      "schedule_slots": [
+        {
+          "vaccine_code": "MCV1",
+          "dose_label": "MCV1",
+          "due_date": "2026-05-25",
+          "status": "due_soon",
+          "status_reason": "MCV follow-up due soon"
+        },
+        {
+          "vaccine_code": "OCV1",
+          "dose_label": "OCV1",
+          "due_date": "2026-08-10",
+          "status": "scheduled",
+          "status_reason": "Routine OCV dose scheduled"
+        }
+      ]
+    }
+  ],
+  "immunizations": [
+    {
+      "key": "imm-001",
+      "patient_key": "pat-001",
+      "disease": "polio",
+      "vaccine_code": "OPV3",
+      "batch_number": "BOPV-ADD-2026-118",
+      "facility_code": "DEMO-HC-001",
+      "administered_by": "demo.healthworker@nvoms.local",
+      "administered_at": "2026-04-18T09:20:00+03:00",
+      "route": "Oral",
+      "site": "Mouth",
+      "event_status": "administered",
+      "disease_completed": true,
+      "notes": "Child tolerated vaccine well."
+    }
+  ],
+  "case_reports": [
+    {
+      "key": "case-aefi-001",
+      "patient_key": "pat-001",
+      "facility_code": "DEMO-HC-001",
+      "reported_by": "demo.healthworker@nvoms.local",
+      "category": "aefi",
+      "condition_type": "Fever and injection-site swelling after vaccination",
+      "disease_suspected": null,
+      "onset_date": "2026-04-19",
+      "body_temperature_c": "38.6",
+      "severity": "moderate",
+      "follow_up_required": true,
+      "status": "under_follow_up",
+      "aefi_immunization_key": "imm-001",
+      "aefi_vaccine_code": "OPV3",
+      "aefi_batch_number": "BOPV-ADD-2026-118",
+      "vaccine_dose_label": "OPV3",
+      "vaccination_date": "2026-04-18",
+      "specimen_status": "not_collected",
+      "lab_result_status": "not_sent",
+      "clinical_outcome": "recovering",
+      "next_follow_up_date": "2026-04-22",
+      "notes": "Caregiver advised to return if fever persists.",
+      "symptoms": [
+        {
+          "label": "Fever",
+          "observation_value": "38.6 C"
+        },
+        {
+          "label": "Swelling",
+          "observation_value": "Mild"
+        }
+      ]
+    }
+  ],
+  "follow_ups": [
+    {
+      "case_key": "case-aefi-001",
+      "action_taken": "Phone follow-up with caregiver and check fever resolution.",
+      "assigned_to": "demo.healthworker@nvoms.local",
+      "due_date": "2026-04-22",
+      "status": "open"
+    }
+  ],
+  "risk_scores": [
+    {
+      "unit_code": "ET140108",
+      "disease": "measles",
+      "risk_score": "0.7600",
+      "computed_at": "2026-05-17T08:30:00+03:00",
+      "model_version": "json-demo-v1",
+      "factors": {
+        "missed_followups": 18,
+        "recent_case_reports": 2,
+        "coverage_gap": 0.21
+      }
+    }
+  ],
+  "public_health_alerts": [
+    {
+      "unit_code": "ET140108",
+      "disease": "measles",
+      "source": "prediction",
+      "risk_probability": "0.7600",
+      "status": "under_review",
+      "triggered_at": "2026-05-17T08:45:00+03:00",
+      "notes": "High missed-follow-up pressure and two suspected reports in the last week."
+    }
+  ],
+  "environmental_observations": [
+    {
+      "unit_code": "ET140108",
+      "observation_date": "2026-05-16",
+      "rainfall_mm": "17.4",
+      "temperature_c": "23.1",
+      "raw_payload": {
+        "source": "demo weather station"
+      }
+    }
+  ],
+  "generated_reports": [
+    {
+      "report_code": "COVERAGE",
+      "report_name": "Vaccination Coverage Report",
+      "report_scope": "woreda",
+      "requested_by": "demo.healthworker@nvoms.local",
+      "facility_code": "DEMO-HC-001",
+      "unit_code": "ET140108",
+      "output_format": "pdf",
+      "status": "completed",
+      "requested_at": "2026-05-16T16:00:00+03:00",
+      "completed_at": "2026-05-16T16:02:00+03:00",
+      "parameters": {
+        "date_from": "2026-04-01",
+        "date_to": "2026-05-16"
+      }
+    }
+  ]
+}

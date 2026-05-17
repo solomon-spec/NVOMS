@@ -83,21 +83,15 @@ const navItems: NavItem[] = [
   // Public Health Monitoring (PHO / ADMIN / HW)
   {
     icon: <PieChartIcon />,
-    name: "Risk Map",
-    path: "/risk-map",
+    name: "Public Health Hub",
+    path: "/public-health",
     roles: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
   },
   {
     icon: <TaskIcon />,
-    name: "Surveillance",
-    path: "/surveillance",
+    name: "Case Reports",
+    path: "/outbreaks",
     roles: ["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"],
-  },
-  {
-    icon: <GroupIcon />,
-    name: "Defaulter Clusters",
-    path: "/defaulters",
-    roles: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
   },
   {
     icon: <DocsIcon />,
