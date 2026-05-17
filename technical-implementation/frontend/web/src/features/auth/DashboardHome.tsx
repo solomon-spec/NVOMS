@@ -32,7 +32,7 @@ const allModules = [
   {
     label: "Case Reports",
     href: "/outbreaks",
-    description: "Submit case reports, manage follow-up actions, and verify outbreak alerts.",
+    description: "Submit case reports, manage follow-up actions, and review public health alerts.",
     icon: "OR",
     access: ["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"],
     color: "from-warning-500 to-warning-700",
@@ -48,7 +48,7 @@ const allModules = [
   {
     label: "Reports",
     href: "/reports",
-    description: "Queue coverage, defaulter, and AEFI reports and download them as PDF or CSV.",
+    description: "Queue coverage, missed follow-up, and AEFI reports and download them as PDF or CSV.",
     icon: "RP",
     access: ["ADMIN", "PUBLIC_HEALTH_OFFICIAL"],
     color: "from-indigo-500 to-indigo-700",
@@ -224,7 +224,7 @@ export function DashboardHome() {
       {/* ── Confirmed outbreak alert banner ── */}
       {confirmedAlertCount > 0 && (
         <AlertBanner tone="error" count={confirmedAlertCount}>
-          <strong>{confirmedAlertCount} confirmed outbreak alert{confirmedAlertCount > 1 ? "s" : ""}</strong>{" "}
+          <strong>{confirmedAlertCount} confirmed public health alert{confirmedAlertCount > 1 ? "s" : ""}</strong>{" "}
           require immediate attention.{" "}
           <Link href="/outbreaks" className="underline underline-offset-2 hover:no-underline">
             Review in Case Reports
@@ -279,7 +279,7 @@ export function DashboardHome() {
               )}
               {alertCount !== null && (
                 <MetricCard
-                  label="Outbreak Alerts"
+                  label="Public Health Alerts"
                   value={alertCount.toLocaleString()}
                   icon="🚨"
                   tone={alertCount > 0 ? "error" : "success"}

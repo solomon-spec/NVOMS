@@ -180,13 +180,13 @@ export function OfflineSyncWorkspace() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Registered Devices" value={String(devices.length)} icon="📱" tone="brand" />
-          <MetricCard label="Active Devices" value={String(activeDevices.length)} icon="✅" tone="success" />
-          <MetricCard label="Disabled Devices" value={String(disabledDevices.length)} icon="🚫" tone="error" />
+          <MetricCard label="Registered Devices" value={String(devices.length)} icon="DV" tone="brand" />
+          <MetricCard label="Active Devices" value={String(activeDevices.length)} icon="ON" tone="success" />
+          <MetricCard label="Disabled Devices" value={String(disabledDevices.length)} icon="OFF" tone="error" />
           <MetricCard
             label="Max Batch Size"
             value={syncConfig ? `${syncConfig.max_batch_size} records` : "—"}
-            icon="📦"
+            icon="BX"
             tone="warning"
           />
         </div>
@@ -237,7 +237,7 @@ export function OfflineSyncWorkspace() {
         {isLoading ? (
           <SkeletonCard lines={3} />
         ) : devices.length === 0 ? (
-          <EmptyState icon="📱">
+          <EmptyState icon="DV">
             No devices registered yet. Click &ldquo;Register Device&rdquo; to add this browser as an offline-capable device.
           </EmptyState>
         ) : (
@@ -288,7 +288,7 @@ export function OfflineSyncWorkspace() {
       {/* Sync batch info */}
       <section className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-white/[0.02]">
         <div className="flex items-start gap-4">
-          <span className="text-3xl">🔄</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200">SYNC</span>
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-white">Sync Batch Submission</h2>
             <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">

@@ -91,7 +91,7 @@ const scheduleStatuses: Array<{ label: string; value: ScheduleSlotStatus }> = [
   { label: "Due soon", value: "due_soon" },
   { label: "Due today", value: "due_today" },
   { label: "Overdue", value: "overdue" },
-  { label: "Defaulter", value: "defaulter" },
+  { label: "Missed follow-up", value: "defaulter" },
   { label: "Administered", value: "administered" },
   { label: "Exempt", value: "exempt" },
   { label: "Cancelled", value: "cancelled" },

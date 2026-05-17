@@ -898,7 +898,7 @@ export function OutbreakRiskLayer() {
               }))}
             />
             <MonitoringList
-              emptyText="No active outbreak alerts match the current backend data."
+              emptyText="No active public health alerts match the current backend data."
               heading="Active alerts"
               rows={data.alerts.slice(0, 8).map((alert) => ({
                 key: alert.id,

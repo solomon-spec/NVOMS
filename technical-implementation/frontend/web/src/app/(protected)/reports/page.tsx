@@ -1,10 +1,10 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { ProtectedRoute } from "@/components/app-shell/ProtectedRoute";
+import { ReportsWorkspace } from "@/features/reports/ReportsWorkspace";
 
 export default function ReportsPage() {
   return (
-    <RoutePlaceholder
-      title="Reports"
-      allowedRoles={["ADMIN", "PUBLIC_HEALTH_OFFICIAL"]}
-    />
+    <ProtectedRoute allowedRoles={["ADMIN", "PUBLIC_HEALTH_OFFICIAL"]}>
+      <ReportsWorkspace />
+    </ProtectedRoute>
   );
 }

@@ -14,7 +14,7 @@ export default function SidebarWidget() {
         available for their operational responsibilities.
       </p>
       <div className="rounded-lg border border-brand-100 bg-brand-25 px-3 py-2 text-sm font-medium text-brand-700 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-brand-400">
-        Registry, immunization, surveillance, and reporting share one session.
+        Registry, immunization, case reporting, and analytics share one session.
       </div>
     </div>
   );

@@ -1,7 +1,10 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { ProtectedRoute } from "@/components/app-shell/ProtectedRoute";
+import { OfflineSyncWorkspace } from "@/features/offline/OfflineSyncWorkspace";
 
 export default function OfflineQueuePage() {
   return (
-    <RoutePlaceholder title="Offline Queue" allowedRoles={["HEALTH_WORKER"]} />
+    <ProtectedRoute allowedRoles={["HEALTH_WORKER"]}>
+      <OfflineSyncWorkspace />
+    </ProtectedRoute>
   );
 }

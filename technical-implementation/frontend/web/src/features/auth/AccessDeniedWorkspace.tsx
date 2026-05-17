@@ -11,7 +11,7 @@ export default function AccessDeniedWorkspace() {
       icon={<LockIcon className="h-6 w-6 fill-current" />}
       actions={[
         { href: "/login", label: "Return to sign in" },
-        { href: "/dashboard", label: "Go to dashboard", variant: "outline" },
+        { href: "/", label: "Go to dashboard", variant: "outline" },
       ]}
     />
   );

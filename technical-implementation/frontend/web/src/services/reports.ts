@@ -7,7 +7,7 @@ import { apiRequest } from "@/services/api";
 
 export const reportTemplates: ReportTemplate[] = [
   {
-    code: "DEFAULTER_LIST",
+    code: "MISSED_FOLLOW_UP",
     title: "Missed Follow-ups",
     description: "Patients who missed one or more scheduled vaccinations.",
     endpoint: "defaulters",

@@ -1,5 +1,10 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { ProtectedRoute } from "@/components/app-shell/ProtectedRoute";
+import { SystemSettingsWorkspace } from "@/features/admin/SystemSettingsWorkspace";
 
 export default function SettingsPage() {
-  return <RoutePlaceholder title="System Settings" allowedRoles={["ADMIN"]} />;
+  return (
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <SystemSettingsWorkspace />
+    </ProtectedRoute>
+  );
 }

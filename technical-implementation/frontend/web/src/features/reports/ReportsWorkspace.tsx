@@ -222,7 +222,7 @@ export function ReportsWorkspace() {
         <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-              Queue coverage, defaulter, and AEFI reports
+              Queue coverage, missed follow-up, and AEFI reports
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500 dark:text-gray-400">
               Uses the backend report queue endpoints and checks generated report

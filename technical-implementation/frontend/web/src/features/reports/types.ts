@@ -1,4 +1,4 @@
-export type ReportCode = "DEFAULTER_LIST" | "COVERAGE" | "AEFI_SURVEILLANCE";
+export type ReportCode = "MISSED_FOLLOW_UP" | "COVERAGE" | "AEFI_SURVEILLANCE";
 
 export type ReportOutputFormat = "pdf" | "csv";
 

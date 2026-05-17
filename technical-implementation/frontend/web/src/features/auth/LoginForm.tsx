@@ -29,7 +29,7 @@ export function LoginForm() {
     const session = getStoredSession();
     if (session) {
       router.replace(
-        session.user.mustChangePassword ? "/change-password" : "/dashboard",
+        session.user.mustChangePassword ? "/change-password" : "/",
       );
     }
   }, [router]);
@@ -55,7 +55,7 @@ export function LoginForm() {
       }
 
       router.replace(
-        session.user.mustChangePassword ? "/change-password" : "/dashboard",
+        session.user.mustChangePassword ? "/change-password" : "/",
       );
     } catch (caughtError) {
       setError(readLoginError(caughtError));
@@ -74,7 +74,7 @@ export function LoginForm() {
           Access your workspace
         </h2>
         <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
-          Use the account issued for your facility, surveillance unit, or
+          Use the account issued for your facility, public health unit, or
           administrative role.
         </p>
       </div>

@@ -7,12 +7,12 @@ import { listNotifications, markAllRead, markNotificationRead } from "@/services
 import { SkeletonCard, useToast } from "@/shared/workspace-ui";
 
 const typeIcons: Record<string, string> = {
-  outbreak_confirmed: "🚨",
-  vaccination_reminder: "💉",
-  defaulter_alert: "⚠️",
-  account_created: "👤",
-  report_ready: "📄",
-  system: "🔔",
+  outbreak_confirmed: "CA",
+  vaccination_reminder: "VR",
+  defaulter_alert: "MF",
+  account_created: "AC",
+  report_ready: "RR",
+  system: "SY",
 };
 
 export function NotificationsWorkspace() {
@@ -72,7 +72,7 @@ export function NotificationsWorkspace() {
               )}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Vaccination reminders, outbreak alerts, and system updates.
+              Vaccination reminders, public health alerts, and system updates.
             </p>
           </div>
           {unreadCount > 0 && (
@@ -94,10 +94,10 @@ export function NotificationsWorkspace() {
         </div>
       ) : notifications.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-16 text-center dark:border-gray-700 dark:bg-white/[0.02]">
-          <span className="text-4xl">🔔</span>
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-500 dark:bg-gray-800 dark:text-gray-300">NO</span>
           <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-300">No notifications yet</p>
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Outbreak alerts, vaccination reminders, and system events will appear here.
+            Public health alerts, vaccination reminders, and system events will appear here.
           </p>
         </div>
       ) : (
@@ -108,8 +108,8 @@ export function NotificationsWorkspace() {
                 key={n.id}
                 className={`flex gap-4 px-5 py-4 transition hover:bg-gray-50 dark:hover:bg-white/[0.02] ${!n.is_read ? "bg-brand-25 dark:bg-brand-500/5" : ""}`}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xl dark:bg-gray-800">
-                  {typeIcons[n.type] ?? "🔔"}
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                  {typeIcons[n.type] ?? "NT"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3">

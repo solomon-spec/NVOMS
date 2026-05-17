@@ -1,5 +1,10 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { ProtectedRoute } from "@/components/app-shell/ProtectedRoute";
+import { InteroperabilityWorkspace } from "@/features/admin/InteroperabilityWorkspace";
 
 export default function InteroperabilityPage() {
-  return <RoutePlaceholder title="Interoperability" allowedRoles={["ADMIN"]} />;
+  return (
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <InteroperabilityWorkspace />
+    </ProtectedRoute>
+  );
 }

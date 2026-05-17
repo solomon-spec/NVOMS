@@ -188,7 +188,7 @@ function VaccinationTimeline({ schedule }: { schedule: PatientScheduleSlot[] }) 
         {[
           { color: "bg-success-500", label: "Administered" },
           { color: "bg-warning-500", label: "Due / Due soon" },
-          { color: "bg-error-500", label: "Overdue / Defaulter" },
+          { color: "bg-error-500", label: "Overdue / missed follow-up" },
           { color: "bg-gray-300 dark:bg-gray-600", label: "Scheduled (future)" },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">

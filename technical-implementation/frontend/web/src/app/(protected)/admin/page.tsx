@@ -1,5 +1,10 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { ProtectedRoute } from "@/components/app-shell/ProtectedRoute";
+import { AdminConsoleWorkspace } from "@/features/admin/AdminConsoleWorkspace";
 
 export default function AdminPage() {
-  return <RoutePlaceholder title="Admin Console" allowedRoles={["ADMIN"]} />;
+  return (
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <AdminConsoleWorkspace />
+    </ProtectedRoute>
+  );
 }

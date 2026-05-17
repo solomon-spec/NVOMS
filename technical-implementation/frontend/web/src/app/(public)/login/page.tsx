@@ -54,7 +54,7 @@ export default function LoginPage() {
       <AuthPageFrame
         eyebrow="Secure Access"
         title="Sign in to NVOMS"
-        description="Use your assigned facility or district account to continue into the vaccination and outbreak monitoring workspace."
+        description="Use your assigned facility or district account to continue into the vaccination and public health workspace."
         footer={
           <div className="space-y-3 text-sm leading-6 text-[var(--nv-muted)]">
             <p>

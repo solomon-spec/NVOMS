@@ -1,10 +1,10 @@
-import { RoutePlaceholder } from "@/components/app-shell/RoutePlaceholder";
+import { ProtectedRoute } from "@/components/app-shell/ProtectedRoute";
+import { NotificationsWorkspace } from "@/features/notifications/NotificationsWorkspace";
 
 export default function NotificationsPage() {
   return (
-    <RoutePlaceholder
-      title="Notifications"
-      allowedRoles={["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"]}
-    />
+    <ProtectedRoute allowedRoles={["ADMIN", "HEALTH_WORKER", "PUBLIC_HEALTH_OFFICIAL"]}>
+      <NotificationsWorkspace />
+    </ProtectedRoute>
   );
 }

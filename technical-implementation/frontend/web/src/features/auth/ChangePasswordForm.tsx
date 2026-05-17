@@ -83,7 +83,7 @@ export function ChangePasswordForm() {
           Set your permanent password
         </h2>
         <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
-          Some new accounts require this step before clinical and surveillance
+          Some new accounts require this step before clinical and public health
           tools are available.
         </p>
       </div>
