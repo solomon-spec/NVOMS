@@ -1,9 +1,13 @@
 import type {
   AnalyticsFilters,
+  AdminDashboardResponse,
   CoverageByRegionResponse,
   CoverageResponse,
   CoverageTrendResponse,
+  DailyVaccinationReportResponse,
   DefaulterClusterResponse,
+  HwDashboardResponse,
+  PhoDashboardResponse,
   ReportingGapResponse,
   RiskScoreResponse,
 } from "@/features/analytics/types";
@@ -105,5 +109,39 @@ export function runPrediction(token: string) {
   return apiRequest<{ status: string; task_id: string | null }>(
     "/prediction/run/",
     { method: "POST", token },
+  );
+}
+
+export function getAdminDashboard(token: string) {
+  return apiRequest<AdminDashboardResponse>("/analytics/admin-dashboard/", {
+    method: "GET",
+    token,
+  });
+}
+
+export function getHealthWorkerDashboard(token: string, date?: string) {
+  return apiRequest<HwDashboardResponse>(
+    withQuery("/analytics/hw-dashboard/", { date }),
+    { method: "GET", token },
+  );
+}
+
+export function getPublicHealthDashboard(token: string) {
+  return apiRequest<PhoDashboardResponse>("/analytics/pho-dashboard/", {
+    method: "GET",
+    token,
+  });
+}
+
+export function getDailyVaccinationReport(
+  token: string,
+  filters: { date?: string; facility?: string } = {},
+) {
+  return apiRequest<DailyVaccinationReportResponse>(
+    withQuery("/analytics/daily-report/", {
+      date: filters.date,
+      facility: filters.facility,
+    }),
+    { method: "GET", token },
   );
 }

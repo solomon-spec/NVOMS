@@ -48,7 +48,9 @@ class SmsNotificationListSerializer(serializers.ModelSerializer):
         model = SmsNotification
         fields = [
             'id', 'notification_type', 'phone_number', 'status',
-            'caregiver', 'patient', 'scheduled_for', 'sent_at', 'created_at',
+            'caregiver', 'patient', 'message_body', 'priority',
+            'scheduled_for', 'sent_at', 'delivered_at', 'created_at',
+            'last_error', 'retry_count',
         ]
 
 

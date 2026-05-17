@@ -4,8 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useAuthSession } from "@/features/auth/useAuthSession";
-import { getVaccineCoverage } from "@/services/analytics";
-import { listPatients } from "@/services/patients";
+import {
+  getAdminDashboard,
+  getDailyVaccinationReport,
+  getHealthWorkerDashboard,
+  getPublicHealthDashboard,
+  getVaccineCoverage,
+} from "@/services/analytics";
 import { listSurveillanceReports, listOutbreakAlerts } from "@/services/outbreaks";
 import { MetricCard, ProgressRing, SkeletonCard, AlertBanner, StatusPill } from "@/shared/workspace-ui";
 import { formatRole } from "@/shared/format";
@@ -95,6 +100,11 @@ export function DashboardHome() {
   const [patientCount, setPatientCount] = useState<number | null>(null);
   const [alertCount, setAlertCount] = useState<number | null>(null);
   const [confirmedAlertCount, setConfirmedAlertCount] = useState(0);
+  const [activeDefaulters, setActiveDefaulters] = useState<number | null>(null);
+  const [dailyDoses, setDailyDoses] = useState<number | null>(null);
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
+  const [zeroDoseChildren, setZeroDoseChildren] = useState<number | null>(null);
+  const [dashboardFacility, setDashboardFacility] = useState<string | null>(null);
   const [recentReports, setRecentReports] = useState<Array<{ id: string; condition_type: string; status: string; onset_date: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [onlineStatus, setOnlineStatus] = useState(true);
@@ -120,6 +130,41 @@ export function DashboardHome() {
       try {
         const loads: Promise<void>[] = [];
 
+        if (role === "ADMIN") {
+          loads.push(
+            getAdminDashboard(token).then((data) => {
+              if (!active) return;
+              setPatientCount(data.total_patients);
+              setTotalUsers(data.total_users);
+              setActiveDefaulters(data.active_defaulters);
+            }).catch(() => {}),
+          );
+        }
+
+        if (role === "HEALTH_WORKER") {
+          loads.push(
+            getHealthWorkerDashboard(token).then((data) => {
+              if (!active) return;
+              setPatientCount(data.total_patients);
+              setDailyDoses(data.daily_doses_administered);
+              setActiveDefaulters(data.defaulter_count);
+              setDashboardFacility(data.facility_name);
+            }).catch(() => {}),
+          );
+        }
+
+        if (role === "PUBLIC_HEALTH_OFFICIAL") {
+          loads.push(
+            getPublicHealthDashboard(token).then((data) => {
+              if (!active) return;
+              setPatientCount(data.total_patients);
+              setTotalAdministered(data.total_doses_administered);
+              setActiveDefaulters(data.active_defaulters);
+              setZeroDoseChildren(data.zero_dose_children);
+            }).catch(() => {}),
+          );
+        }
+
         if (["ADMIN", "PUBLIC_HEALTH_OFFICIAL"].includes(role)) {
           loads.push(
             getVaccineCoverage(token).then((data) => {
@@ -140,9 +185,9 @@ export function DashboardHome() {
 
         if (["ADMIN", "HEALTH_WORKER"].includes(role)) {
           loads.push(
-            listPatients(token).then((data) => {
+            getDailyVaccinationReport(token).then((data) => {
               if (!active) return;
-              setPatientCount(data.length);
+              setDailyDoses(data.total_doses);
             }).catch(() => {}),
           );
         }
@@ -200,6 +245,7 @@ export function DashboardHome() {
               {role
                 ? `${formatRole(role)} access${session?.user.facilityCode ? ` · ${session.user.facilityCode}` : ""}`
                 : "Loading workspace..."}
+              {dashboardFacility ? ` · ${dashboardFacility}` : ""}
             </p>
           </div>
 
@@ -265,7 +311,7 @@ export function DashboardHome() {
                 <MetricCard
                   label="Scheduled Slots"
                   value={totalScheduled.toLocaleString()}
-                  icon="📅"
+                  icon="SC"
                   tone="brand"
                 />
               )}
@@ -273,15 +319,47 @@ export function DashboardHome() {
                 <MetricCard
                   label="Registered Patients"
                   value={patientCount.toLocaleString()}
-                  icon="👤"
+                  icon="PT"
                   tone="success"
+                />
+              )}
+              {totalUsers !== null && (
+                <MetricCard
+                  label="System Users"
+                  value={totalUsers.toLocaleString()}
+                  icon="US"
+                  tone="brand"
+                />
+              )}
+              {dailyDoses !== null && (
+                <MetricCard
+                  label="Doses Today"
+                  value={dailyDoses.toLocaleString()}
+                  icon="DO"
+                  tone={dailyDoses > 0 ? "success" : "warning"}
+                />
+              )}
+              {activeDefaulters !== null && (
+                <MetricCard
+                  label="Missed Follow-ups"
+                  value={activeDefaulters.toLocaleString()}
+                  icon="MF"
+                  tone={activeDefaulters > 0 ? "warning" : "success"}
+                />
+              )}
+              {zeroDoseChildren !== null && (
+                <MetricCard
+                  label="Zero-dose Children"
+                  value={zeroDoseChildren.toLocaleString()}
+                  icon="ZD"
+                  tone={zeroDoseChildren > 0 ? "warning" : "success"}
                 />
               )}
               {alertCount !== null && (
                 <MetricCard
                   label="Public Health Alerts"
                   value={alertCount.toLocaleString()}
-                  icon="🚨"
+                  icon="AL"
                   tone={alertCount > 0 ? "error" : "success"}
                 />
               )}

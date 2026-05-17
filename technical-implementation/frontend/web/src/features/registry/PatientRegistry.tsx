@@ -144,6 +144,7 @@ const emptyVaccineSetupForm = {
   batch_number: "",
   manufacturer_name: "",
   expiry_date: "",
+  qty_on_hand: "50",
 };
 
 const emptyEditForm: UpdatePatientPayload = {
@@ -466,6 +467,7 @@ export function PatientRegistry() {
           manufacturer_name: vaccineSetupForm.manufacturer_name.trim() || null,
           expiry_date: vaccineSetupForm.expiry_date || null,
           source_system: "frontend",
+          qty_on_hand: Number(vaccineSetupForm.qty_on_hand) || 0,
           is_valid: true,
         });
       }
@@ -983,6 +985,17 @@ export function PatientRegistry() {
                 setVaccineSetupForm((current) => ({
                   ...current,
                   expiry_date: value,
+                }))
+              }
+            />
+            <TextInput
+              label="Quantity on hand"
+              type="number"
+              value={vaccineSetupForm.qty_on_hand}
+              onChange={(value) =>
+                setVaccineSetupForm((current) => ({
+                  ...current,
+                  qty_on_hand: value,
                 }))
               }
             />
@@ -1722,7 +1735,7 @@ function PatientWorkspacePanel({
               options={[
                 { label: "No batch selected", value: "" },
                 ...batches.map((batch) => ({
-                  label: `${batch.batch_number} · expires ${batch.expiry_date}`,
+                  label: `${batch.batch_number} · expires ${batch.expiry_date} · ${batch.qty_on_hand} on hand`,
                   value: batch.id,
                 })),
               ]}

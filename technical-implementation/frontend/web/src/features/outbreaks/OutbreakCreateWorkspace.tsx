@@ -326,7 +326,7 @@ export function OutbreakCreateWorkspace() {
                     ...batches
                       .filter((batch) => !reportForm.aefi_vaccine || batch.vaccine.id === reportForm.aefi_vaccine)
                       .map((batch) => ({
-                        label: `${batch.batch_number} · expires ${batch.expiry_date ?? "unknown"}`,
+                        label: `${batch.batch_number} · expires ${batch.expiry_date ?? "unknown"} · ${batch.qty_on_hand} on hand`,
                         value: batch.id,
                       })),
                   ]}

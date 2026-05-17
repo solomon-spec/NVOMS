@@ -5,10 +5,12 @@ import { useAuthSession } from "@/features/auth/useAuthSession";
 import {
   Device,
   RegisterDevicePayload,
+  SyncBatch,
   SyncConfig,
   disableDevice,
   getSyncConfig,
   listDevices,
+  listSyncBatches,
   registerDevice,
 } from "@/services/offline";
 import {
@@ -37,6 +39,7 @@ export function OfflineSyncWorkspace() {
 
   const [isOnline, setIsOnline] = useState(true);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [syncBatches, setSyncBatches] = useState<SyncBatch[]>([]);
   const [syncConfig, setSyncConfig] = useState<SyncConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -69,13 +72,15 @@ export function OfflineSyncWorkspace() {
     async function load() {
       setIsLoading(true);
       try {
-        const [deviceRows, configData] = await Promise.allSettled([
+        const [deviceRows, configData, batchRows] = await Promise.allSettled([
           listDevices(token),
           getSyncConfig(token),
+          listSyncBatches(token),
         ]);
         if (!active) return;
         if (deviceRows.status === "fulfilled") setDevices(deviceRows.value);
         if (configData.status === "fulfilled") setSyncConfig(configData.value);
+        if (batchRows.status === "fulfilled") setSyncBatches(batchRows.value);
         setError("");
       } catch {
         if (active) setError("Failed to load offline sync data.");
@@ -130,6 +135,8 @@ export function OfflineSyncWorkspace() {
 
   const activeDevices = devices.filter((d) => d.status === "active");
   const disabledDevices = devices.filter((d) => d.status === "disabled");
+  const pendingBatches = syncBatches.filter((batch) => ["pending", "processing"].includes(batch.status));
+  const conflictBatches = syncBatches.filter((batch) => batch.conflict_count > 0 || batch.status === "conflict");
 
   return (
     <div className="space-y-8">
@@ -188,6 +195,13 @@ export function OfflineSyncWorkspace() {
             value={syncConfig ? `${syncConfig.max_batch_size} records` : "—"}
             icon="BX"
             tone="warning"
+          />
+          <MetricCard
+            label="Sync Batches"
+            value={String(syncBatches.length)}
+            detail={`${pendingBatches.length} pending, ${conflictBatches.length} with conflicts`}
+            icon="SB"
+            tone={conflictBatches.length ? "warning" : "brand"}
           />
         </div>
       )}
@@ -285,23 +299,50 @@ export function OfflineSyncWorkspace() {
         )}
       </section>
 
-      {/* Sync batch info */}
-      <section className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-white/[0.02]">
-        <div className="flex items-start gap-4">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200">SYNC</span>
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Sync Batch Submission</h2>
-            <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
-              Sync batch submission is handled from the mobile application. When the app reconnects, it automatically
-              submits collected offline records to the backend via <code className="rounded bg-gray-200 px-1 text-xs dark:bg-gray-800">POST /offline/sync/batches</code>.
-              Conflicts are flagged and can be resolved here once the batch list endpoint is available per-session.
-            </p>
-            <p className="mt-3 text-sm text-gray-400 dark:text-gray-500">
-              A per-user batch history (<code className="rounded bg-gray-200 px-1 text-xs dark:bg-gray-800">GET /offline/sync/batches</code>) is not yet scoped per-user by
-              the backend &mdash; it currently returns all batches, so per-user history UI will be enabled once this is added.
-            </p>
-          </div>
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Sync Batch History</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Recent offline submissions received by the backend, including processing and conflict status.
+          </p>
         </div>
+
+        {isLoading ? (
+          <SkeletonCard lines={3} />
+        ) : syncBatches.length === 0 ? (
+          <EmptyState icon="SB">
+            No sync batches have been submitted yet. Mobile devices will appear here after reconnecting and uploading offline records.
+          </EmptyState>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+            <table className="min-w-full divide-y divide-gray-100 text-left text-sm dark:divide-gray-800">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 dark:bg-white/[0.02] dark:text-gray-400">
+                <tr>
+                  <th className="px-4 py-3">Submitted</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Records</th>
+                  <th className="px-4 py-3">Conflicts</th>
+                  <th className="px-4 py-3">Acknowledged</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {syncBatches.slice(0, 12).map((batch) => (
+                  <tr key={batch.id} className="text-gray-700 dark:text-gray-300">
+                    <td className="px-4 py-3">{new Date(batch.submitted_at).toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <StatusPill label={formatRole(batch.status)} tone={batchTone(batch.status)} />
+                    </td>
+                    <td className="px-4 py-3">{batch.record_count}</td>
+                    <td className="px-4 py-3">{batch.conflict_count}</td>
+                    <td className="px-4 py-3">
+                      {batch.acknowledged_at ? new Date(batch.acknowledged_at).toLocaleString() : "Not yet"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {/* Register Device Modal */}
@@ -372,4 +413,11 @@ export function OfflineSyncWorkspace() {
       />
     </div>
   );
+}
+
+function batchTone(status: string): "success" | "warning" | "error" | "gray" | "brand" {
+  if (status === "processed" || status === "applied") return "success";
+  if (status === "pending" || status === "processing" || status === "conflict") return "warning";
+  if (status === "failed") return "error";
+  return "gray";
 }

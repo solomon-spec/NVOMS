@@ -32,6 +32,7 @@ import {
   listVaccineBatches,
   listVaccines,
   regeneratePatientSchedule,
+  sendPatientReminder,
   updatePatientScheduleSlot,
 } from "@/services/patients";
 import { formatRole } from "@/shared/format";
@@ -180,6 +181,7 @@ export function ImmunizationWorkspace() {
   const [isRecordingDose, setIsRecordingDose] = useState(false);
   const [isUpdatingSlot, setIsUpdatingSlot] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
   const [error, setError] = useState("");
   const [patientError, setPatientError] = useState("");
   const [doseError, setDoseError] = useState("");
@@ -542,6 +544,22 @@ export function ImmunizationWorkspace() {
     }
   }
 
+  async function handleSendReminder() {
+    if (!selectedPatientId) return;
+
+    setIsSendingReminder(true);
+    setSlotError("");
+    setNotice("");
+    try {
+      const result = await sendPatientReminder(token, selectedPatientId);
+      setNotice(`Reminder queued for ${maskPhone(result.phone_number)}.`);
+    } catch (caughtError) {
+      setSlotError(readApiError(caughtError));
+    } finally {
+      setIsSendingReminder(false);
+    }
+  }
+
   async function handleUpdateSlot(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedPatientId || !selectedSlot) {
@@ -592,6 +610,10 @@ export function ImmunizationWorkspace() {
     }
     if (isBatchExpired) {
       setDoseError("Cannot record a dose using an expired vaccine batch.");
+      return;
+    }
+    if (selectedBatch && selectedBatch.qty_on_hand <= 0) {
+      setDoseError("Cannot record a dose using a batch with no stock on hand.");
       return;
     }
     // Show confirm modal instead of submitting directly
@@ -830,7 +852,9 @@ export function ImmunizationWorkspace() {
           patient={selectedPatient}
           isLoading={isPatientLoading}
           onRegenerate={handleRegenerateSchedule}
+          onSendReminder={handleSendReminder}
           isRegenerating={isRegenerating}
+          isSendingReminder={isSendingReminder}
           isPrivacyMode={isPrivacyMode}
           latestDose={latestDose}
           diseaseCards={diseaseCards}
@@ -1003,8 +1027,15 @@ export function ImmunizationWorkspace() {
                     product in the vaccine registry.
                   </AlertBanner>
                 ) : null}
-                {/* Batch expiry warning */}
+                {/* Batch stock and expiry warning */}
                 {(() => {
+                  if (selectedBatch && selectedBatch.qty_on_hand <= 0) {
+                    return (
+                      <AlertBanner tone="error" count={1}>
+                        <strong>Batch {selectedBatch.batch_number} has no stock on hand.</strong> Select another batch or update inventory before recording this dose.
+                      </AlertBanner>
+                    );
+                  }
                   if (selectedBatch?.expiry_date) {
                     const expiry = new Date(selectedBatch.expiry_date);
                     const now = new Date();
@@ -1093,7 +1124,7 @@ export function ImmunizationWorkspace() {
                         ...filteredBatches.map((batch) => ({
                           label: `${batch.batch_number} · expires ${
                             batch.expiry_date ?? "unknown"
-                          }`,
+                          } · ${batch.qty_on_hand} on hand`,
                           value: batch.id,
                         })),
                       ]}
@@ -1193,8 +1224,10 @@ function SelectedPatientHeader({
   isLoading,
   isRegenerating,
   isPrivacyMode,
+  isSendingReminder,
   latestDose,
   onRegenerate,
+  onSendReminder,
   overdueCount,
   patient,
 }: {
@@ -1203,11 +1236,15 @@ function SelectedPatientHeader({
   isLoading: boolean;
   isRegenerating: boolean;
   isPrivacyMode: boolean;
+  isSendingReminder: boolean;
   latestDose: ImmunizationEvent | null;
   onRegenerate: () => void;
+  onSendReminder: () => void;
   overdueCount: number;
   patient: Patient | null;
 }) {
+  const canSendReminder = Boolean(patient?.primary_caregiver?.phone_number && dueCount + overdueCount > 0);
+
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
       {patient ? (
@@ -1246,6 +1283,19 @@ function SelectedPatientHeader({
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-warning-200 bg-warning-50 px-4 text-sm font-semibold text-warning-700 shadow-theme-xs transition hover:bg-warning-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-200"
+              disabled={!canSendReminder || isSendingReminder}
+              title={
+                canSendReminder
+                  ? "Queue an SMS reminder to the caregiver"
+                  : "Reminder requires a caregiver phone and an open due or missed follow-up"
+              }
+              type="button"
+              onClick={onSendReminder}
+            >
+              {isSendingReminder ? "Queuing reminder" : "Send reminder"}
+            </button>
             <Link
               href={`/patients/${patient.id}`}
               className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"

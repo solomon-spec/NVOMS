@@ -92,6 +92,7 @@ export type VaccineBatch = {
   manufacturer_name: string | null;
   expiry_date: string;
   source_system: string | null;
+  qty_on_hand: number;
   is_valid: boolean;
   created_at: string;
 };
@@ -294,6 +295,7 @@ export type CreateVaccineBatchPayload = {
   manufacturer_name?: string | null;
   expiry_date?: string | null;
   source_system?: string | null;
+  qty_on_hand?: number;
   is_valid: boolean;
 };
 

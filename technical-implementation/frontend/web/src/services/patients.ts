@@ -49,6 +49,21 @@ export type PatientRegistryResult = {
   isServerPaginated: boolean;
 };
 
+export type DefaulterPatient = {
+  patient_id: string;
+  uid: string;
+  full_name: string;
+  date_of_birth: string;
+  sex: string;
+  caregiver_name: string | null;
+  caregiver_phone: string | null;
+  residence_unit: string | null;
+  facility: string | null;
+  current_status: string | null;
+  overdue_count: number;
+  next_due_date: string | null;
+};
+
 type PaginatedResponse<T> = {
   count: number;
   next: string | null;
@@ -250,6 +265,34 @@ export function listPatientSchedule(token: string, patientId: string) {
     method: "GET",
     token,
   });
+}
+
+export function listDefaulterPatients(
+  token: string,
+  filters: { facility?: string; all?: boolean } = {},
+) {
+  return apiRequest<DefaulterPatient[]>(
+    withQuery("/patients/defaulters/", {
+      facility: filters.facility,
+      all: filters.all ? "true" : undefined,
+    }),
+    { method: "GET", token },
+  );
+}
+
+export function sendPatientReminder(
+  token: string,
+  patientId: string,
+  message?: string,
+) {
+  return apiRequest<{ notification_id: string; phone_number: string; message_body: string; status: string }>(
+    `/patients/${patientId}/send-reminder/`,
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(message ? { message } : {}),
+    },
+  );
 }
 
 export function getPatientScheduleSlot(

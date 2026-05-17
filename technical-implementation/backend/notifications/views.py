@@ -12,6 +12,7 @@ import logging
 
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -23,7 +24,7 @@ from notifications.serializers import (
     SmsNotificationListSerializer,
     SmsNotificationSerializer,
 )
-from users.permissions import IsAdmin, IsHealthWorker
+from users.permissions import CAREGIVER, PATIENT, IsAdmin, IsHealthWorker, _role_code
 
 logger = logging.getLogger('nvoms.notifications')
 
@@ -33,10 +34,18 @@ class NotificationListView(APIView):
     GET  – list notifications (supports ?status=, ?patient=, ?notification_type= filters)
     POST – create and queue a manual SMS notification
     """
-    permission_classes = [IsHealthWorker]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsHealthWorker()]
 
     def get(self, request):
         qs = SmsNotification.objects.select_related('caregiver', 'patient').order_by('-created_at')
+        role = _role_code(request.user)
+        if role == PATIENT:
+            qs = qs.filter(patient__user_account=request.user)
+        elif role == CAREGIVER:
+            qs = qs.filter(caregiver__user_account=request.user)
 
         # Simple query-param filters
         status_filter = request.query_params.get('status')
@@ -102,12 +111,16 @@ class SmsLogListView(NotificationListView):
 
 class NotificationDetailView(APIView):
     """GET – retrieve a single SmsNotification with its delivery attempt history."""
-    permission_classes = [IsHealthWorker]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
-        notification = get_object_or_404(
-            SmsNotification.objects.prefetch_related('attempts'), pk=pk
-        )
+        qs = SmsNotification.objects.prefetch_related('attempts')
+        role = _role_code(request.user)
+        if role == PATIENT:
+            qs = qs.filter(patient__user_account=request.user)
+        elif role == CAREGIVER:
+            qs = qs.filter(caregiver__user_account=request.user)
+        notification = get_object_or_404(qs, pk=pk)
         return Response(SmsNotificationSerializer(notification).data)
 
 
