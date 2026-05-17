@@ -10,7 +10,13 @@ from immunizations.views import (
     PatientVaccinationHistoryView,
 )
 from patients.me_views import PatientMeDosesView, PatientMeScheduleView, PatientMeView
-from patients.views import PatientDetailView, PatientListView, PatientSummaryView
+from patients.views import (
+    DefaulterListView,
+    PatientDetailView,
+    PatientListView,
+    PatientSendReminderView,
+    PatientSummaryView,
+)
 
 urlpatterns = [
     # Patient self-service (must appear before <uuid:pk>)
@@ -21,8 +27,10 @@ urlpatterns = [
     path('me/doses', PatientMeDosesView.as_view(), name='patient-me-doses'),
     # Staff-managed patient endpoints
     path('', PatientListView.as_view(), name='patient-list'),
+    path('defaulters/', DefaulterListView.as_view(), name='patient-defaulter-list'),
     path('<uuid:pk>', PatientDetailView.as_view(), name='patient-detail'),
     path('<uuid:pk>/summary', PatientSummaryView.as_view(), name='patient-summary'),
+    path('<uuid:pk>/send-reminder/', PatientSendReminderView.as_view(), name='patient-send-reminder'),
     # schedule
     path('<uuid:pk>/schedule', PatientScheduleListView.as_view(), name='patient-schedule-list'),
     path('<uuid:pk>/schedule/regenerate', PatientScheduleRegenerateView.as_view(), name='patient-schedule-regenerate'),

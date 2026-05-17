@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date as date_type, timedelta
 
 from django.db.models import Count, Max, Q
 from django.db.models.functions import TruncDay, TruncMonth, TruncWeek
@@ -9,8 +9,10 @@ from rest_framework.views import APIView
 
 from geography.models import AdministrativeUnit
 from immunizations.models import ImmunizationEvent, PatientVaccinationSchedule
+from patients.models import Patient, PatientImmunizationStatus
 from surveillance.models import SurveillanceReport
-from users.permissions import IsPublicHealthOfficial
+from users.models import User
+from users.permissions import IsAdmin, IsHealthWorker, IsPublicHealthOfficial
 
 
 class VaccineCoverageView(APIView):
@@ -453,3 +455,210 @@ class VaccineCoverageByRegionView(APIView):
             },
             'regions': results,
         })
+
+
+class AdminDashboardView(APIView):
+    """Summary metrics for the admin home screen."""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        total_patients = Patient.objects.exclude(
+            status__in=[Patient.Status.MERGED, Patient.Status.INACTIVE]
+        ).count()
+        total_users = User.objects.exclude(status=User.Status.DELETED).count()
+        total_with_status = PatientImmunizationStatus.objects.count()
+        active_defaulters = PatientImmunizationStatus.objects.filter(
+            current_status__in=[
+                PatientImmunizationStatus.CurrentStatus.DEFAULTER,
+                PatientImmunizationStatus.CurrentStatus.OVERDUE,
+            ]
+        ).count()
+        defaulter_pct = round(active_defaulters / total_with_status * 100, 1) if total_with_status else 0.0
+        role_breakdown = (
+            User.objects.exclude(status=User.Status.DELETED)
+            .values('role__role_code', 'role__role_name')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+
+        return Response({
+            'generated_at': timezone.now().isoformat(),
+            'total_patients': total_patients,
+            'total_users': total_users,
+            'active_defaulters': active_defaulters,
+            'defaulter_pct': defaulter_pct,
+            'users_by_role': [
+                {
+                    'role_code': row['role__role_code'],
+                    'role_name': row['role__role_name'],
+                    'count': row['count'],
+                }
+                for row in role_breakdown
+            ],
+        })
+
+
+class HwDashboardView(APIView):
+    """Facility-scoped summary metrics for health workers."""
+
+    permission_classes = [IsHealthWorker]
+
+    def get(self, request):
+        date_str = request.query_params.get('date')
+        try:
+            report_date = date_type.fromisoformat(date_str) if date_str else timezone.now().date()
+        except ValueError:
+            return Response({'date': 'Invalid format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        facility = request.user.assigned_facility
+        patient_qs = Patient.objects.exclude(
+            status__in=[Patient.Status.MERGED, Patient.Status.INACTIVE]
+        )
+        if facility:
+            patient_qs = patient_qs.filter(registered_facility=facility)
+
+        slot_qs = PatientVaccinationSchedule.objects.filter(patient__in=patient_qs)
+        upcoming_today = slot_qs.filter(
+            due_date=report_date,
+            status__in=[
+                PatientVaccinationSchedule.SlotStatus.DUE_TODAY,
+                PatientVaccinationSchedule.SlotStatus.DUE_SOON,
+                PatientVaccinationSchedule.SlotStatus.SCHEDULED,
+                PatientVaccinationSchedule.SlotStatus.PENDING,
+            ],
+        ).count()
+        daily_doses = ImmunizationEvent.objects.filter(
+            patient__in=patient_qs,
+            administered_at__date=report_date,
+            event_status=ImmunizationEvent.EventStatus.ADMINISTERED,
+        ).count()
+        defaulter_patient_ids = list(
+            slot_qs.filter(
+                status__in=[
+                    PatientVaccinationSchedule.SlotStatus.DEFAULTER,
+                    PatientVaccinationSchedule.SlotStatus.OVERDUE,
+                ]
+            ).values_list('patient_id', flat=True).distinct()
+        )
+        defaulter_patients = (
+            patient_qs.filter(id__in=defaulter_patient_ids)
+            .select_related('primary_caregiver', 'immunization_status')
+            .order_by('first_name')[:20]
+        )
+
+        return Response({
+            'generated_at': timezone.now().isoformat(),
+            'report_date': report_date.isoformat(),
+            'facility_id': str(facility.id) if facility else None,
+            'facility_name': facility.facility_name if facility else None,
+            'total_patients': patient_qs.count(),
+            'upcoming_today': upcoming_today,
+            'daily_doses_administered': daily_doses,
+            'defaulter_count': len(defaulter_patient_ids),
+            'defaulter_list': [_patient_defaulter_payload(patient) for patient in defaulter_patients],
+        })
+
+
+class PhoDashboardView(APIView):
+    """High-level metrics for public health officials."""
+
+    permission_classes = [IsPublicHealthOfficial]
+
+    def get(self, request):
+        total_doses = ImmunizationEvent.objects.filter(
+            event_status=ImmunizationEvent.EventStatus.ADMINISTERED
+        ).count()
+        total_with_status = PatientImmunizationStatus.objects.count()
+        active_defaulters = PatientImmunizationStatus.objects.filter(
+            current_status__in=[
+                PatientImmunizationStatus.CurrentStatus.DEFAULTER,
+                PatientImmunizationStatus.CurrentStatus.OVERDUE,
+            ]
+        ).count()
+        zero_dose = PatientImmunizationStatus.objects.filter(is_zero_dose=True).count()
+        defaulter_pct = round(active_defaulters / total_with_status * 100, 1) if total_with_status else 0.0
+        total_patients = Patient.objects.exclude(
+            status__in=[Patient.Status.MERGED, Patient.Status.INACTIVE]
+        ).count()
+
+        return Response({
+            'generated_at': timezone.now().isoformat(),
+            'total_patients': total_patients,
+            'total_doses_administered': total_doses,
+            'active_defaulters': active_defaulters,
+            'defaulter_pct': defaulter_pct,
+            'zero_dose_children': zero_dose,
+        })
+
+
+class DailyVaccinationReportView(APIView):
+    """Daily administered-dose report, optionally scoped by facility."""
+
+    permission_classes = [IsHealthWorker]
+
+    def get(self, request):
+        date_str = request.query_params.get('date')
+        try:
+            report_date = date_type.fromisoformat(date_str) if date_str else timezone.now().date()
+        except ValueError:
+            return Response({'date': 'Invalid format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        event_qs = ImmunizationEvent.objects.filter(
+            administered_at__date=report_date,
+            event_status=ImmunizationEvent.EventStatus.ADMINISTERED,
+        ).select_related('vaccine', 'vaccine__antigen')
+
+        facility = request.user.assigned_facility
+        facility_id_param = request.query_params.get('facility')
+        if facility_id_param:
+            event_qs = event_qs.filter(facility_id=facility_id_param)
+        elif facility:
+            event_qs = event_qs.filter(facility=facility)
+
+        by_vaccine = (
+            event_qs.values(
+                'vaccine__vaccine_code',
+                'vaccine__vaccine_name',
+                'vaccine__antigen__name',
+            )
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+        rows = list(by_vaccine)
+
+        return Response({
+            'report_date': report_date.isoformat(),
+            'facility_id': str(facility.id) if facility else None,
+            'facility_name': facility.facility_name if facility else None,
+            'total_doses': sum(row['count'] for row in rows),
+            'by_vaccine': [
+                {
+                    'vaccine_code': row['vaccine__vaccine_code'],
+                    'vaccine_name': row['vaccine__vaccine_name'],
+                    'antigen_name': row['vaccine__antigen__name'],
+                    'doses_administered': row['count'],
+                }
+                for row in rows
+            ],
+        })
+
+
+def _patient_defaulter_payload(patient):
+    immunization = getattr(patient, 'immunization_status', None)
+    caregiver = patient.primary_caregiver
+    return {
+        'patient_id': str(patient.id),
+        'uid': patient.uid,
+        'full_name': patient.full_name,
+        'date_of_birth': patient.date_of_birth.isoformat(),
+        'caregiver_name': caregiver.full_name if caregiver else None,
+        'caregiver_phone': caregiver.phone_number if caregiver else None,
+        'current_status': immunization.current_status if immunization else None,
+        'overdue_count': immunization.overdue_count if immunization else 0,
+        'next_due_date': (
+            immunization.next_due_date.isoformat()
+            if immunization and immunization.next_due_date
+            else None
+        ),
+    }

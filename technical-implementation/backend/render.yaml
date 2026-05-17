@@ -1,0 +1,75 @@
+services:
+  - type: web
+    name: nvoms-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/schema/
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: nvoms.settings
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: SMS_GATEWAY_URL
+        value: https://api.sms-gate.app/3rdparty/v1/message
+      - key: SMS_GATEWAY_LOGIN
+        sync: false
+      - key: SMS_GATEWAY_PASSWORD
+        sync: false
+      - key: SMS_MAX_RETRIES
+        value: "3"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+  - type: worker
+    name: nvoms-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    startCommand: celery -A nvoms worker --loglevel=info --concurrency=2
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: nvoms.settings
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: SMS_GATEWAY_URL
+        value: https://api.sms-gate.app/3rdparty/v1/message
+      - key: SMS_GATEWAY_LOGIN
+        sync: false
+      - key: SMS_GATEWAY_PASSWORD
+        sync: false
+      - key: SMS_MAX_RETRIES
+        value: "3"
+
+  - type: worker
+    name: nvoms-beat
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    startCommand: celery -A nvoms beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: nvoms.settings
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        sync: false

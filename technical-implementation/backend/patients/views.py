@@ -8,6 +8,7 @@ from core.audit import write_audit_log
 from core.models import AuditLog
 from immunizations.serializers import PatientDiseaseScheduleSerializer
 from immunizations.services import ensure_patient_disease_schedules
+from notifications.models import MessageTemplate, SmsNotification
 from patients.models import Caregiver, Patient, PatientImmunizationStatus
 from patients.serializers import (
     CaregiverSerializer,
@@ -182,6 +183,132 @@ class CaregiverDetailView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
         return Response(serializer.data)
+
+
+class DefaulterListView(APIView):
+    """List patients with overdue or defaulter immunization status."""
+
+    permission_classes = [IsHealthWorker]
+
+    def get(self, request):
+        qs = (
+            Patient.objects.select_related(
+                'primary_caregiver',
+                'residence_unit',
+                'registered_facility',
+                'immunization_status',
+            )
+            .filter(
+                immunization_status__current_status__in=[
+                    PatientImmunizationStatus.CurrentStatus.DEFAULTER,
+                    PatientImmunizationStatus.CurrentStatus.OVERDUE,
+                ]
+            )
+            .exclude(status__in=[Patient.Status.MERGED, Patient.Status.INACTIVE])
+        )
+
+        facility_param = request.query_params.get('facility')
+        if facility_param:
+            qs = qs.filter(registered_facility_id=facility_param)
+        elif request.user.assigned_facility and request.query_params.get('all') != 'true':
+            qs = qs.filter(registered_facility=request.user.assigned_facility)
+
+        return Response([
+            _defaulter_patient_payload(patient)
+            for patient in qs.order_by('first_name')
+        ])
+
+
+class PatientSendReminderView(APIView):
+    """Queue a manual SMS reminder to the patient's primary caregiver."""
+
+    permission_classes = [IsHealthWorker]
+
+    def post(self, request, pk):
+        patient = get_object_or_404(
+            Patient.objects.select_related(
+                'primary_caregiver',
+                'immunization_status',
+                'registered_facility',
+            ),
+            pk=pk,
+        )
+        caregiver = patient.primary_caregiver
+        facility_name = (
+            patient.registered_facility.facility_name
+            if patient.registered_facility
+            else 'your nearest health facility'
+        )
+        immunization = getattr(patient, 'immunization_status', None)
+        custom_message = request.data.get('message')
+
+        if custom_message:
+            message_body = custom_message
+        else:
+            language = caregiver.preferred_language or 'en'
+            template = (
+                MessageTemplate.objects.filter(template_code=f'missed_{language}_v1', is_active=True).first()
+                or MessageTemplate.objects.filter(template_code='missed_en_v1', is_active=True).first()
+            )
+            if template:
+                next_due = (
+                    immunization.next_due_date.isoformat()
+                    if immunization and immunization.next_due_date
+                    else 'N/A'
+                )
+                message_body = template.render({
+                    'caregiver_name': caregiver.full_name,
+                    'patient_name': patient.full_name,
+                    'vaccine_name': 'scheduled vaccines',
+                    'due_date': next_due,
+                    'facility_name': facility_name,
+                })
+            else:
+                message_body = (
+                    f'Dear {caregiver.full_name}, {patient.full_name} has missed '
+                    f'scheduled vaccinations. Please visit {facility_name}. - NVOMS'
+                )
+
+        notification = SmsNotification.objects.create(
+            caregiver=caregiver,
+            patient=patient,
+            notification_type=SmsNotification.NotificationType.MANUAL,
+            phone_number=caregiver.phone_number,
+            language_code=caregiver.preferred_language or 'en',
+            message_body=message_body,
+            priority=2,
+            status=SmsNotification.DeliveryStatus.QUEUED,
+        )
+
+        return Response({
+            'notification_id': str(notification.id),
+            'phone_number': notification.phone_number,
+            'message_body': notification.message_body,
+            'status': notification.status,
+        }, status=status.HTTP_201_CREATED)
+
+
+def _defaulter_patient_payload(patient):
+    immunization = getattr(patient, 'immunization_status', None)
+    caregiver = patient.primary_caregiver
+    return {
+        'patient_id': str(patient.id),
+        'uid': patient.uid,
+        'full_name': patient.full_name,
+        'date_of_birth': patient.date_of_birth.isoformat(),
+        'sex': patient.sex,
+        'caregiver_name': caregiver.full_name if caregiver else None,
+        'caregiver_phone': caregiver.phone_number if caregiver else None,
+        'residence_unit': patient.residence_unit.name if patient.residence_unit else None,
+        'facility': patient.registered_facility.facility_name if patient.registered_facility else None,
+        'current_status': immunization.current_status if immunization else None,
+        'overdue_count': immunization.overdue_count if immunization else 0,
+        'next_due_date': (
+            immunization.next_due_date.isoformat()
+            if immunization and immunization.next_due_date
+            else None
+        ),
+    }
 
     def patch(self, request, pk):
         caregiver = self._get_caregiver(pk)
